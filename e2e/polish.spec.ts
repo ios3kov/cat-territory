@@ -41,3 +41,6 @@ test('cold generation is deterministic and upgrades the persisted cache',async({
 test('double tap cat and all auto marks undo together; wrong cats do not fill paws',async({page})=>{
  await start(page);await page.locator('.board-assembling').waitFor({state:'detached'});const before=await page.locator('.mark-x').count();await page.locator('[data-cell-index="5"]').dblclick({delay:100});await page.waitForTimeout(450);await expect(page.locator('[data-cell-index="5"] .cat-face')).toHaveCount(1);await page.getByRole('button',{name:'Undo'}).click();await expect(page.locator('.mark-x')).toHaveCount(before);await page.locator('[data-cell-index="0"]').click({button:'right'});await expect(page.locator('.paw-progress-icon.filled')).toHaveCount(1);
 });
+test('Daily displays a broken streak as zero',async({page})=>{
+ await page.addInitScript(()=>localStorage.setItem('cat-territory-daily-progress-v1',JSON.stringify({lastCompletedKey:'2000-01-01',currentStreak:7,bestStreak:7,completedKeys:['2000-01-01']})));await start(page);await page.getByRole('button',{name:'Open Daily Territory'}).click();await expect(page.locator('.daily-subtitle')).toContainText('streak 0');
+});
