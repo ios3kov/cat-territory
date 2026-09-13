@@ -1,7 +1,7 @@
 name: verify
 on:
   push:
-    branches: [migration-1.1.7]
+    branches: [main, migration-1.1.7]
   workflow_dispatch:
 jobs:
   verify:
