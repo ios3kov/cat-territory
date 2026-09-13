@@ -1,5 +1,5 @@
 import type { CatalogLevel } from './levelCatalog';
-export { CURATED_LEVEL_COUNT, getDailyLevel, getLevel, levelSizeAt, prewarmLevel } from './infiniteLevels';
+export { CURATED_LEVEL_COUNT, getDailyLevel, getLevel, levelSizeAt, prewarmLevel, prepareLevel } from './levelResource';
 export type CellState = 0 | 1 | 2;
 export type Level = CatalogLevel;
 export const HISTORY_LIMIT = 40;
@@ -34,3 +34,4 @@ export function applySmartMarks(level:Level,board:CellState[],catIndex:number){c
 export function createInitialBoard(level:Level){let board=emptyBoard(level.size);for(const catIndex of level.starterCats)board=applySmartMarks(level,board,catIndex);return board;}
 export function boardsEqual(first:CellState[],second:CellState[]){return first.length===second.length&&first.every((value,index)=>value===second[index]);}
 export function findConflicts(board:CellState[],level:Level){const conflicts=new Set<number>();const cats=board.flatMap((value,index)=>(value===2?[index]:[]));for(let a=0;a<cats.length;a++)for(let b=a+1;b<cats.length;b++)if(isBlockedByCat(level,cats[a],cats[b])){conflicts.add(cats[a]);conflicts.add(cats[b]);}return conflicts;}
+
