@@ -1,0 +1,8 @@
+# CAT TERRITORY 1.1.7 acceptance
+
+1. Core play: tap X, double/right-click cat, swipe marks, wrong-cat feedback, Smart Auto-X sequential wave, one Undo reverses cat + full wave.
+2. Win: reward, optional Personal Best, subdued stats and exactly one `Next level` CTA; no chapter/size transition plaque and no dynamic `Start N×N` label.
+3. Territory colors: every level computes a deterministic adjacency-aware pastel mapping; neighboring regions use different, perceptually separated palette choices; paw progress uses the same mapping.
+4. Keyboard: initial roving focus lands on an enabled cell and directional movement skips disabled starter cats; Enter/Space marks X and C toggles cat.
+5. Daily/Endless: persistence, Hint, three-mistake restart, Daily fullscreen mode and generated 8×8–10×10 levels remain functional.
+6. Release gate: npm install, npm run typecheck, npm run build and npm run test:e2e must all pass before merging migration-1.1.7 into main.
