@@ -1,7 +1,9 @@
 name: verify
 on:
   push:
-    branches: [main, migration-1.1.7]
+    branches: [main, polish/production]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 jobs:
   verify:
