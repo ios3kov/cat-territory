@@ -1,0 +1,3 @@
+{
+  "name":"CAT TERRITORY","short_name":"CAT TERRITORY","description":"A clean, mobile-first cat territory logic puzzle.","start_url":"./","scope":"./","display":"standalone","background_color":"#f7f3ec","theme_color":"#f7f3ec","icons":[{"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
