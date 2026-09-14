@@ -1,4 +1,9 @@
-import { test as base, expect, type Page } from "@playwright/test";
+import {
+  test as base,
+  expect,
+  type Page,
+  type BrowserContext,
+} from "@playwright/test";
 import { createServer } from "node:http";
 import { cp, readFile, readdir, writeFile, rename } from "node:fs/promises";
 import { resolve, extname, join } from "node:path";
@@ -6,6 +11,7 @@ import { buildOfflineWorker } from "../scripts/build-offline-worker.mjs";
 
 type Site = {
   url: string;
+  disconnect: () => void;
   release: (name: string, failAsset?: boolean) => Promise<void>;
 };
 const test = base.extend<{ site: Site }>({
@@ -57,7 +63,12 @@ const test = base.extend<{ site: Site }>({
       active = dir;
     }
     await release("initial");
+    let disconnected = false;
     const server = createServer(async (req, res) => {
+      if (disconnected) {
+        req.socket.destroy();
+        return;
+      }
       try {
         const pathname = new URL(req.url!, "http://localhost").pathname;
         if (pathname === blocked) {
@@ -91,7 +102,14 @@ const test = base.extend<{ site: Site }>({
     await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
     const address = server.address() as { port: number };
     try {
-      await use({ url: `http://127.0.0.1:${address.port}`, release });
+      await use({
+        url: `http://127.0.0.1:${address.port}`,
+        release,
+        disconnect() {
+          disconnected = true;
+          server.closeAllConnections();
+        },
+      });
     } finally {
       await new Promise<void>((r) => server.close(() => r()));
     }
@@ -119,10 +137,28 @@ async function releaseName(page: Page) {
   return page.locator('meta[name="test-release"]').getAttribute("content");
 }
 
+// WebKit's Playwright offline emulation cannot reliably reload controlled pages.
+// Remove the actual origin instead, and independently prove it is unreachable.
+async function goOffline(
+  context: BrowserContext,
+  site: Site,
+  browserName: string,
+) {
+  if (browserName === "webkit") {
+    site.disconnect();
+    await expect(
+      fetch(site.url, { signal: AbortSignal.timeout(5000) }),
+    ).rejects.toThrow();
+  } else {
+    await context.setOffline(true);
+  }
+}
+
 test("first visit supports offline reload and unopened screens", async ({
   page,
   context,
   site,
+  browserName,
 }) => {
   await page.goto(site.url);
   await expect(page.getByRole("grid")).toBeVisible();
@@ -138,7 +174,7 @@ test("first visit supports offline reload and unopened screens", async ({
       ),
     )
     .toBe(true);
-  await context.setOffline(true);
+  await goOffline(context, site, browserName);
   await page.reload();
   await expect(page.getByRole("grid")).toBeVisible();
   expect(
@@ -159,6 +195,7 @@ test("new release waits for old tabs and retains progress", async ({
   page,
   context,
   site,
+  browserName,
 }) => {
   await page.goto(site.url);
   await ready(page);
@@ -198,7 +235,7 @@ test("new release waits for old tabs and retains progress", async ({
     keys.filter((k) => k.startsWith("cat-territory-release-")),
   ).toHaveLength(1);
   expect(keys).toContain("unrelated-cache");
-  await context.setOffline(true);
+  await goOffline(context, site, browserName);
   await fresh.reload();
   await expect(fresh.getByRole("grid")).toBeVisible();
   await fresh.getByRole("button", { name: "Open Daily Territory" }).click();
@@ -209,6 +246,7 @@ test("incomplete update preserves the working offline release", async ({
   page,
   context,
   site,
+  browserName,
 }) => {
   await page.goto(site.url);
   await ready(page);
@@ -234,7 +272,7 @@ test("incomplete update preserves the working offline release", async ({
   });
   expect(status).toBe("redundant");
   expect(await page.evaluate(() => caches.keys())).toEqual(before);
-  await context.setOffline(true);
+  await goOffline(context, site, browserName);
   await page.reload();
   await expect(page.getByRole("grid")).toBeVisible();
   expect(await releaseName(page)).toBe("initial");
