@@ -44,14 +44,18 @@ function sessionId() {
       cached = existing;
       return existing;
     }
-  } catch {}
+  } catch {
+    /* Session storage may be disabled; keep the in-memory session ID. */
+  }
   const next =
     crypto.randomUUID?.() ??
     `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   cached = next;
   try {
     sessionStorage.setItem(SESSION, next);
-  } catch {}
+  } catch {
+    /* Session storage may be disabled; keep the in-memory session ID. */
+  }
   return next;
 }
 export function trackGameplayEvent(

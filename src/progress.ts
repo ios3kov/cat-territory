@@ -7,7 +7,7 @@ const V2_MIGRATION_KEY = 'cat-territory-progress-migrated-v2';
 const LEGACY_UNLOCKED_KEY = 'cat-territory-unlocked-level-v1';
 function migrateProgress() {
   if (storageGet(MIGRATION_KEY) === '1') return;
-  let current = 0;
+  let current: number;
   if (storageGet(V2_MIGRATION_KEY) === '1') {
     const v2Current = Number(storageGet(V2_CURRENT_LEVEL_KEY) ?? '0');
     current = Number.isInteger(v2Current) ? Math.max(0, v2Current) : 0;

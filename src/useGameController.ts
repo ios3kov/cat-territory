@@ -1,3 +1,6 @@
+import { useRestartConfirmation } from './useRestartConfirmation';
+import { usePuzzleHints } from './usePuzzleHints';
+import { useGameClock } from './useGameClock';
 import { useBoardState } from './useBoardState';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -18,14 +21,8 @@ import {
   type CellState,
 } from './game';
 import { haptic } from './haptics';
-import { getLogicalHint, type LogicalHint } from './logicalEngine';
 import { completeLevel, readUnlockedLevel } from './progress';
-import {
-  getFinishGrade,
-  getScoreBreakdown,
-  type FinishGrade,
-  type ScoreBreakdown,
-} from './score';
+import { getSolveResult, type SolveResult } from './score';
 import { clearTimer, runWhenIdle, scheduleTimer } from './scheduler';
 import { clearLevelSession, loadLevelSession } from './session';
 import { useBoardGestures } from './useBoardGestures';
@@ -38,15 +35,7 @@ type InitialGameState = {
   level: ReturnType<typeof getLevel>;
   session: ReturnType<typeof loadLevelSession>;
 };
-export type CompletionSummary = {
-  grade: FinishGrade;
-  score: number;
-  breakdown: ScoreBreakdown;
-  seconds: number;
-  mistakes: number;
-  usedHint: boolean;
-  personalBest: boolean;
-};
+export type CompletionSummary = SolveResult & { personalBest: boolean };
 function createInitialGameState(): InitialGameState {
   const unlockedLevelIndex = readUnlockedLevel(),
     level = getLevel(unlockedLevelIndex);
@@ -73,13 +62,7 @@ export function useGameController() {
     [history, setHistory] = useState<CellState[][]>(
       initial.session?.history ?? [],
     ),
-    [restartArmed, setRestartArmed] = useState(false),
-    [seconds, setSeconds] = useState(initial.session?.seconds ?? 0),
-    [timerStarted, setTimerStarted] = useState(
-      initial.session?.started ?? false,
-    ),
     [mistakes, setMistakes] = useState(initial.session?.mistakes ?? 0),
-    [usedHint, setUsedHint] = useState(initial.session?.usedHint ?? false),
     [mistakeNotice, setMistakeNotice] = useState<string | null>(null),
     [mistakeCell, setMistakeCell] = useState<number | null>(null),
     [correctCell, setCorrectCell] = useState<number | null>(null),
@@ -88,19 +71,33 @@ export function useGameController() {
     [restartingFromMistakes, setRestartingFromMistakes] = useState(false),
     [won, setWon] = useState(false),
     [winDialogReady, setWinDialogReady] = useState(false),
-    [hintInfo, setHintInfo] = useState<LogicalHint | null>(null),
-    [hintRevealed, setHintRevealed] = useState(false),
     [idleHelpVisible, setIdleHelpVisible] = useState(false),
     [achievementQueue, setAchievementQueue] = useState<Achievement[]>([]),
     [achievementCount, setAchievementCount] = useState(
       () => getAchievementSnapshot().filter((i) => i.unlocked).length,
     ),
     cellFeedback = useCellFeedback();
-  const startedAt = useRef(Date.now() - seconds * 1000),
-    timerStartedRef = useRef(timerStarted),
-    mistakesRef = useRef(mistakes),
-    usedHintRef = useRef(usedHint),
-    restartTimer = useRef<number | null>(null),
+  const {
+    armed: restartArmed,
+    cancel: cancelRestart,
+    confirm: confirmRestart,
+  } = useRestartConfirmation();
+  const {
+    usedHint,
+    getUsedHint,
+    hintInfo,
+    hintRevealed,
+    dismissHint,
+    resetHints,
+    requestHint,
+  } = usePuzzleHints(initial.session?.usedHint);
+  const {
+    seconds,
+    started: timerStarted,
+    start: startTimer,
+    restore: restoreClock,
+  } = useGameClock(initial.session, won || restartingFromMistakes);
+  const mistakesRef = useRef(mistakes),
     idleHelpTimer = useRef<number | null>(null),
     mistakeRestartTimer = useRef<number | null>(null),
     mistakeFeedbackTimer = useRef<number | null>(null),
@@ -132,13 +129,7 @@ export function useGameController() {
     usedHint,
     persist: shouldPersist,
   });
-  const startTimer = () => {
-      if (timerStartedRef.current) return;
-      timerStartedRef.current = true;
-      startedAt.current = Date.now() - seconds * 1000;
-      setTimerStarted(true);
-    },
-    track = (name: Parameters<typeof trackGameplayEvent>[0]) =>
+  const track = (name: Parameters<typeof trackGameplayEvent>[0]) =>
       trackGameplayEvent(name, level.id, levelIndex, seconds),
     showMistakeNotice = (message: string, duration = 1200) => {
       setMistakeNotice(message);
@@ -180,11 +171,6 @@ export function useGameController() {
       520,
     );
   };
-  const dismissHint = () => {
-    if (!hintInfo && !hintRevealed) return;
-    setHintInfo(null);
-    setHintRevealed(false);
-  };
   const gestures = useBoardGestures({
     board,
     level,
@@ -220,7 +206,6 @@ export function useGameController() {
     gestures.resetInteraction();
     cellFeedback.clear();
     [
-      restartTimer,
       mistakeRestartTimer,
       mistakeFeedbackTimer,
       correctFeedbackTimer,
@@ -232,21 +217,15 @@ export function useGameController() {
     setWon(false);
     setWinDialogReady(false);
     setCompletionSummary(null);
-    setRestartArmed(false);
-    setHintInfo(null);
-    setHintRevealed(false);
-    setSeconds(0);
-    timerStartedRef.current = false;
-    setTimerStarted(false);
+    cancelRestart();
+    restoreClock();
     mistakesRef.current = 0;
     setMistakes(0);
-    usedHintRef.current = false;
-    setUsedHint(false);
+    resetHints();
     setIdleHelpVisible(false);
     setMistakeCell(null);
     setCorrectCell(null);
     setRestartingFromMistakes(false);
-    startedAt.current = Date.now();
     trackedFirstMoveRef.current = null;
     if (fromMistakes)
       showMistakeNotice('Three mistakes — level restarted.', 1600);
@@ -263,10 +242,9 @@ export function useGameController() {
     return runWhenIdle(() => prewarmLevel(levelIndex + 1), 5000, 2500);
   }, [level.id, levelIndex]);
   useEffect(() => {
-    setHintInfo(null);
-    setHintRevealed(false);
-    setRestartArmed(false);
-  }, [board, levelIndex]);
+    dismissHint();
+    cancelRestart();
+  }, [board, levelIndex, dismissHint, cancelRestart]);
   useEffect(() => {
     setIdleHelpVisible(false);
     clearTimer(idleHelpTimer);
@@ -278,16 +256,6 @@ export function useGameController() {
     return () => clearTimer(idleHelpTimer);
   }, [board, levelIndex, timerStarted, won, restartingFromMistakes]);
   useEffect(() => {
-    if (won || !timerStarted || restartingFromMistakes) return;
-    const update = () => {
-      if (document.visibilityState === 'visible')
-        setSeconds(Math.floor((Date.now() - startedAt.current) / 1000));
-    };
-    update();
-    const timer = window.setInterval(update, 1000);
-    return () => clearInterval(timer);
-  }, [levelIndex, timerStarted, won, restartingFromMistakes]);
-  useEffect(() => {
     if (!solved || won) return;
     setWon(true);
     setWinDialogReady(false);
@@ -296,22 +264,7 @@ export function useGameController() {
     clearLevelSession(level.id);
     const previousBest = getBestTimeForSize(level.size),
       summary: CompletionSummary = {
-        grade: getFinishGrade(mistakes, usedHintRef.current),
-        score: getScoreBreakdown(
-          level.size,
-          seconds,
-          mistakes,
-          usedHintRef.current,
-        ).total,
-        breakdown: getScoreBreakdown(
-          level.size,
-          seconds,
-          mistakes,
-          usedHintRef.current,
-        ),
-        seconds,
-        mistakes,
-        usedHint: usedHintRef.current,
+        ...getSolveResult(level.size, seconds, mistakes, getUsedHint()),
         personalBest: previousBest === null || seconds < previousBest,
       };
     setCompletionSummary(summary);
@@ -323,7 +276,7 @@ export function useGameController() {
       size: level.size,
       seconds,
       mistakes,
-      usedHint: usedHintRef.current,
+      usedHint: getUsedHint(),
     });
     setAchievementCount(
       getAchievementSnapshot().filter((i) => i.unlocked).length,
@@ -365,7 +318,6 @@ export function useGameController() {
       gestures.resetInteraction();
       cellFeedback.clear();
       [
-        restartTimer,
         idleHelpTimer,
         mistakeRestartTimer,
         mistakeFeedbackTimer,
@@ -393,17 +345,11 @@ export function useGameController() {
       if (restartingFromMistakes || mistakeCell !== null) return;
       const has =
         !boardsEqual(board, pristineBoard) || mistakes > 0 || usedHint;
-      if (!restartArmed && has) {
-        setRestartArmed(true);
+      if (!has) return;
+      if (!confirmRestart()) {
         track('restart_arm');
-        clearTimer(restartTimer);
-        restartTimer.current = window.setTimeout(
-          () => setRestartArmed(false),
-          2200,
-        );
         return;
       }
-      if (!has) return;
       track('restart_confirm');
       playSound('restart');
       haptic('restart');
@@ -412,35 +358,17 @@ export function useGameController() {
     hint = () => {
       if (won || restartingFromMistakes || mistakeCell !== null) return;
       startTimer();
-      if (!usedHintRef.current) {
-        usedHintRef.current = true;
-        setUsedHint(true);
-      }
       gestures.resetInteraction();
-      if (hintInfo) {
-        if (!hintRevealed && hintInfo.cell >= 0) {
-          playSound('reveal');
-          haptic('reveal');
-          setHintRevealed(true);
-          track('hint_reveal');
-        }
-        return;
+      const action = requestHint(
+        level,
+        board,
+        'No forced move is available from the current marks. Recheck the board and clear any uncertain X marks.',
+      );
+      if (action === 'reveal') track('hint_reveal');
+      if (action === 'open') {
+        track('hint_open');
+        setIdleHelpVisible(false);
       }
-      playSound('hint');
-      haptic('hint');
-      track('hint_open');
-      setIdleHelpVisible(false);
-      const next = getLogicalHint(level.regions, board) ?? {
-        kind: 'repair' as const,
-        cell: -1,
-        highlight: [],
-        prompt: 'No forced move is visible from the current marks.',
-        reason:
-          'No forced move is available from the current marks. Recheck the board and clear any uncertain X marks.',
-        technique: 'repair' as const,
-      };
-      setHintInfo(next);
-      if (next.cell < 0) setHintRevealed(true);
     },
     refreshAchievementCount = () =>
       setAchievementCount(
@@ -465,21 +393,15 @@ export function useGameController() {
       setWon(false);
       setWinDialogReady(false);
       setCompletionSummary(null);
-      setRestartArmed(false);
-      setHintInfo(null);
-      setHintRevealed(false);
+      cancelRestart();
       setMistakeNotice(null);
       setMistakeCell(null);
       setCorrectCell(null);
       setRestartingFromMistakes(false);
-      setSeconds(restoredSeconds);
-      timerStartedRef.current = restoredStarted;
-      setTimerStarted(restoredStarted);
+      restoreClock(restoredSeconds, restoredStarted);
       mistakesRef.current = restoredMistakes;
       setMistakes(restoredMistakes);
-      usedHintRef.current = restoredHint;
-      setUsedHint(restoredHint);
-      startedAt.current = Date.now() - restoredSeconds * 1000;
+      resetHints(restoredHint);
       trackedFirstMoveRef.current = null;
     },
     receiveAchievements = (items: Achievement[]) => {

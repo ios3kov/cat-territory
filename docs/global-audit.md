@@ -50,7 +50,7 @@ Reproduce: `npm ci`, `npx playwright install chromium`, `npm run typecheck`, `np
 
 - Chromium desktop and Pixel 7 portrait/landscape are automated; 320×568 is covered explicitly. Automated accessibility is not a substitute for real VoiceOver/TalkBack testing. Physical iOS audio quality and Safari behavior remain device checks.
 - No backend, authentication or payment path is present. Local progress and telemetry are device-local and not authoritative competitive records. Dependency audit found no reported vulnerabilities; this is not a penetration-test claim.
-- `strictNullChecks` and `noImplicitAny` remain disabled in the inherited TypeScript configuration. No standalone lint script is configured. Broad controller decomposition and full strict typing are follow-up architecture work, not needed to fix the reproduced defects.
+- The subsequent game-core refactor enables full strict TypeScript, adds lint/format gates, separates the Daily controller and shares clock, hints, restart confirmation and result calculation. See `docs/refactoring.md` for scope and validation.
 - Offline reload, lazy screens, multi-tab version activation and failed updates are covered by the production-build suite described below. Concurrent gameplay writes from separate tabs still have no conflict-resolution protocol.
 - Hard generation still takes seconds on a cold cache and will be slower on older phones. The fixed worker timeout, loading/error UI and retry path remain necessary.
 

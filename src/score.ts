@@ -37,3 +37,23 @@ export function getScoreBreakdown(
     total = Math.max(0, Math.round(board + speed + clean + independence));
   return { board, speed, clean, independence, total };
 }
+
+export function getSolveResult(
+  size: number,
+  seconds: number,
+  mistakes: number,
+  usedHint: boolean,
+) {
+  const grade = getFinishGrade(mistakes, usedHint);
+  const breakdown = getScoreBreakdown(size, seconds, mistakes, usedHint);
+  return {
+    grade,
+    label: getFinishLabel(grade),
+    score: breakdown.total,
+    breakdown,
+    seconds,
+    mistakes,
+    usedHint,
+  };
+}
+export type SolveResult = ReturnType<typeof getSolveResult>;

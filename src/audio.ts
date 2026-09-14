@@ -67,7 +67,9 @@ function prime(a: AudioContext) {
     s.connect(g);
     g.connect(a.destination);
     s.start(0);
-  } catch {}
+  } catch {
+    /* Audio can remain unavailable until the next user gesture. */
+  }
 }
 export async function unlockAudio() {
   if (!soundEnabled) return;
@@ -78,7 +80,9 @@ export async function unlockAudio() {
     try {
       await a.resume();
       prime(a);
-    } catch {}
+    } catch {
+      /* Audio can remain unavailable until the next user gesture. */
+    }
 }
 export function installAudioUnlock() {
   if (unlockInstalled || typeof document === 'undefined') return;

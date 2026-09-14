@@ -199,7 +199,9 @@ function GameBoardView({
                     onPointerDown(idx, e.clientX, e.clientY, e.pointerType);
                     try {
                       e.currentTarget.setPointerCapture(e.pointerId);
-                    } catch {}
+                    } catch {
+                      /* Pointer capture may be unavailable after a cancelled pointer event. */
+                    }
                   }}
                   onPointerUp={onPointerEnd}
                   onPointerCancel={onPointerCancel}

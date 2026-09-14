@@ -89,7 +89,10 @@ function createSolution(size: number, random: () => number) {
 }
 // Boards have at most ten columns. Bit masks avoid allocating and scanning
 // unavailable columns at every node of the uniqueness search.
-function countSolutions(regions: number[][], limit = 2) {
+function countSolutions(
+  regions: number[][],
+  limit = 2,
+): { count: number; first: number[] | null } {
   const size = regions.length,
     all = (1 << size) - 1,
     placement = Array<number>(size).fill(-1);
@@ -507,7 +510,9 @@ export function prewarmLevel(i: number) {
     () => {
       try {
         getLevel(i);
-      } catch {}
+      } catch {
+        /* Prewarming is optional; opening the level exposes the retry UI. */
+      }
     },
     1200,
     500,

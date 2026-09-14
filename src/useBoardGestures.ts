@@ -203,7 +203,8 @@ export function useBoardGestures({
           setHistory((items) => items.slice(0, -1));
           feedbackLocked.current = false;
         };
-        onMistake ? onMistake(idx, restore) : restore();
+        if (onMistake) onMistake(idx, restore);
+        else restore();
         return;
       } else placeCorrectCat(idx, current, false);
       return;
@@ -256,7 +257,8 @@ export function useBoardGestures({
         setBoard(restored);
         feedbackLocked.current = false;
       };
-      onMistake ? onMistake(idx, restore) : restore();
+      if (onMistake) onMistake(idx, restore);
+      else restore();
     } else placeCorrectCat(idx, current, true);
   };
   const applyDragCell = (idx: number) => {
