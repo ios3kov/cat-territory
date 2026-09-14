@@ -131,6 +131,14 @@ export function installAudioUnlock() {
     capture: true,
     passive: true,
   });
+  // Touch activation is granted on release. A resume requested at touchstart
+  // can remain blocked, so retry inside the release gesture itself.
+  document.addEventListener('pointerup', unlock, true);
+  document.addEventListener('touchend', unlock, {
+    capture: true,
+    passive: true,
+  });
+  document.addEventListener('click', unlock, true);
   document.addEventListener('keydown', unlock, true);
   document.addEventListener('visibilitychange', () => {
     if (!visible()) {

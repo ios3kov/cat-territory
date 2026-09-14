@@ -218,3 +218,33 @@ test('resume plays only the latest queued cue and mute discards pending sound', 
   });
   expect(muted).toBe(0);
 });
+
+test('first touch release retries audio blocked at touch start without waiting for another action', async ({
+  page,
+}) => {
+  await page.evaluate(async () => {
+    const audio = await import('/src/audio.ts');
+    const c = window.audioRecovery.contexts[0];
+    c.state = 'suspended';
+    c.allowResume = false;
+    document.dispatchEvent(
+      new PointerEvent('pointerdown', { pointerType: 'touch' }),
+    );
+    audio.playSound('mark');
+  });
+  const before = await page.evaluate(
+    () => window.audioRecovery.contexts[0].starts,
+  );
+  await page.evaluate(() => {
+    window.audioRecovery.contexts[0].allowResume = true;
+    document.dispatchEvent(
+      new PointerEvent('pointerup', { pointerType: 'touch' }),
+    );
+  });
+  await expect
+    .poll(() => page.evaluate(() => window.audioRecovery.contexts[0].state))
+    .toBe('running');
+  expect(
+    await page.evaluate(() => window.audioRecovery.contexts[0].starts),
+  ).toBeGreaterThan(before);
+});

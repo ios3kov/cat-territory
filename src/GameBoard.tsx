@@ -17,6 +17,7 @@ type Props = {
   correctCell?: number | null;
   hintCells?: number[];
   hintTarget?: number;
+  hintExcluded?: number[];
   cellFeedback?: CellFeedbackMap;
   coachCell?: number;
   coachLabel?: string;
@@ -80,6 +81,7 @@ function GameBoardView({
   correctCell,
   hintCells = [],
   hintTarget,
+  hintExcluded = [],
   cellFeedback = {},
   coachCell,
   coachLabel,
@@ -97,6 +99,7 @@ function GameBoardView({
     [level.starterCats],
   );
   const hintCellSet = useMemo(() => new Set(hintCells), [hintCells]);
+  const excludedSet = useMemo(() => new Set(hintExcluded), [hintExcluded]);
   const regionColors = useMemo(
     () => getRegionColorMap(level.regions),
     [level.regions],
@@ -142,7 +145,7 @@ function GameBoardView({
   return (
     <div className="board-wrap">
       <div
-        className={`board board-size-${size} ${assembling ? 'board-assembling' : ''}`}
+        className={`board board-size-${size} ${assembling ? 'board-assembling' : ''} ${correctCell != null || mistakeCell != null || hintCells.length || coachCell != null || celebrateCats ? 'board-attention' : ''}`}
         key={level.id}
         role="grid"
         aria-rowcount={size}
@@ -181,7 +184,7 @@ function GameBoardView({
               }
               return (
                 <button
-                  className={`cell ${starter ? 'starter' : ''} ${mistakeCell === idx ? 'mistake-cell' : ''} ${correctCell === idx ? 'correct-cell' : ''} ${hintCellSet.has(idx) ? 'hint-cell' : ''} ${hintTarget === idx ? 'hint-target' : ''} ${coachCell === idx ? 'gesture-coach-cell' : ''} ${feedback ? `feedback-${feedback.kind} feedback-phase-${feedback.token % 2}` : ''} ${celebrating ? 'win-sequence' : ''}`}
+                  className={`cell ${starter ? 'starter' : ''} ${mistakeCell === idx ? 'mistake-cell' : ''} ${correctCell === idx ? 'correct-cell' : ''} ${hintCellSet.has(idx) ? 'hint-cell' : ''} ${hintTarget === idx ? 'hint-target' : ''} ${excludedSet.has(idx) ? 'hint-excluded' : ''} ${coachCell === idx ? 'gesture-coach-cell' : ''} ${feedback ? `feedback-${feedback.kind} feedback-phase-${feedback.token % 2}` : ''} ${celebrating ? 'win-sequence' : ''}`}
                   key={`${rowIndex}-${colIndex}`}
                   type="button"
                   role="gridcell"
@@ -189,7 +192,7 @@ function GameBoardView({
                   aria-colindex={colIndex + 1}
                   tabIndex={!starter && idx === focusIndex ? 0 : -1}
                   disabled={starter}
-                  aria-label={`Row ${rowIndex + 1}, column ${colIndex + 1}, territory ${region + 1}${value === 2 ? ', cat' : value === 1 ? ', marked X' : ', empty'}${starter ? ', starter cat' : ''}`}
+                  aria-label={`Row ${rowIndex + 1}, column ${colIndex + 1}, territory ${region + 1}${value === 2 ? ', cat' : value === 1 ? ', marked X' : ', empty'}${starter ? ', starter cat' : ''}${excludedSet.has(idx) ? ', hint: mark X' : hintTarget === idx ? ', hint target' : hintCellSet.has(idx) ? ', hint clue' : ''}`}
                   data-cell-index={idx}
                   data-region={region}
                   onFocus={() => setFocusIndex(idx)}

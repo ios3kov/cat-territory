@@ -420,11 +420,10 @@ export function WinDialog({ summary, onNext }: WinProps) {
           className="win-result-summary subdued-result"
           aria-label={`${gradeLabel}. Time ${formatTime(summary.seconds)}, score ${summary.score}, ${summary.mistakes} mistakes, Hint ${summary.usedHint ? 'used' : 'not used'}`}
         >
-          {formatTime(summary.seconds)} · {summary.score.toLocaleString()} pts ·{' '}
-          {summary.mistakes} {summary.mistakes === 1 ? 'mistake' : 'mistakes'} ·{' '}
+          {formatTime(summary.seconds)} · {summary.mistakes}{' '}
+          {summary.mistakes === 1 ? 'mistake' : 'mistakes'} ·{' '}
           {summary.usedHint ? 'hint used' : 'no hint'}
         </p>
-        <ScoreResult breakdown={summary.breakdown} />
         {error && <p role="alert">{error}</p>}
         <button
           className="primary-button win-next-button"
@@ -435,6 +434,7 @@ export function WinDialog({ summary, onNext }: WinProps) {
         >
           {pending ? 'Preparing…' : 'Next level'} <ChevronRight size={20} />
         </button>
+        <ScoreResult breakdown={summary.breakdown} />
       </section>
     </div>
   );

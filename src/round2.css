@@ -336,3 +336,64 @@
   outline-offset: 3px;
   border-radius: 12px;
 }
+
+/* Keep the clue legible without replacing stable territory colors. */
+.cell.hint-cell,
+.cell.gesture-coach-cell {
+  filter: none;
+  outline: 2px solid #3d4059;
+  outline-offset: -3px;
+}
+.cell.hint-excluded {
+  outline: 2px dashed #3d4059;
+  outline-offset: -4px;
+}
+.cell.hint-target:not(.hint-excluded) {
+  outline: 4px double #3d4059;
+  outline-offset: -5px;
+}
+.hint-legend {
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #55515d;
+}
+.board-attention .live-cat * {
+  animation-play-state: paused;
+}
+.win-modal > .win-next-button {
+  margin-top: 12px;
+}
+.win-modal > .score-result {
+  margin-top: 18px;
+  border-top: 1px solid #ded8d0;
+  padding-top: 12px;
+}
+@media (orientation: landscape) and (max-height: 620px) {
+  .game-card {
+    grid-template-columns: minmax(0, min(88dvh, 45vw)) minmax(0, 350px);
+    justify-content: center;
+    column-gap: clamp(12px, 3vw, 24px);
+    align-content: center;
+  }
+  .context-panel {
+    padding: 10px;
+  }
+  .context-panel-copy > span {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .win-modal > .win-next-button {
+    grid-column: 1;
+    grid-row: 5;
+    margin-top: 10px;
+  }
+  .win-modal > .score-result {
+    grid-row: 1/6;
+    margin: 0;
+    padding: 0 0 0 16px;
+    border-top: 0;
+    border-left: 1px solid #ded8d0;
+  }
+}
