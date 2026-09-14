@@ -1,6 +1,11 @@
-import { storageGet, storageSet } from './storage';
-const KEY = 'cat-territory-sound-enabled-v1',
-  MASTER = 0.18;
+import { playAudioCue, type AudioOutput } from './audioOutput';
+export {
+  readSoundEnabled,
+  setSoundEnabled,
+  unlockAudio,
+  installAudioUnlock,
+} from './audioOutput';
+let lastCellSoundAt = -Infinity;
 export type SoundEffect =
   | 'mark'
   | 'erase'
@@ -22,88 +27,8 @@ export type SoundEffect =
   | 'rankUp'
   | 'moonRun'
   | 'streak';
-type AW = Window &
-  typeof globalThis & { webkitAudioContext?: typeof AudioContext };
-let context: AudioContext | null = null,
-  master: GainNode | null = null,
-  soundEnabled = storageGet(KEY) !== '0',
-  lastCellSoundAt = 0,
-  unlockInstalled = false;
-export const readSoundEnabled = () => soundEnabled;
-export function setSoundEnabled(v: boolean) {
-  soundEnabled = v;
-  storageSet(KEY, v ? '1' : '0');
-  if (!v && master && context)
-    master.gain.setTargetAtTime(0, context.currentTime, 0.015);
-  if (v) void unlockAudio();
-}
-function ensure() {
-  if (!soundEnabled || document.visibilityState === 'hidden') return null;
-  if (!context) {
-    const w = window as AW,
-      C = window.AudioContext ?? w.webkitAudioContext;
-    if (!C) return null;
-    try {
-      context = new C();
-      master = context.createGain();
-      master.gain.value = MASTER;
-      master.connect(context.destination);
-    } catch {
-      context = null;
-      master = null;
-      return null;
-    }
-  }
-  if (master && master.gain.value < MASTER * 0.5)
-    master.gain.setTargetAtTime(MASTER, context.currentTime, 0.015);
-  return context;
-}
-function prime(a: AudioContext) {
-  try {
-    const s = a.createBufferSource(),
-      g = a.createGain();
-    s.buffer = a.createBuffer(1, 1, Math.max(8000, a.sampleRate));
-    g.gain.value = 0;
-    s.connect(g);
-    g.connect(a.destination);
-    s.start(0);
-  } catch {
-    /* Audio can remain unavailable until the next user gesture. */
-  }
-}
-export async function unlockAudio() {
-  if (!soundEnabled) return;
-  const a = ensure();
-  if (!a) return;
-  prime(a);
-  if (a.state !== 'running')
-    try {
-      await a.resume();
-      prime(a);
-    } catch {
-      /* Audio can remain unavailable until the next user gesture. */
-    }
-}
-export function installAudioUnlock() {
-  if (unlockInstalled || typeof document === 'undefined') return;
-  unlockInstalled = true;
-  const remove = () => {
-      document.removeEventListener('pointerdown', unlock, true);
-      document.removeEventListener('touchstart', unlock, true);
-      document.removeEventListener('keydown', unlock, true);
-    },
-    unlock = () =>
-      void unlockAudio().finally(() => {
-        if (context?.state === 'running') remove();
-      });
-  document.addEventListener('pointerdown', unlock, true);
-  document.addEventListener('touchstart', unlock, {
-    capture: true,
-    passive: true,
-  });
-  document.addEventListener('keydown', unlock, true);
-}
 function tone(
+  { context, master }: AudioOutput,
   f: number,
   start: number,
   d: number,
@@ -111,7 +36,6 @@ function tone(
   type: OscillatorType = 'sine',
   end?: number,
 ) {
-  if (!context || !master) return;
   const o = context.createOscillator(),
     e = context.createGain();
   o.type = type;
@@ -129,28 +53,14 @@ function tone(
   o.start(start);
   o.stop(start + d + 0.02);
 }
-if (typeof document !== 'undefined')
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden' && context?.state === 'running')
-      void context.suspend().catch(() => undefined);
-    else if (document.visibilityState === 'visible' && context && soundEnabled)
-      void unlockAudio();
-  });
 export function playSound(effect: SoundEffect) {
   if (effect === 'mark' || effect === 'erase') {
     const now = performance.now();
     if (now - lastCellSoundAt < 34) return;
     lastCellSoundAt = now;
   }
-  const a = ensure();
-  if (!a || !soundEnabled) return;
-  const play = () => {
-    if (
-      !soundEnabled ||
-      document.visibilityState === 'hidden' ||
-      a.state !== 'running'
-    )
-      return;
+  playAudioCue((output) => {
+    const a = output.context;
     const n = a.currentTime + 0.006,
       T = (
         f: number,
@@ -159,7 +69,7 @@ export function playSound(effect: SoundEffect) {
         t: OscillatorType = 'sine',
         end?: number,
         delay = 0,
-      ) => tone(f, n + delay, d, g, t, end);
+      ) => tone(output, f, n + delay, d, g, t, end);
     switch (effect) {
       case 'mark':
         T(510, 0.052, 0.14, 'sine', 640);
@@ -237,11 +147,5 @@ export function playSound(effect: SoundEffect) {
         T(920, 0.08, 0.085, 'sine', 1060);
         T(1180, 0.11, 0.065, 'sine', 1320, 0.055);
     }
-  };
-  if (a.state !== 'running')
-    void a
-      .resume()
-      .then(play)
-      .catch(() => undefined);
-  else play();
+  });
 }

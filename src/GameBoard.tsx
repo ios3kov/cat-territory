@@ -176,8 +176,8 @@ function GameBoardView({
               if (celebrating)
                 style['--cat-delay'] = `${(catOrder.get(idx) ?? 0) * 34}ms`;
               if (value === 2) {
-                style['--cat-idle-delay'] = `${2.2 + (idx % 5) * 0.9}s`;
-                style['--cat-blink-delay'] = `${1.4 + (idx % 7) * 0.55}s`;
+                style['--cat-idle-delay'] = `${-((idx * 0.71) % 8)}s`;
+                style['--cat-blink-delay'] = `${-((idx * 0.43) % 6)}s`;
               }
               return (
                 <button

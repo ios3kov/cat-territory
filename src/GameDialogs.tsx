@@ -418,7 +418,7 @@ export function WinDialog({ summary, onNext }: WinProps) {
       >
         <div className="win-celebration" aria-hidden="true">
           <span className="win-cat">
-            <CatMark happy />
+            <CatMark happy className="celebrating-cat" />
           </span>
         </div>
         <h2 id="win-title">{title}</h2>

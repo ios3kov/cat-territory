@@ -373,13 +373,39 @@ h1 {
 }
 .live-cat .cat-idle-body {
   transform-box: view-box;
-  transform-origin: 32px 38px;
-  animation: cat-idle 8.4s ease-in-out var(--cat-idle-delay, 2.2s) infinite;
+  transform-origin: 32px 44px;
+  animation: cat-curious 7.4s ease-in-out var(--cat-idle-delay, 0s) infinite;
 }
-.live-cat .cat-mark-eyes {
+.live-cat.cat-personality-1 .cat-idle-body {
+  animation-name: cat-stretch;
+  animation-duration: 8.6s;
+}
+.live-cat.cat-personality-2 .cat-idle-body {
+  animation-name: cat-sway;
+  animation-duration: 6.8s;
+}
+.live-cat.cat-personality-3 .cat-idle-body {
+  animation-name: cat-nod;
+  animation-duration: 9.2s;
+}
+.live-cat .cat-mark-eyes,
+.celebrating-cat .cat-mark-eyes {
   transform-box: view-box;
   transform-origin: 32px 36.5px;
-  animation: blink 6.8s linear var(--cat-blink-delay, 1.4s) infinite;
+  animation: blink 6.8s linear var(--cat-blink-delay, 0s) infinite;
+}
+.live-cat .cat-eye-look {
+  animation: cat-look 9s ease-in-out var(--cat-idle-delay, 0s) infinite;
+}
+.live-cat .cat-ear-line {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cat-ear-twitch 8s ease-in-out var(--cat-blink-delay, 0s) infinite;
+}
+.celebrating-cat .cat-idle-body {
+  transform-box: view-box;
+  transform-origin: 32px 48px;
+  animation: cat-victory 2.4s ease-in-out infinite;
 }
 .board-size-7 .cat-face,
 .board-size-8 .cat-face,
@@ -1085,8 +1111,10 @@ h1 {
   }
 }
 @media (pointer: coarse) {
-  .board-size-9 .live-cat .cat-idle-body,
-  .board-size-10 .live-cat .cat-idle-body {
+  .board-size-9 .live-cat .cat-ear-line,
+  .board-size-10 .live-cat .cat-ear-line,
+  .board-size-9 .live-cat .cat-eye-look,
+  .board-size-10 .live-cat .cat-eye-look {
     animation: none;
   }
 }
@@ -1097,11 +1125,13 @@ h1 {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
   }
-  .live-cat * {
+  .live-cat *,
+  .celebrating-cat * {
     animation: none !important;
   }
 }
 .page-hidden .live-cat *,
+.page-hidden .celebrating-cat *,
 .page-hidden .gesture-coach,
 .page-hidden .hint-attention {
   animation-play-state: paused !important;
@@ -1152,12 +1182,125 @@ h1 {
     transform: translateY(2px) scale(0.72);
   }
 }
-@keyframes cat-idle {
-  86% {
-    transform: translateY(-0.8px) rotate(-1.8deg);
+@keyframes cat-curious {
+  0%,
+  38%,
+  100% {
+    transform: none;
   }
-  91% {
-    transform: rotate(1deg);
+  20% {
+    transform: translateY(-1px) scaleY(1.025);
+  }
+  55%,
+  66% {
+    transform: translateY(-2px) rotate(-5deg);
+  }
+  78% {
+    transform: rotate(3deg);
+  }
+}
+@keyframes cat-stretch {
+  0%,
+  45%,
+  100% {
+    transform: none;
+  }
+  25% {
+    transform: scale(1.025, 0.98);
+  }
+  60%,
+  68% {
+    transform: translateY(-3px) scale(0.97, 1.045);
+  }
+  79% {
+    transform: translateY(1px) scale(1.035, 0.97);
+  }
+}
+@keyframes cat-sway {
+  0%,
+  35%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: translateY(-1px);
+  }
+  50% {
+    transform: translateX(-1.5px) rotate(-4deg);
+  }
+  68% {
+    transform: translateX(1.5px) rotate(4deg);
+  }
+  82% {
+    transform: rotate(-2deg);
+  }
+}
+@keyframes cat-nod {
+  0%,
+  45%,
+  100% {
+    transform: none;
+  }
+  24% {
+    transform: scaleY(1.025);
+  }
+  58%,
+  76% {
+    transform: translateY(2px) rotate(3deg) scaleY(0.96);
+  }
+  67%,
+  85% {
+    transform: translateY(-2px) rotate(-2deg);
+  }
+}
+@keyframes cat-look {
+  0%,
+  40%,
+  85%,
+  100% {
+    transform: none;
+  }
+  50%,
+  60% {
+    transform: translateX(2px);
+  }
+  70%,
+  78% {
+    transform: translateX(-2px);
+  }
+}
+@keyframes cat-ear-twitch {
+  0%,
+  65%,
+  80%,
+  100% {
+    transform: none;
+  }
+  69%,
+  75% {
+    transform: rotate(-12deg);
+  }
+  72% {
+    transform: rotate(8deg);
+  }
+}
+@keyframes cat-victory {
+  0%,
+  52%,
+  100% {
+    transform: none;
+  }
+  10% {
+    transform: translateY(1px) scale(1.06, 0.94);
+  }
+  22% {
+    transform: translateY(-7px) rotate(-7deg) scale(0.98, 1.04);
+  }
+  34% {
+    transform: translateY(1px) rotate(4deg) scale(1.05, 0.95);
+  }
+  43% {
+    transform: translateY(-3px) rotate(-3deg);
   }
 }
 @keyframes blink {
@@ -1192,7 +1335,7 @@ h1 {
 }
 @keyframes win-cat-sequence {
   48% {
-    transform: translateY(-2px) scale(1.05);
+    transform: translateY(-4px) rotate(-5deg) scale(1.08);
   }
 }
 @keyframes hint-pulse {

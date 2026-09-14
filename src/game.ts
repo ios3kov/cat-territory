@@ -16,18 +16,19 @@ export const TOUCH_DOUBLE_TAP_MS = 240;
 export const DRAG_THRESHOLD_PX = 8;
 export const TOUCH_DRAG_THRESHOLD_PX = 14;
 export const REGION_COLORS = [
-  '#efabb2',
-  '#f1cd72',
-  '#92cf9f',
-  '#8fc3e2',
-  '#b99bd8',
-  '#e9a3cc',
-  '#9bcfcb',
-  '#efb78f',
-  '#a9b9eb',
-  '#c3d789',
+  '#eb919d',
+  '#edc24f',
+  '#73bf8d',
+  '#70b7de',
+  '#ad82d2',
+  '#df7db6',
+  '#68bfbb',
+  '#e9a371',
+  '#8fa4df',
+  '#afc763',
 ] as const;
-const COLOR_LAB = [
+// Reference coordinates keep existing region-to-palette slots stable as display colors evolve.
+const COLOR_ASSIGNMENT_LAB = [
   [76.6, 26.8, 8.5],
   [83.5, 4.5, 48.5],
   [77.4, -29.1, 18.4],
@@ -40,8 +41,8 @@ const COLOR_LAB = [
   [82.4, -17, 36.1],
 ] as const;
 function colorDistance(a: number, b: number) {
-  const x = COLOR_LAB[a],
-    y = COLOR_LAB[b];
+  const x = COLOR_ASSIGNMENT_LAB[a],
+    y = COLOR_ASSIGNMENT_LAB[b];
   return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]);
 }
 export function getRegionColorMap(regions: number[][]) {

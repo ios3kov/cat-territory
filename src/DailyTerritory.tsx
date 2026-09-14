@@ -78,7 +78,7 @@ export function DailyTerritory(props: DailyProps) {
         {won ? (
           <div className="daily-result">
             <span className="daily-result-cat" aria-hidden="true">
-              <CatMark happy />
+              <CatMark happy className="celebrating-cat" />
             </span>
             <h3>{summary?.label ?? 'Territory Secured'}</h3>
             <p className="win-result-summary subdued-result">

@@ -72,6 +72,10 @@ test('Daily hint, restart, win score, streak and layout', async ({ page }) => {
     await page.waitForTimeout(410);
   }
   await expect(page.locator('.daily-result')).toBeVisible();
+  await expect(page.locator('.daily-result-cat .cat-idle-body')).toHaveCSS(
+    'animation-name',
+    'cat-victory',
+  );
   await expect(page.locator('.score-result dt')).toHaveText([
     'Board',
     'Speed',
@@ -148,11 +152,28 @@ test('dialogs trap focus and achievements remain readable', async ({
 });
 test('late board is responsive while the worker generates and has no overflow', async ({
   page,
-}) => {
+}, testInfo) => {
   test.setTimeout(90000);
   await start(page, 33);
   await geometry(page);
   await expect(page.getByRole('gridcell')).toHaveCount(100);
+  const target = await page.evaluate(async () => {
+    const { getLevel } = await import('/src/game.ts');
+    const level = getLevel(33);
+    return level.solution
+      .map((col: number, row: number) => row * level.size + col)
+      .find((index: number) => !level.starterCats.includes(index))!;
+  });
+  await page
+    .locator(`[data-cell-index="${target}"]`)
+    .click({ button: 'right' });
+  await expect(page.locator('.live-cat .cat-idle-body').first()).not.toHaveCSS(
+    'animation-name',
+    'none',
+  );
+  await page.waitForTimeout(450);
+  await page.screenshot({ path: testInfo.outputPath('ten-territories.png') });
+
   await page.getByRole('button', { name: 'How to play' }).click();
   await expect(
     page.getByRole('dialog', { name: 'Give every cat its own territory.' }),
@@ -202,6 +223,7 @@ test('sound wiring emits one correct cue, throttles marks and resumes after visi
     (window as any).audioStats = stats;
     const param = {
       value: 0.18,
+      cancelScheduledValues() {},
       setTargetAtTime() {},
       setValueAtTime() {},
       exponentialRampToValueAtTime() {},
