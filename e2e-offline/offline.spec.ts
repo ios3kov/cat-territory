@@ -71,6 +71,12 @@ const test = base.extend<{ site: Site }>({
       }
       try {
         const pathname = new URL(req.url!, 'http://localhost').pathname;
+        // Match production's canonical HTML redirect, including precache requests.
+        if (pathname === '/index.html') {
+          res.writeHead(307, { Location: '/' });
+          res.end();
+          return;
+        }
         if (pathname === blocked) {
           res.writeHead(503);
           res.end();
@@ -166,6 +172,20 @@ test('first visit supports offline reload and unopened screens', async ({
   await page.goto(site.url);
   await expect(page.getByRole('grid')).toBeVisible();
   await ready(page);
+  // The cached HTML really followed a redirect, rather than testing a plain 200.
+  expect(
+    await page.evaluate(async () => {
+      const cache = await caches.open(
+        (await caches.keys()).find((k) =>
+          k.startsWith('cat-territory-release-'),
+        )!,
+      );
+      return (await cache.match(new URL('/index.html', location.href).href))
+        ?.redirected;
+    }),
+  ).toBe(true);
+  await page.reload();
+  await expect(page.getByRole('grid')).toBeVisible();
   await page.getByRole('button', { name: 'Hint', exact: true }).click();
   await expect
     .poll(() =>
