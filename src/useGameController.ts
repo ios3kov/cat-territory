@@ -375,41 +375,35 @@ export function useGameController() {
         getAchievementSnapshot().filter((i) => i.unlocked).length,
       );
   const nextLevel = async () => {
-      const next = levelIndex + 1;
-      if (!won || next > unlockedLevelIndex) return;
-      await prepareLevel(next);
-      gestures.resetInteraction();
-      cellFeedback.clear();
-      playSound('next');
-      const l = getLevel(next),
-        saved = loadLevelSession(l.id, l.size, l),
-        restoredSeconds = saved?.seconds ?? 0,
-        restoredStarted = saved?.started ?? false,
-        restoredMistakes = saved?.mistakes ?? 0,
-        restoredHint = saved?.usedHint ?? false;
-      setLevelIndex(next);
-      setBoard(saved?.board ?? createInitialBoard(l));
-      setHistory(saved?.history ?? []);
-      setWon(false);
-      setWinDialogReady(false);
-      setCompletionSummary(null);
-      cancelRestart();
-      setMistakeNotice(null);
-      setMistakeCell(null);
-      setCorrectCell(null);
-      setRestartingFromMistakes(false);
-      restoreClock(restoredSeconds, restoredStarted);
-      mistakesRef.current = restoredMistakes;
-      setMistakes(restoredMistakes);
-      resetHints(restoredHint);
-      trackedFirstMoveRef.current = null;
-    },
-    receiveAchievements = (items: Achievement[]) => {
-      setAchievementCount(
-        getAchievementSnapshot().filter((i) => i.unlocked).length,
-      );
-      if (items.length) setAchievementQueue((q) => [...q, ...items]);
-    };
+    const next = levelIndex + 1;
+    if (!won || next > unlockedLevelIndex) return;
+    await prepareLevel(next);
+    gestures.resetInteraction();
+    cellFeedback.clear();
+    playSound('next');
+    const l = getLevel(next),
+      saved = loadLevelSession(l.id, l.size, l),
+      restoredSeconds = saved?.seconds ?? 0,
+      restoredStarted = saved?.started ?? false,
+      restoredMistakes = saved?.mistakes ?? 0,
+      restoredHint = saved?.usedHint ?? false;
+    setLevelIndex(next);
+    setBoard(saved?.board ?? createInitialBoard(l));
+    setHistory(saved?.history ?? []);
+    setWon(false);
+    setWinDialogReady(false);
+    setCompletionSummary(null);
+    cancelRestart();
+    setMistakeNotice(null);
+    setMistakeCell(null);
+    setCorrectCell(null);
+    setRestartingFromMistakes(false);
+    restoreClock(restoredSeconds, restoredStarted);
+    mistakesRef.current = restoredMistakes;
+    setMistakes(restoredMistakes);
+    resetHints(restoredHint);
+    trackedFirstMoveRef.current = null;
+  };
   return {
     level,
     levelIndex,
@@ -442,6 +436,5 @@ export function useGameController() {
     hint,
     dismissHint,
     nextLevel,
-    receiveAchievements,
   };
 }

@@ -9,7 +9,6 @@ import {
   getTerritoryJournal,
 } from './achievements';
 import { CatMark } from './CatMark';
-import { readDailyProgress } from './daily';
 import { formatTime } from './game';
 import { getFinishLabel } from './score';
 import type { CompletionSummary } from './useGameController';
@@ -164,10 +163,7 @@ export function RulesDialog({ onClose }: RulesProps) {
             <p>
               <strong>Perfect:</strong> finish with no mistakes and no Hint.
             </p>
-            <p>
-              <strong>Daily Territory:</strong> one shared puzzle each UTC day
-              with a local streak.
-            </p>
+
             <p>
               The endless journey grows up to 10×10 and is paced in ten-level
               Territory Runs.
@@ -197,7 +193,6 @@ export function AchievementsDialog({ onClose }: AchievementsProps) {
   const achievements = getAchievementSnapshot(),
     stats = getPlayerStats(),
     rank = getPlayerRank(stats.completed),
-    daily = readDailyProgress(),
     journal = getTerritoryJournal(),
     unlockedCount = achievements.filter((i) => i.unlocked).length,
     locked = achievements.filter((i) => !i.unlocked),
@@ -270,10 +265,6 @@ export function AchievementsDialog({ onClose }: AchievementsProps) {
               <div>
                 <strong>{stats.bestFlawlessStreak}</strong>
                 <span>best run</span>
-              </div>
-              <div>
-                <strong>{daily.currentStreak}</strong>
-                <span>daily streak</span>
               </div>
             </div>
             <p className="stats-detail">

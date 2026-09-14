@@ -25,8 +25,7 @@ export type SoundEffect =
   | 'uiOpen'
   | 'uiClose'
   | 'rankUp'
-  | 'moonRun'
-  | 'streak';
+  | 'moonRun';
 function tone(
   { context, master }: AudioOutput,
   f: number,
@@ -143,9 +142,6 @@ export function playSound(effect: SoundEffect) {
         T(196, 0.34, 0.09, 'sine', 246.94);
         T(587.33, 0.3, 0.08, 'sine', 783.99, 0.08);
         break;
-      case 'streak':
-        T(920, 0.08, 0.085, 'sine', 1060);
-        T(1180, 0.11, 0.065, 'sine', 1320, 0.055);
     }
   });
 }

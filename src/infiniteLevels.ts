@@ -6,11 +6,8 @@ import { storageGet, storageSet } from './storage';
 export const CURATED_LEVEL_COUNT = 24;
 const curatedLevels = buildLevelCatalog(),
   generatedCache = new Map<number, CatalogLevel>(),
-  dailyCache = new Map<string, CatalogLevel>(),
   GENERATED_CACHE_LIMIT = 12,
-  DAILY_CACHE_LIMIT = 7,
-  PERSISTED_LEVEL_PREFIX = 'cat-territory-generated-v5-',
-  PERSISTED_DAILY_PREFIX = 'cat-territory-daily-level-v2-';
+  PERSISTED_LEVEL_PREFIX = 'cat-territory-generated-v5-';
 const adjectives = [
     'Moonlit',
     'Velvet',
@@ -321,27 +318,6 @@ export function rememberGenerated(i: number, l: CatalogLevel) {
   while (generatedCache.size > GENERATED_CACHE_LIMIT)
     generatedCache.delete(generatedCache.keys().next().value!);
 }
-export function rememberDaily(k: string, l: CatalogLevel) {
-  dailyCache.set(k, l);
-  storageSet(`${PERSISTED_DAILY_PREFIX}${k}`, JSON.stringify(l));
-  while (dailyCache.size > DAILY_CACHE_LIMIT)
-    dailyCache.delete(dailyCache.keys().next().value!);
-}
-function readDaily(k: string, size: number) {
-  const raw = storageGet(`${PERSISTED_DAILY_PREFIX}${k}`);
-  if (!raw) return null;
-  try {
-    const l = JSON.parse(raw) as CatalogLevel;
-    return l.id === `daily-v2-${k}-${size}` &&
-      l.source === 'generated' &&
-      l.size === size &&
-      valid(l, size)
-      ? l
-      : null;
-  } catch {
-    return null;
-  }
-}
 function candidate(
   seed: number,
   size: number,
@@ -421,10 +397,7 @@ function select(
   special: boolean,
   phase: number,
 ) {
-  const floor =
-      meta.chapterName === 'Daily'
-        ? 0
-        : minimumDifficulty(size, special, phase),
+  const floor = minimumDifficulty(size, special, phase),
     budget = special ? 96 : floor > 0 ? 72 : 48,
     candidates: CatalogLevel[] = [];
   for (let v = 0; v < budget; v++) {
@@ -454,42 +427,6 @@ function generate(i: number) {
   if (best) return best;
   throw new Error(`Unable to generate endless level ${i + 1}.`);
 }
-function hash(input: string) {
-  let h = 2166136261;
-  for (let i = 0; i < input.length; i++) {
-    h ^= input.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-export function getDailyLevel(dateKey: string) {
-  const key = /^\d{4}-\d{2}-\d{2}$/.test(dateKey) ? dateKey : '1970-01-01',
-    cached = dailyCache.get(key);
-  if (cached) return cached;
-  const seed = hash(`cat-territory-daily-v1-${key}`),
-    sizes = [6, 7, 7, 8, 8, 9, 9] as const,
-    size = sizes[seed % sizes.length],
-    persisted = readDaily(key, size);
-  if (persisted) {
-    dailyCache.set(key, persisted);
-    return persisted;
-  }
-  const best = select(
-    seed,
-    size,
-    {
-      id: `daily-v2-${key}-${size}`,
-      name: 'Daily Territory',
-      chapterName: 'Daily',
-      starter: false,
-    },
-    false,
-    4,
-  );
-  if (!best) throw new Error(`Unable to generate Daily Territory ${key}.`);
-  rememberDaily(key, best);
-  return best;
-}
 export function getLevel(levelIndex: number) {
   const i = Math.max(0, Math.floor(levelIndex));
   if (i < CURATED_LEVEL_COUNT) return curatedLevels[i];
@@ -517,10 +454,4 @@ export function prewarmLevel(i: number) {
     1200,
     500,
   );
-}
-
-export function readPersistedDaily(key: string) {
-  const seed = hash(`cat-territory-daily-v1-${key}`),
-    sizes = [6, 7, 7, 8, 8, 9, 9];
-  return readDaily(key, sizes[seed % sizes.length]);
 }

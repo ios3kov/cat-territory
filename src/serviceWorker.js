@@ -52,6 +52,15 @@ self.addEventListener('fetch', (event) => {
       const cache = await caches.open(CACHE);
       // HTML and its modules always come from the same installed release.
       const cached = await cache.match(navigation ? shell : request.url);
+      // Hosting may redirect index.html to /. Navigation requests cannot accept
+      // a cached response with a redirect history. Preserve this release's HTML,
+      // status and headers while returning a fresh, non-redirected response.
+      if (navigation && cached?.redirected)
+        return new Response(cached.body, {
+          status: cached.status,
+          statusText: cached.statusText,
+          headers: cached.headers,
+        });
       return cached ?? fetch(request);
     })(),
   );

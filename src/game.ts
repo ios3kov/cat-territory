@@ -2,7 +2,6 @@ import { rememberCatOrder } from './catOrder';
 import type { CatalogLevel } from './levelCatalog';
 export {
   CURATED_LEVEL_COUNT,
-  getDailyLevel,
   getLevel,
   levelSizeAt,
   prewarmLevel,

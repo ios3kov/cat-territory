@@ -46,57 +46,6 @@ async function geometry(page: Page) {
   );
   expect(clipped).toEqual([]);
 }
-test('Daily hint, restart, win score, streak and layout', async ({ page }) => {
-  await start(page);
-  await page.getByRole('button', { name: 'Open Daily Territory' }).click();
-  await expect(page.locator('.daily-screen .board')).toBeVisible();
-  await geometry(page);
-  const solution = await page.evaluate(async () => {
-    const m = await import('/src/daily.ts');
-    const l = m.getDailyLevel();
-    return l.solution.map((c: number, r: number) => r * l.size + c);
-  });
-  await page.getByRole('button', { name: 'Hint', exact: true }).click();
-  await expect(page.getByLabel('Close hint')).toBeVisible();
-  await geometry(page);
-  await page.getByLabel('Close hint').click();
-  const first = page.locator('.daily-screen [data-cell-index="0"]');
-  await first.click();
-  await page.getByRole('button', { name: 'Restart', exact: true }).click();
-  await page.getByRole('button', { name: 'Restart?', exact: true }).click();
-  await expect(page.locator('.daily-screen .mark-x')).toHaveCount(0);
-  for (const i of solution) {
-    await page
-      .locator(`.daily-screen [data-cell-index="${i}"]`)
-      .click({ button: 'right' });
-    await page.waitForTimeout(410);
-  }
-  await expect(page.locator('.daily-result')).toBeVisible();
-  await expect(page.locator('.daily-result-cat .cat-idle-body')).toHaveCSS(
-    'animation-name',
-    'cat-victory',
-  );
-  await expect(page.locator('.score-result dt')).toHaveText([
-    'Board',
-    'Speed',
-    'Clean play',
-    'No hint',
-    'Total',
-  ]);
-  await expect(page.locator('.score-result dd').nth(2)).toHaveText('950');
-  await expect(page.locator('.daily-streak-badge')).toHaveText(
-    'Daily streak 1',
-  );
-  await page
-    .getByRole('button', { name: 'Back to endless', exact: true })
-    .last()
-    .click();
-  await page.getByRole('button', { name: 'Open Daily Territory' }).click();
-  await expect(page.locator('.daily-result .score-result')).toBeVisible();
-  await expect(page.locator('.daily-streak-badge')).toHaveText(
-    'Daily streak 1',
-  );
-});
 test('reduced motion skips assembly and wave delays, undo restores everything', async ({
   page,
 }) => {
@@ -327,20 +276,4 @@ test('double tap cat and all auto marks undo together; wrong cats do not fill pa
   await expect(page.locator('.mark-x')).toHaveCount(before);
   await page.locator('[data-cell-index="0"]').click({ button: 'right' });
   await expect(page.locator('.paw-progress-icon.filled')).toHaveCount(1);
-});
-test('Daily displays a broken streak as zero', async ({ page }) => {
-  await page.addInitScript(() =>
-    localStorage.setItem(
-      'cat-territory-daily-progress-v1',
-      JSON.stringify({
-        lastCompletedKey: '2000-01-01',
-        currentStreak: 7,
-        bestStreak: 7,
-        completedKeys: ['2000-01-01'],
-      }),
-    ),
-  );
-  await start(page);
-  await page.getByRole('button', { name: 'Open Daily Territory' }).click();
-  await expect(page.locator('.daily-subtitle')).toContainText('streak 0');
 });
