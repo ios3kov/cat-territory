@@ -51,7 +51,16 @@ Reproduce: `npm ci`, `npx playwright install chromium`, `npm run typecheck`, `np
 - Chromium desktop and Pixel 7 portrait/landscape are automated; 320×568 is covered explicitly. Automated accessibility is not a substitute for real VoiceOver/TalkBack testing. Physical iOS audio quality and Safari behavior remain device checks.
 - No backend, authentication or payment path is present. Local progress and telemetry are device-local and not authoritative competitive records. Dependency audit found no reported vulnerabilities; this is not a penetration-test claim.
 - `strictNullChecks` and `noImplicitAny` remain disabled in the inherited TypeScript configuration. No standalone lint script is configured. Broad controller decomposition and full strict typing are follow-up architecture work, not needed to fix the reproduced defects.
-- Service-worker offline/update lifecycle and cross-tab save coordination need dedicated coverage before claiming seamless offline operation across releases. No service-worker behavior was changed by this patch.
+- Offline reload, lazy screens, multi-tab version activation and failed updates are covered by the production-build suite described below. Concurrent gameplay writes from separate tabs still have no conflict-resolution protocol.
 - Hard generation still takes seconds on a cold cache and will be slower on older phones. The fixed worker timeout, loading/error UI and retry path remain necessary.
 
 No main-branch or production change is part of this audit.
+
+
+## Offline follow-up
+
+The old worker cached HTML but missed modules loaded before registration. A first-visit offline reload reproduced a blank screen. The build now emits a content-versioned worker after HTML, CSS, lazy modules and the generator worker are written. It installs the entire release before activation and serves matching HTML/modules from that release.
+
+Updates wait for existing tabs to close. Old tabs can still open lazy screens after the server has switched releases. A failed install discards its partial cache and retains the old worker. Activation removes only CAT TERRITORY caches, preserving unrelated caches and local progress. Registration bypasses the HTTP cache for worker update checks.
+
+`npm run test:offline` tests the production build with real service workers and a local server that changes asset URLs or returns a failed asset. Three scenarios run on Chromium desktop, phone portrait/landscape and WebKit iPhone portrait/landscape (15 tests): first-visit offline reload with Hint persistence and unopened Rules/Daily; two-tab update activation with retained progress; incomplete update rollback. Run `npm run build` first. CI runs this suite after the gameplay suite. Chromium passes locally. WebKit runs in CI because local system-library installation is restricted; emulation does not replace physical iPhone/VoiceOver testing. No live service-worker deployment was performed.

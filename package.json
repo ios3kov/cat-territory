@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "profile": "npm run build && node scripts/profile.mjs",
     "test:e2e": "playwright test",
+    "test:offline": "playwright test -c playwright.offline.config.ts",
     "test:e2e:install": "playwright install chromium"
   },
   "dependencies": {
