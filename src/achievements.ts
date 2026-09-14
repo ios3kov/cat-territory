@@ -1,6 +1,6 @@
-import { getRankMeta } from "./ranks";
-import { storageGet, storageSet } from "./storage";
-const KEY = "cat-territory-achievements-v2";
+import { getRankMeta } from './ranks';
+import { storageGet, storageSet } from './storage';
+const KEY = 'cat-territory-achievements-v2';
 export type PlayerStats = {
   completed: number;
   flawless: number;
@@ -43,28 +43,28 @@ const empty = (): PlayerStats => ({
   bestDailyStreak: 0,
 });
 const defs = [
-  ["first", "First Territory", "Complete your first level.", "🐾", 1],
-  ["ten", "House Cat", "Complete 10 levels.", "🏠", 10],
-  ["clean", "Clean Paws", "Finish a level with no mistakes.", "✨", 0],
-  ["instinct", "Pure Instinct", "Finish a level without using Hint.", "🧠", 0],
-  ["big-cat", "Big Cat Energy", "Complete a 10×10 level.", "🐯", 0],
-  ["daily-first", "Morning Patrol", "Complete a Daily Territory.", "☀️", 0],
-  ["apex", "Apex Cat", "Clear a 10×10 with no mistakes and no Hint.", "👑", 0],
+  ['first', 'First Territory', 'Complete your first level.', '🐾', 1],
+  ['ten', 'House Cat', 'Complete 10 levels.', '🏠', 10],
+  ['clean', 'Clean Paws', 'Finish a level with no mistakes.', '✨', 0],
+  ['instinct', 'Pure Instinct', 'Finish a level without using Hint.', '🧠', 0],
+  ['big-cat', 'Big Cat Energy', 'Complete a 10×10 level.', '🐯', 0],
+  ['daily-first', 'Morning Patrol', 'Complete a Daily Territory.', '☀️', 0],
+  ['apex', 'Apex Cat', 'Clear a 10×10 with no mistakes and no Hint.', '👑', 0],
 ] as const;
 function read(): { stats: PlayerStats; unlocked: string[] } {
   const stats = empty();
   try {
-    const parsed = JSON.parse(storageGet(KEY) ?? "{}");
+    const parsed = JSON.parse(storageGet(KEY) ?? '{}');
     const saved = parsed?.stats;
     const nonnegative = (value: unknown): value is number =>
-      typeof value === "number" && Number.isFinite(value) && value >= 0;
-    if (saved && typeof saved === "object") {
+      typeof value === 'number' && Number.isFinite(value) && value >= 0;
+    if (saved && typeof saved === 'object') {
       for (const key of Object.keys(stats) as (keyof PlayerStats)[]) {
-        if (key === "bestBySize") continue;
+        if (key === 'bestBySize') continue;
         if (nonnegative(saved[key]))
           Object.assign(stats, { [key]: Math.floor(saved[key]) });
       }
-      for (const size of ["5", "6", "7", "8", "9", "10"])
+      for (const size of ['5', '6', '7', '8', '9', '10'])
         if (nonnegative(saved.bestBySize?.[size]))
           stats.bestBySize[size] = Math.floor(saved.bestBySize[size]);
     }
@@ -80,13 +80,13 @@ function read(): { stats: PlayerStats; unlocked: string[] } {
 }
 function evaluate(data: ReturnType<typeof read>) {
   const u = new Set(data.unlocked);
-  if (data.stats.completed >= 1) u.add("first");
-  if (data.stats.completed >= 10) u.add("ten");
-  if (data.stats.flawless >= 1) u.add("clean");
-  if (data.stats.noHint >= 1) u.add("instinct");
-  if (data.stats.tenByTen >= 1) u.add("big-cat");
-  if (data.stats.dailyWins >= 1) u.add("daily-first");
-  if (data.stats.apexRuns >= 1) u.add("apex");
+  if (data.stats.completed >= 1) u.add('first');
+  if (data.stats.completed >= 10) u.add('ten');
+  if (data.stats.flawless >= 1) u.add('clean');
+  if (data.stats.noHint >= 1) u.add('instinct');
+  if (data.stats.tenByTen >= 1) u.add('big-cat');
+  if (data.stats.dailyWins >= 1) u.add('daily-first');
+  if (data.stats.apexRuns >= 1) u.add('apex');
   const fresh = [...u].filter((id) => !data.unlocked.includes(id));
   data.unlocked = [...u];
   storageSet(KEY, JSON.stringify(data));
@@ -161,11 +161,11 @@ export function getBestTimeForSize(size: number) {
 export function getTerritoryJournal() {
   const s = read().stats;
   return [
-    { id: "perfect", label: "Flawless", icon: "✨", value: s.flawless },
-    { id: "no-hint", label: "No Hint", icon: "🧠", value: s.noHint },
-    { id: "moon-run", label: "10×10", icon: "🌙", value: s.tenByTen },
-    { id: "daily", label: "Daily", icon: "☀️", value: s.dailyWins },
-    { id: "apex", label: "Apex", icon: "👑", value: s.apexRuns },
+    { id: 'perfect', label: 'Flawless', icon: '✨', value: s.flawless },
+    { id: 'no-hint', label: 'No Hint', icon: '🧠', value: s.noHint },
+    { id: 'moon-run', label: '10×10', icon: '🌙', value: s.tenByTen },
+    { id: 'daily', label: 'Daily', icon: '☀️', value: s.dailyWins },
+    { id: 'apex', label: 'Apex', icon: '👑', value: s.apexRuns },
   ];
 }
 export function getAchievementSnapshot(): Achievement[] {
@@ -173,17 +173,17 @@ export function getAchievementSnapshot(): Achievement[] {
     u = new Set(d.unlocked);
   return defs.map(([id, title, description, icon, target]) => ({
     id,
-    title: id === "apex" && !u.has(id) ? "Secret achievement" : title,
+    title: id === 'apex' && !u.has(id) ? 'Secret achievement' : title,
     description:
-      id === "apex" && !u.has(id)
-        ? "Keep mastering the largest territories."
+      id === 'apex' && !u.has(id)
+        ? 'Keep mastering the largest territories.'
         : description,
-    icon: id === "apex" && !u.has(id) ? "❔" : icon,
+    icon: id === 'apex' && !u.has(id) ? '❔' : icon,
     unlocked: u.has(id),
     progress:
       target > 1
         ? `${Math.min(d.stats.completed, target)}/${target}`
         : undefined,
-    secret: id === "apex",
+    secret: id === 'apex',
   }));
 }

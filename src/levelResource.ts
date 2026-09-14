@@ -6,8 +6,8 @@ import {
   readPersistedDaily,
   rememberGenerated,
   rememberDaily,
-} from "./infiniteLevels";
-import type { CatalogLevel } from "./levelCatalog";
+} from './infiniteLevels';
+import type { CatalogLevel } from './levelCatalog';
 export { CURATED_LEVEL_COUNT, levelSizeAt };
 type Resource = {
   level?: CatalogLevel;
@@ -36,12 +36,12 @@ function resource(
   entry.promise = new Promise<void>((resolve) => {
     let worker: Worker;
     try {
-      worker = new Worker(new URL("./levelWorker.ts", import.meta.url), {
-        type: "module",
+      worker = new Worker(new URL('./levelWorker.ts', import.meta.url), {
+        type: 'module',
       });
     } catch {
       entry.error = new Error(
-        "Could not start territory generation. Please reload.",
+        'Could not start territory generation. Please reload.',
       );
       resolve();
       return;
@@ -59,16 +59,16 @@ function resource(
       resolve();
     };
     const timeout = window.setTimeout(
-      () => finish(undefined, "Territory generation timed out. Please retry."),
+      () => finish(undefined, 'Territory generation timed out. Please retry.'),
       60000,
     );
     worker.onmessage = (event) => finish(event.data.level, event.data.error);
     worker.onerror = () =>
-      finish(undefined, "Could not prepare territory. Please retry.");
+      finish(undefined, 'Could not prepare territory. Please retry.');
     try {
       worker.postMessage(request);
     } catch {
-      finish(undefined, "Could not prepare territory. Please retry.");
+      finish(undefined, 'Could not prepare territory. Please retry.');
     }
   });
   return entry;

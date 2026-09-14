@@ -1,12 +1,525 @@
 import { useBoardState } from './useBoardState';
-import{useEffect,useMemo,useRef,useState}from'react';import{getAchievementSnapshot,getBestTimeForSize,recordLevelCompletion,syncAchievementProgress,type Achievement}from'./achievements';import{playSound}from'./audio';import{boardsEqual,createInitialBoard,findConflicts,getLevel,prewarmLevel,prepareLevel,type CellState}from'./game';import{haptic}from'./haptics';import{getLogicalHint,type LogicalHint}from'./logicalEngine';import{completeLevel,readUnlockedLevel}from'./progress';import{getFinishGrade,getScoreBreakdown,type FinishGrade,type ScoreBreakdown}from'./score';import{clearTimer,runWhenIdle,scheduleTimer}from'./scheduler';import{clearLevelSession,loadLevelSession}from'./session';import{useBoardGestures}from'./useBoardGestures';import{useCellFeedback}from'./useCellFeedback';import{useSessionPersistence}from'./useSessionPersistence';import{trackGameplayEvent}from'./telemetry';
-type InitialGameState={levelIndex:number;unlockedLevelIndex:number;level:ReturnType<typeof getLevel>;session:ReturnType<typeof loadLevelSession>};export type CompletionSummary={grade:FinishGrade;score:number;breakdown:ScoreBreakdown;seconds:number;mistakes:number;usedHint:boolean;personalBest:boolean};function createInitialGameState():InitialGameState{const unlockedLevelIndex=readUnlockedLevel(),level=getLevel(unlockedLevelIndex);syncAchievementProgress(unlockedLevelIndex);return{levelIndex:unlockedLevelIndex,unlockedLevelIndex,level,session:loadLevelSession(level.id,level.size,level)}}
-export function useGameController(){const initialRef=useRef<InitialGameState|null>(null);if(!initialRef.current)initialRef.current=createInitialGameState();const initial=initialRef.current,initialLevel=initial.level;const[levelIndex,setLevelIndex]=useState(initial.levelIndex),[unlockedLevelIndex,setUnlockedLevelIndex]=useState(initial.unlockedLevelIndex),[board,setBoard]=useBoardState(initial.session?.board??createInitialBoard(initialLevel)),[history,setHistory]=useState<CellState[][]>(initial.session?.history??[]),[restartArmed,setRestartArmed]=useState(false),[seconds,setSeconds]=useState(initial.session?.seconds??0),[timerStarted,setTimerStarted]=useState(initial.session?.started??false),[mistakes,setMistakes]=useState(initial.session?.mistakes??0),[usedHint,setUsedHint]=useState(initial.session?.usedHint??false),[mistakeNotice,setMistakeNotice]=useState<string|null>(null),[mistakeCell,setMistakeCell]=useState<number|null>(null),[correctCell,setCorrectCell]=useState<number|null>(null),[completionSummary,setCompletionSummary]=useState<CompletionSummary|null>(null),[restartingFromMistakes,setRestartingFromMistakes]=useState(false),[won,setWon]=useState(false),[winDialogReady,setWinDialogReady]=useState(false),[hintInfo,setHintInfo]=useState<LogicalHint|null>(null),[hintRevealed,setHintRevealed]=useState(false),[idleHelpVisible,setIdleHelpVisible]=useState(false),[achievementQueue,setAchievementQueue]=useState<Achievement[]>([]),[achievementCount,setAchievementCount]=useState(()=>getAchievementSnapshot().filter(i=>i.unlocked).length),cellFeedback=useCellFeedback();const startedAt=useRef(Date.now()-seconds*1000),timerStartedRef=useRef(timerStarted),mistakesRef=useRef(mistakes),usedHintRef=useRef(usedHint),restartTimer=useRef<number|null>(null),idleHelpTimer=useRef<number|null>(null),mistakeRestartTimer=useRef<number|null>(null),mistakeFeedbackTimer=useRef<number|null>(null),correctFeedbackTimer=useRef<number|null>(null),mistakeNoticeTimer=useRef<number|null>(null),achievementToastTimer=useRef<number|null>(null),winDialogTimer=useRef<number|null>(null),trackedLevelStartRef=useRef<string|null>(null),trackedFirstMoveRef=useRef<string|null>(null);const level=useMemo(()=>getLevel(levelIndex),[levelIndex]),pristineBoard=useMemo(()=>createInitialBoard(level),[level]),fixedCells=useMemo(()=>new Set(level.starterCats),[level]),conflicts=useMemo(()=>findConflicts(board,level),[board,level]),catCount=useMemo(()=>board.filter(v=>v===2).length,[board]),solved=catCount===level.size&&conflicts.size===0,shouldPersist=mistakes<3&&!restartingFromMistakes&&!won&&!solved&&(timerStarted||!boardsEqual(board,pristineBoard));useSessionPersistence({levelId:level.id,board,seconds,history,started:timerStarted,mistakes,usedHint,persist:shouldPersist});const startTimer=()=>{if(timerStartedRef.current)return;timerStartedRef.current=true;startedAt.current=Date.now()-seconds*1000;setTimerStarted(true)},track=(name:Parameters<typeof trackGameplayEvent>[0])=>trackGameplayEvent(name,level.id,levelIndex,seconds),showMistakeNotice=(message:string,duration=1200)=>{setMistakeNotice(message);scheduleTimer(mistakeNoticeTimer,()=>setMistakeNotice(null),duration)};
-const registerCorrectCat=(idx:number)=>{clearTimer(correctFeedbackTimer);setCorrectCell(idx);setIdleHelpVisible(false);playSound('correct');scheduleTimer(correctFeedbackTimer,()=>setCorrectCell(null),520)};const registerMistake=(idx:number,restore:()=>void)=>{if(won||restartingFromMistakes||mistakeCell!==null)return;const next=Math.min(3,mistakesRef.current+1);mistakesRef.current=next;setMistakes(next);setMistakeCell(idx);setIdleHelpVisible(false);playSound(next===3?'strikeout':'mistake');track('mistake');if(next<3){showMistakeNotice(`Wrong spot · Mistake ${next}/3`);haptic('mistake');mistakeFeedbackTimer.current=window.setTimeout(()=>{restore();setMistakeCell(null);mistakeFeedbackTimer.current=null},520);return}showMistakeNotice('3 mistakes — restarting…',900);setRestartingFromMistakes(true);track('mistake_restart');haptic('strikeout');clearTimer(mistakeRestartTimer);mistakeRestartTimer.current=window.setTimeout(()=>resetCurrentLevel(true),520)};const dismissHint=()=>{if(!hintInfo&&!hintRevealed)return;setHintInfo(null);setHintRevealed(false)};
-const gestures=useBoardGestures({board,level,setBoard,setHistory,disabled:won||restartingFromMistakes||mistakeCell!==null,fixedCells,onBoardInteraction:dismissHint,onCellChange:(idx,mode,source)=>{const kind=source==='swipe'?(mode==='erase'?'swipe-erase':'swipe-paint'):mode;cellFeedback.flashCell(idx,kind);if(source!=='auto')playSound(mode==='erase'?'erase':'mark')},onCatRemoved:()=>{playSound('catRemove')},onCorrectCat:registerCorrectCat,onMistake:registerMistake,onFirstInteraction:()=>{startTimer();if(trackedFirstMoveRef.current!==level.id){trackedFirstMoveRef.current=level.id;track('first_move')}}});
-function resetCurrentLevel(fromMistakes=false){gestures.resetInteraction();cellFeedback.clear();[restartTimer,mistakeRestartTimer,mistakeFeedbackTimer,correctFeedbackTimer,winDialogTimer].forEach(clearTimer);clearLevelSession(level.id);setBoard(createInitialBoard(level));setHistory([]);setWon(false);setWinDialogReady(false);setCompletionSummary(null);setRestartArmed(false);setHintInfo(null);setHintRevealed(false);setSeconds(0);timerStartedRef.current=false;setTimerStarted(false);mistakesRef.current=0;setMistakes(0);usedHintRef.current=false;setUsedHint(false);setIdleHelpVisible(false);setMistakeCell(null);setCorrectCell(null);setRestartingFromMistakes(false);startedAt.current=Date.now();trackedFirstMoveRef.current=null;if(fromMistakes)showMistakeNotice('Three mistakes — level restarted.',1600);else{clearTimer(mistakeNoticeTimer);setMistakeNotice(null)}}
-useEffect(()=>{if(trackedLevelStartRef.current!==level.id){trackedLevelStartRef.current=level.id;trackGameplayEvent('level_start',level.id,levelIndex,seconds)}return runWhenIdle(()=>prewarmLevel(levelIndex+1),5000,2500)},[level.id,levelIndex]);useEffect(()=>{setHintInfo(null);setHintRevealed(false);setRestartArmed(false)},[board,levelIndex]);useEffect(()=>{setIdleHelpVisible(false);clearTimer(idleHelpTimer);if(timerStarted&&!won&&!restartingFromMistakes)idleHelpTimer.current=window.setTimeout(()=>setIdleHelpVisible(true),45000);return()=>clearTimer(idleHelpTimer)},[board,levelIndex,timerStarted,won,restartingFromMistakes]);useEffect(()=>{if(won||!timerStarted||restartingFromMistakes)return;const update=()=>{if(document.visibilityState==='visible')setSeconds(Math.floor((Date.now()-startedAt.current)/1000))};update();const timer=window.setInterval(update,1000);return()=>clearInterval(timer)},[levelIndex,timerStarted,won,restartingFromMistakes]);
-useEffect(()=>{if(!solved||won)return;setWon(true);setWinDialogReady(false);track('level_complete');haptic('win');clearLevelSession(level.id);const previousBest=getBestTimeForSize(level.size),summary:CompletionSummary={grade:getFinishGrade(mistakes,usedHintRef.current),score:getScoreBreakdown(level.size,seconds,mistakes,usedHintRef.current).total,breakdown:getScoreBreakdown(level.size,seconds,mistakes,usedHintRef.current),seconds,mistakes,usedHint:usedHintRef.current,personalBest:previousBest===null||seconds<previousBest};setCompletionSummary(summary);const progress=completeLevel(levelIndex);if(progress.unlockedIndex!==unlockedLevelIndex)setUnlockedLevelIndex(progress.unlockedIndex);const unlocked=recordLevelCompletion({levelIndex,size:level.size,seconds,mistakes,usedHint:usedHintRef.current});setAchievementCount(getAchievementSnapshot().filter(i=>i.unlocked).length);if(unlocked.length)setAchievementQueue(q=>[...q,...unlocked]);const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;winDialogTimer.current=window.setTimeout(()=>{playSound('win');setWinDialogReady(true);winDialogTimer.current=null},reduced?0:700)},[level.id,level.size,levelIndex,mistakes,seconds,solved,unlockedLevelIndex,won]);useEffect(()=>{const current=achievementQueue[0];if(!current)return;playSound(current.secret?'secretAchievement':'achievement');haptic(current.secret?'secretAchievement':'achievement');clearTimer(achievementToastTimer);achievementToastTimer.current=window.setTimeout(()=>{setAchievementQueue(q=>q.slice(1));achievementToastTimer.current=null},2800);return()=>clearTimer(achievementToastTimer)},[achievementQueue]);useEffect(()=>()=>{gestures.resetInteraction();cellFeedback.clear();[restartTimer,idleHelpTimer,mistakeRestartTimer,mistakeFeedbackTimer,correctFeedbackTimer,mistakeNoticeTimer,achievementToastTimer,winDialogTimer].forEach(clearTimer)},[]);
-const undo=()=>{const previous=history.at(-1);if(!previous||won||restartingFromMistakes||mistakeCell!==null)return;gestures.resetInteraction();cellFeedback.flashDiff(board,previous);setBoard(previous);setHistory(h=>h.slice(0,-1));playSound('rollback');haptic('undo');track('undo')},restart=()=>{if(restartingFromMistakes||mistakeCell!==null)return;const has=!boardsEqual(board,pristineBoard)||mistakes>0||usedHint;if(!restartArmed&&has){setRestartArmed(true);track('restart_arm');clearTimer(restartTimer);restartTimer.current=window.setTimeout(()=>setRestartArmed(false),2200);return}if(!has)return;track('restart_confirm');playSound('restart');haptic('restart');resetCurrentLevel()},hint=()=>{if(won||restartingFromMistakes||mistakeCell!==null)return;startTimer();if(!usedHintRef.current){usedHintRef.current=true;setUsedHint(true)}gestures.resetInteraction();if(hintInfo){if(!hintRevealed&&hintInfo.cell>=0){playSound('reveal');haptic('reveal');setHintRevealed(true);track('hint_reveal')}return}playSound('hint');haptic('hint');track('hint_open');setIdleHelpVisible(false);const next=getLogicalHint(level.regions,board)??{kind:'repair' as const,cell:-1,highlight:[],prompt:'No forced move is visible from the current marks.',reason:'No forced move is available from the current marks. Recheck the board and clear any uncertain X marks.',technique:'repair' as const};setHintInfo(next);if(next.cell<0)setHintRevealed(true)},refreshAchievementCount=()=>setAchievementCount(getAchievementSnapshot().filter(i=>i.unlocked).length);
-const nextLevel=async()=>{const next=levelIndex+1;if(!won||next>unlockedLevelIndex)return;await prepareLevel(next);gestures.resetInteraction();cellFeedback.clear();playSound('next');const l=getLevel(next),saved=loadLevelSession(l.id,l.size,l),restoredSeconds=saved?.seconds??0,restoredStarted=saved?.started??false,restoredMistakes=saved?.mistakes??0,restoredHint=saved?.usedHint??false;setLevelIndex(next);setBoard(saved?.board??createInitialBoard(l));setHistory(saved?.history??[]);setWon(false);setWinDialogReady(false);setCompletionSummary(null);setRestartArmed(false);setHintInfo(null);setHintRevealed(false);setMistakeNotice(null);setMistakeCell(null);setCorrectCell(null);setRestartingFromMistakes(false);setSeconds(restoredSeconds);timerStartedRef.current=restoredStarted;setTimerStarted(restoredStarted);mistakesRef.current=restoredMistakes;setMistakes(restoredMistakes);usedHintRef.current=restoredHint;setUsedHint(restoredHint);startedAt.current=Date.now()-restoredSeconds*1000;trackedFirstMoveRef.current=null},receiveAchievements=(items:Achievement[])=>{setAchievementCount(getAchievementSnapshot().filter(i=>i.unlocked).length);if(items.length)setAchievementQueue(q=>[...q,...items])};return{level,levelIndex,board,history,seconds,timerStarted,mistakes,usedHint,mistakeNotice,mistakeCell,correctCell,completionSummary,restartingFromMistakes,won,winDialogReady,restartArmed,conflicts,catCount,hintInfo,hintRevealed,idleHelpVisible,achievementToast:achievementQueue[0]??null,achievementCount,refreshAchievementCount,cellFeedback:cellFeedback.effects,gestures,undo,restart,hint,dismissHint,nextLevel,receiveAchievements}}
-
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  getAchievementSnapshot,
+  getBestTimeForSize,
+  recordLevelCompletion,
+  syncAchievementProgress,
+  type Achievement,
+} from './achievements';
+import { playSound } from './audio';
+import {
+  boardsEqual,
+  createInitialBoard,
+  findConflicts,
+  getLevel,
+  prewarmLevel,
+  prepareLevel,
+  type CellState,
+} from './game';
+import { haptic } from './haptics';
+import { getLogicalHint, type LogicalHint } from './logicalEngine';
+import { completeLevel, readUnlockedLevel } from './progress';
+import {
+  getFinishGrade,
+  getScoreBreakdown,
+  type FinishGrade,
+  type ScoreBreakdown,
+} from './score';
+import { clearTimer, runWhenIdle, scheduleTimer } from './scheduler';
+import { clearLevelSession, loadLevelSession } from './session';
+import { useBoardGestures } from './useBoardGestures';
+import { useCellFeedback } from './useCellFeedback';
+import { useSessionPersistence } from './useSessionPersistence';
+import { trackGameplayEvent } from './telemetry';
+type InitialGameState = {
+  levelIndex: number;
+  unlockedLevelIndex: number;
+  level: ReturnType<typeof getLevel>;
+  session: ReturnType<typeof loadLevelSession>;
+};
+export type CompletionSummary = {
+  grade: FinishGrade;
+  score: number;
+  breakdown: ScoreBreakdown;
+  seconds: number;
+  mistakes: number;
+  usedHint: boolean;
+  personalBest: boolean;
+};
+function createInitialGameState(): InitialGameState {
+  const unlockedLevelIndex = readUnlockedLevel(),
+    level = getLevel(unlockedLevelIndex);
+  syncAchievementProgress(unlockedLevelIndex);
+  return {
+    levelIndex: unlockedLevelIndex,
+    unlockedLevelIndex,
+    level,
+    session: loadLevelSession(level.id, level.size, level),
+  };
+}
+export function useGameController() {
+  const initialRef = useRef<InitialGameState | null>(null);
+  if (!initialRef.current) initialRef.current = createInitialGameState();
+  const initial = initialRef.current,
+    initialLevel = initial.level;
+  const [levelIndex, setLevelIndex] = useState(initial.levelIndex),
+    [unlockedLevelIndex, setUnlockedLevelIndex] = useState(
+      initial.unlockedLevelIndex,
+    ),
+    [board, setBoard] = useBoardState(
+      initial.session?.board ?? createInitialBoard(initialLevel),
+    ),
+    [history, setHistory] = useState<CellState[][]>(
+      initial.session?.history ?? [],
+    ),
+    [restartArmed, setRestartArmed] = useState(false),
+    [seconds, setSeconds] = useState(initial.session?.seconds ?? 0),
+    [timerStarted, setTimerStarted] = useState(
+      initial.session?.started ?? false,
+    ),
+    [mistakes, setMistakes] = useState(initial.session?.mistakes ?? 0),
+    [usedHint, setUsedHint] = useState(initial.session?.usedHint ?? false),
+    [mistakeNotice, setMistakeNotice] = useState<string | null>(null),
+    [mistakeCell, setMistakeCell] = useState<number | null>(null),
+    [correctCell, setCorrectCell] = useState<number | null>(null),
+    [completionSummary, setCompletionSummary] =
+      useState<CompletionSummary | null>(null),
+    [restartingFromMistakes, setRestartingFromMistakes] = useState(false),
+    [won, setWon] = useState(false),
+    [winDialogReady, setWinDialogReady] = useState(false),
+    [hintInfo, setHintInfo] = useState<LogicalHint | null>(null),
+    [hintRevealed, setHintRevealed] = useState(false),
+    [idleHelpVisible, setIdleHelpVisible] = useState(false),
+    [achievementQueue, setAchievementQueue] = useState<Achievement[]>([]),
+    [achievementCount, setAchievementCount] = useState(
+      () => getAchievementSnapshot().filter((i) => i.unlocked).length,
+    ),
+    cellFeedback = useCellFeedback();
+  const startedAt = useRef(Date.now() - seconds * 1000),
+    timerStartedRef = useRef(timerStarted),
+    mistakesRef = useRef(mistakes),
+    usedHintRef = useRef(usedHint),
+    restartTimer = useRef<number | null>(null),
+    idleHelpTimer = useRef<number | null>(null),
+    mistakeRestartTimer = useRef<number | null>(null),
+    mistakeFeedbackTimer = useRef<number | null>(null),
+    correctFeedbackTimer = useRef<number | null>(null),
+    mistakeNoticeTimer = useRef<number | null>(null),
+    achievementToastTimer = useRef<number | null>(null),
+    winDialogTimer = useRef<number | null>(null),
+    trackedLevelStartRef = useRef<string | null>(null),
+    trackedFirstMoveRef = useRef<string | null>(null);
+  const level = useMemo(() => getLevel(levelIndex), [levelIndex]),
+    pristineBoard = useMemo(() => createInitialBoard(level), [level]),
+    fixedCells = useMemo(() => new Set(level.starterCats), [level]),
+    conflicts = useMemo(() => findConflicts(board, level), [board, level]),
+    catCount = useMemo(() => board.filter((v) => v === 2).length, [board]),
+    solved = catCount === level.size && conflicts.size === 0,
+    shouldPersist =
+      mistakes < 3 &&
+      !restartingFromMistakes &&
+      !won &&
+      !solved &&
+      (timerStarted || !boardsEqual(board, pristineBoard));
+  useSessionPersistence({
+    levelId: level.id,
+    board,
+    seconds,
+    history,
+    started: timerStarted,
+    mistakes,
+    usedHint,
+    persist: shouldPersist,
+  });
+  const startTimer = () => {
+      if (timerStartedRef.current) return;
+      timerStartedRef.current = true;
+      startedAt.current = Date.now() - seconds * 1000;
+      setTimerStarted(true);
+    },
+    track = (name: Parameters<typeof trackGameplayEvent>[0]) =>
+      trackGameplayEvent(name, level.id, levelIndex, seconds),
+    showMistakeNotice = (message: string, duration = 1200) => {
+      setMistakeNotice(message);
+      scheduleTimer(mistakeNoticeTimer, () => setMistakeNotice(null), duration);
+    };
+  const registerCorrectCat = (idx: number) => {
+    clearTimer(correctFeedbackTimer);
+    setCorrectCell(idx);
+    setIdleHelpVisible(false);
+    playSound('correct');
+    scheduleTimer(correctFeedbackTimer, () => setCorrectCell(null), 520);
+  };
+  const registerMistake = (idx: number, restore: () => void) => {
+    if (won || restartingFromMistakes || mistakeCell !== null) return;
+    const next = Math.min(3, mistakesRef.current + 1);
+    mistakesRef.current = next;
+    setMistakes(next);
+    setMistakeCell(idx);
+    setIdleHelpVisible(false);
+    playSound(next === 3 ? 'strikeout' : 'mistake');
+    track('mistake');
+    if (next < 3) {
+      showMistakeNotice(`Wrong spot · Mistake ${next}/3`);
+      haptic('mistake');
+      mistakeFeedbackTimer.current = window.setTimeout(() => {
+        restore();
+        setMistakeCell(null);
+        mistakeFeedbackTimer.current = null;
+      }, 520);
+      return;
+    }
+    showMistakeNotice('3 mistakes — restarting…', 900);
+    setRestartingFromMistakes(true);
+    track('mistake_restart');
+    haptic('strikeout');
+    clearTimer(mistakeRestartTimer);
+    mistakeRestartTimer.current = window.setTimeout(
+      () => resetCurrentLevel(true),
+      520,
+    );
+  };
+  const dismissHint = () => {
+    if (!hintInfo && !hintRevealed) return;
+    setHintInfo(null);
+    setHintRevealed(false);
+  };
+  const gestures = useBoardGestures({
+    board,
+    level,
+    setBoard,
+    setHistory,
+    disabled: won || restartingFromMistakes || mistakeCell !== null,
+    fixedCells,
+    onBoardInteraction: dismissHint,
+    onCellChange: (idx, mode, source) => {
+      const kind =
+        source === 'swipe'
+          ? mode === 'erase'
+            ? 'swipe-erase'
+            : 'swipe-paint'
+          : mode;
+      cellFeedback.flashCell(idx, kind);
+      if (source !== 'auto') playSound(mode === 'erase' ? 'erase' : 'mark');
+    },
+    onCatRemoved: () => {
+      playSound('catRemove');
+    },
+    onCorrectCat: registerCorrectCat,
+    onMistake: registerMistake,
+    onFirstInteraction: () => {
+      startTimer();
+      if (trackedFirstMoveRef.current !== level.id) {
+        trackedFirstMoveRef.current = level.id;
+        track('first_move');
+      }
+    },
+  });
+  function resetCurrentLevel(fromMistakes = false) {
+    gestures.resetInteraction();
+    cellFeedback.clear();
+    [
+      restartTimer,
+      mistakeRestartTimer,
+      mistakeFeedbackTimer,
+      correctFeedbackTimer,
+      winDialogTimer,
+    ].forEach(clearTimer);
+    clearLevelSession(level.id);
+    setBoard(createInitialBoard(level));
+    setHistory([]);
+    setWon(false);
+    setWinDialogReady(false);
+    setCompletionSummary(null);
+    setRestartArmed(false);
+    setHintInfo(null);
+    setHintRevealed(false);
+    setSeconds(0);
+    timerStartedRef.current = false;
+    setTimerStarted(false);
+    mistakesRef.current = 0;
+    setMistakes(0);
+    usedHintRef.current = false;
+    setUsedHint(false);
+    setIdleHelpVisible(false);
+    setMistakeCell(null);
+    setCorrectCell(null);
+    setRestartingFromMistakes(false);
+    startedAt.current = Date.now();
+    trackedFirstMoveRef.current = null;
+    if (fromMistakes)
+      showMistakeNotice('Three mistakes — level restarted.', 1600);
+    else {
+      clearTimer(mistakeNoticeTimer);
+      setMistakeNotice(null);
+    }
+  }
+  useEffect(() => {
+    if (trackedLevelStartRef.current !== level.id) {
+      trackedLevelStartRef.current = level.id;
+      trackGameplayEvent('level_start', level.id, levelIndex, seconds);
+    }
+    return runWhenIdle(() => prewarmLevel(levelIndex + 1), 5000, 2500);
+  }, [level.id, levelIndex]);
+  useEffect(() => {
+    setHintInfo(null);
+    setHintRevealed(false);
+    setRestartArmed(false);
+  }, [board, levelIndex]);
+  useEffect(() => {
+    setIdleHelpVisible(false);
+    clearTimer(idleHelpTimer);
+    if (timerStarted && !won && !restartingFromMistakes)
+      idleHelpTimer.current = window.setTimeout(
+        () => setIdleHelpVisible(true),
+        45000,
+      );
+    return () => clearTimer(idleHelpTimer);
+  }, [board, levelIndex, timerStarted, won, restartingFromMistakes]);
+  useEffect(() => {
+    if (won || !timerStarted || restartingFromMistakes) return;
+    const update = () => {
+      if (document.visibilityState === 'visible')
+        setSeconds(Math.floor((Date.now() - startedAt.current) / 1000));
+    };
+    update();
+    const timer = window.setInterval(update, 1000);
+    return () => clearInterval(timer);
+  }, [levelIndex, timerStarted, won, restartingFromMistakes]);
+  useEffect(() => {
+    if (!solved || won) return;
+    setWon(true);
+    setWinDialogReady(false);
+    track('level_complete');
+    haptic('win');
+    clearLevelSession(level.id);
+    const previousBest = getBestTimeForSize(level.size),
+      summary: CompletionSummary = {
+        grade: getFinishGrade(mistakes, usedHintRef.current),
+        score: getScoreBreakdown(
+          level.size,
+          seconds,
+          mistakes,
+          usedHintRef.current,
+        ).total,
+        breakdown: getScoreBreakdown(
+          level.size,
+          seconds,
+          mistakes,
+          usedHintRef.current,
+        ),
+        seconds,
+        mistakes,
+        usedHint: usedHintRef.current,
+        personalBest: previousBest === null || seconds < previousBest,
+      };
+    setCompletionSummary(summary);
+    const progress = completeLevel(levelIndex);
+    if (progress.unlockedIndex !== unlockedLevelIndex)
+      setUnlockedLevelIndex(progress.unlockedIndex);
+    const unlocked = recordLevelCompletion({
+      levelIndex,
+      size: level.size,
+      seconds,
+      mistakes,
+      usedHint: usedHintRef.current,
+    });
+    setAchievementCount(
+      getAchievementSnapshot().filter((i) => i.unlocked).length,
+    );
+    if (unlocked.length) setAchievementQueue((q) => [...q, ...unlocked]);
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    winDialogTimer.current = window.setTimeout(
+      () => {
+        playSound('win');
+        setWinDialogReady(true);
+        winDialogTimer.current = null;
+      },
+      reduced ? 0 : 700,
+    );
+  }, [
+    level.id,
+    level.size,
+    levelIndex,
+    mistakes,
+    seconds,
+    solved,
+    unlockedLevelIndex,
+    won,
+  ]);
+  useEffect(() => {
+    const current = achievementQueue[0];
+    if (!current) return;
+    playSound(current.secret ? 'secretAchievement' : 'achievement');
+    haptic(current.secret ? 'secretAchievement' : 'achievement');
+    clearTimer(achievementToastTimer);
+    achievementToastTimer.current = window.setTimeout(() => {
+      setAchievementQueue((q) => q.slice(1));
+      achievementToastTimer.current = null;
+    }, 2800);
+    return () => clearTimer(achievementToastTimer);
+  }, [achievementQueue]);
+  useEffect(
+    () => () => {
+      gestures.resetInteraction();
+      cellFeedback.clear();
+      [
+        restartTimer,
+        idleHelpTimer,
+        mistakeRestartTimer,
+        mistakeFeedbackTimer,
+        correctFeedbackTimer,
+        mistakeNoticeTimer,
+        achievementToastTimer,
+        winDialogTimer,
+      ].forEach(clearTimer);
+    },
+    [],
+  );
+  const undo = () => {
+      const previous = history.at(-1);
+      if (!previous || won || restartingFromMistakes || mistakeCell !== null)
+        return;
+      gestures.resetInteraction();
+      cellFeedback.flashDiff(board, previous);
+      setBoard(previous);
+      setHistory((h) => h.slice(0, -1));
+      playSound('rollback');
+      haptic('undo');
+      track('undo');
+    },
+    restart = () => {
+      if (restartingFromMistakes || mistakeCell !== null) return;
+      const has =
+        !boardsEqual(board, pristineBoard) || mistakes > 0 || usedHint;
+      if (!restartArmed && has) {
+        setRestartArmed(true);
+        track('restart_arm');
+        clearTimer(restartTimer);
+        restartTimer.current = window.setTimeout(
+          () => setRestartArmed(false),
+          2200,
+        );
+        return;
+      }
+      if (!has) return;
+      track('restart_confirm');
+      playSound('restart');
+      haptic('restart');
+      resetCurrentLevel();
+    },
+    hint = () => {
+      if (won || restartingFromMistakes || mistakeCell !== null) return;
+      startTimer();
+      if (!usedHintRef.current) {
+        usedHintRef.current = true;
+        setUsedHint(true);
+      }
+      gestures.resetInteraction();
+      if (hintInfo) {
+        if (!hintRevealed && hintInfo.cell >= 0) {
+          playSound('reveal');
+          haptic('reveal');
+          setHintRevealed(true);
+          track('hint_reveal');
+        }
+        return;
+      }
+      playSound('hint');
+      haptic('hint');
+      track('hint_open');
+      setIdleHelpVisible(false);
+      const next = getLogicalHint(level.regions, board) ?? {
+        kind: 'repair' as const,
+        cell: -1,
+        highlight: [],
+        prompt: 'No forced move is visible from the current marks.',
+        reason:
+          'No forced move is available from the current marks. Recheck the board and clear any uncertain X marks.',
+        technique: 'repair' as const,
+      };
+      setHintInfo(next);
+      if (next.cell < 0) setHintRevealed(true);
+    },
+    refreshAchievementCount = () =>
+      setAchievementCount(
+        getAchievementSnapshot().filter((i) => i.unlocked).length,
+      );
+  const nextLevel = async () => {
+      const next = levelIndex + 1;
+      if (!won || next > unlockedLevelIndex) return;
+      await prepareLevel(next);
+      gestures.resetInteraction();
+      cellFeedback.clear();
+      playSound('next');
+      const l = getLevel(next),
+        saved = loadLevelSession(l.id, l.size, l),
+        restoredSeconds = saved?.seconds ?? 0,
+        restoredStarted = saved?.started ?? false,
+        restoredMistakes = saved?.mistakes ?? 0,
+        restoredHint = saved?.usedHint ?? false;
+      setLevelIndex(next);
+      setBoard(saved?.board ?? createInitialBoard(l));
+      setHistory(saved?.history ?? []);
+      setWon(false);
+      setWinDialogReady(false);
+      setCompletionSummary(null);
+      setRestartArmed(false);
+      setHintInfo(null);
+      setHintRevealed(false);
+      setMistakeNotice(null);
+      setMistakeCell(null);
+      setCorrectCell(null);
+      setRestartingFromMistakes(false);
+      setSeconds(restoredSeconds);
+      timerStartedRef.current = restoredStarted;
+      setTimerStarted(restoredStarted);
+      mistakesRef.current = restoredMistakes;
+      setMistakes(restoredMistakes);
+      usedHintRef.current = restoredHint;
+      setUsedHint(restoredHint);
+      startedAt.current = Date.now() - restoredSeconds * 1000;
+      trackedFirstMoveRef.current = null;
+    },
+    receiveAchievements = (items: Achievement[]) => {
+      setAchievementCount(
+        getAchievementSnapshot().filter((i) => i.unlocked).length,
+      );
+      if (items.length) setAchievementQueue((q) => [...q, ...items]);
+    };
+  return {
+    level,
+    levelIndex,
+    board,
+    history,
+    seconds,
+    timerStarted,
+    mistakes,
+    usedHint,
+    mistakeNotice,
+    mistakeCell,
+    correctCell,
+    completionSummary,
+    restartingFromMistakes,
+    won,
+    winDialogReady,
+    restartArmed,
+    conflicts,
+    catCount,
+    hintInfo,
+    hintRevealed,
+    idleHelpVisible,
+    achievementToast: achievementQueue[0] ?? null,
+    achievementCount,
+    refreshAchievementCount,
+    cellFeedback: cellFeedback.effects,
+    gestures,
+    undo,
+    restart,
+    hint,
+    dismissHint,
+    nextLevel,
+    receiveAchievements,
+  };
+}
