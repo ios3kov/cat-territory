@@ -1,3 +1,4 @@
+import { rememberCatOrder } from './catOrder';
 import type { CatalogLevel } from './levelCatalog';
 export { CURATED_LEVEL_COUNT, getDailyLevel, getLevel, levelSizeAt, prewarmLevel, prepareLevel } from './levelResource';
 export type CellState = 0 | 1 | 2;
@@ -31,7 +32,7 @@ export const indexOf=(row:number,col:number,size:number)=>row*size+col;
 export function formatTime(totalSeconds:number){const minutes=Math.floor(totalSeconds/60),seconds=totalSeconds%60;return `${minutes}:${seconds.toString().padStart(2,'0')}`;}
 export function isBlockedByCat(level:Level,catIndex:number,cellIndex:number){if(catIndex===cellIndex)return false;const size=level.size,catRow=Math.floor(catIndex/size),catCol=catIndex%size,row=Math.floor(cellIndex/size),col=cellIndex%size;const sameRegion=level.regions[catRow][catCol]===level.regions[row][col];const touching=Math.abs(catRow-row)<=1&&Math.abs(catCol-col)<=1;return catRow===row||catCol===col||sameRegion||touching;}
 export function applySmartMarks(level:Level,board:CellState[],catIndex:number){const next=[...board] as CellState[];next[catIndex]=2;for(let cell=0;cell<next.length;cell++)if(next[cell]===0&&isBlockedByCat(level,catIndex,cell))next[cell]=1;return next;}
-export function createInitialBoard(level:Level){let board=emptyBoard(level.size);for(const catIndex of level.starterCats)board=applySmartMarks(level,board,catIndex);return board;}
+export function createInitialBoard(level:Level){let board=emptyBoard(level.size);for(const catIndex of level.starterCats)board=applySmartMarks(level,board,catIndex);return rememberCatOrder(board);}
 export function boardsEqual(first:CellState[],second:CellState[]){return first.length===second.length&&first.every((value,index)=>value===second[index]);}
 export function findConflicts(board:CellState[],level:Level){const conflicts=new Set<number>();const cats=board.flatMap((value,index)=>(value===2?[index]:[]));for(let a=0;a<cats.length;a++)for(let b=a+1;b<cats.length;b++)if(isBlockedByCat(level,cats[a],cats[b])){conflicts.add(cats[a]);conflicts.add(cats[b]);}return conflicts;}
 

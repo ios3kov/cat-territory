@@ -1,7 +1,10 @@
+import { getCatOrder, rememberCatOrder } from "./catOrder";
 import { HISTORY_LIMIT, type Level, type CellState } from "./game";
 import { storageGet, storageRemove, storageSet } from "./storage";
 type LevelSession = {
   board: CellState[];
+  catOrder?: unknown;
+  historyCatOrders?: unknown;
   history: CellState[][];
   seconds: number;
   started: boolean;
@@ -42,6 +45,16 @@ function parseSession(raw: string | null, size: number): LevelSession | null {
         started && savedAt !== undefined
           ? Math.max(0, Math.floor((Date.now() - savedAt) / 1000))
           : 0;
+    const snapshots = p.history ?? [];
+    snapshots.forEach((board, index) =>
+      rememberCatOrder(
+        board,
+        Array.isArray(p.historyCatOrders)
+          ? p.historyCatOrders[index]
+          : undefined,
+      ),
+    );
+    rememberCatOrder(p.board, p.catOrder);
     return {
       board: p.board,
       history: p.history ?? [],
@@ -87,6 +100,8 @@ export function saveLevelSession(
     JSON.stringify({
       board,
       history: history.slice(-HISTORY_LIMIT),
+      catOrder: getCatOrder(board),
+      historyCatOrders: history.slice(-HISTORY_LIMIT).map(getCatOrder),
       seconds: Math.max(0, Math.floor(seconds)),
       started,
       mistakes: Math.min(Math.max(Math.floor(mistakes), 0), 2),
