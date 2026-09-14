@@ -14,8 +14,6 @@ export type PlayerStats = {
   currentFlawlessStreak: number;
   bestFlawlessStreak: number;
   apexRuns: number;
-  dailyWins: number;
-  bestDailyStreak: number;
 };
 export type Achievement = {
   id: string;
@@ -39,8 +37,6 @@ const empty = (): PlayerStats => ({
   currentFlawlessStreak: 0,
   bestFlawlessStreak: 0,
   apexRuns: 0,
-  dailyWins: 0,
-  bestDailyStreak: 0,
 });
 const defs = [
   ['first', 'First Territory', 'Complete your first level.', '🐾', 1],
@@ -48,7 +44,6 @@ const defs = [
   ['clean', 'Clean Paws', 'Finish a level with no mistakes.', '✨', 0],
   ['instinct', 'Pure Instinct', 'Finish a level without using Hint.', '🧠', 0],
   ['big-cat', 'Big Cat Energy', 'Complete a 10×10 level.', '🐯', 0],
-  ['daily-first', 'Morning Patrol', 'Complete a Daily Territory.', '☀️', 0],
   ['apex', 'Apex Cat', 'Clear a 10×10 with no mistakes and no Hint.', '👑', 0],
 ] as const;
 function read(): { stats: PlayerStats; unlocked: string[] } {
@@ -85,7 +80,6 @@ function evaluate(data: ReturnType<typeof read>) {
   if (data.stats.flawless >= 1) u.add('clean');
   if (data.stats.noHint >= 1) u.add('instinct');
   if (data.stats.tenByTen >= 1) u.add('big-cat');
-  if (data.stats.dailyWins >= 1) u.add('daily-first');
   if (data.stats.apexRuns >= 1) u.add('apex');
   const fresh = [...u].filter((id) => !data.unlocked.includes(id));
   data.unlocked = [...u];
@@ -144,13 +138,6 @@ export function recordLevelCompletion(input: {
   const fresh = evaluate(d);
   return getAchievementSnapshot().filter((i) => fresh.includes(i.id));
 }
-export function recordDailyCompletion(streak: number) {
-  const d = read();
-  d.stats.dailyWins++;
-  d.stats.bestDailyStreak = Math.max(d.stats.bestDailyStreak, streak);
-  const fresh = evaluate(d);
-  return getAchievementSnapshot().filter((i) => fresh.includes(i.id));
-}
 export function getPlayerStats() {
   const s = read().stats;
   return { ...s, bestBySize: { ...s.bestBySize } };
@@ -164,7 +151,6 @@ export function getTerritoryJournal() {
     { id: 'perfect', label: 'Flawless', icon: '✨', value: s.flawless },
     { id: 'no-hint', label: 'No Hint', icon: '🧠', value: s.noHint },
     { id: 'moon-run', label: '10×10', icon: '🌙', value: s.tenByTen },
-    { id: 'daily', label: 'Daily', icon: '☀️', value: s.dailyWins },
     { id: 'apex', label: 'Apex', icon: '👑', value: s.apexRuns },
   ];
 }

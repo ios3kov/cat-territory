@@ -172,9 +172,6 @@ test('core screens pass automated accessibility checks', async ({
   await page.getByRole('button', { name: 'All achievements' }).click();
   await check('achievements');
   await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: 'Open Daily Territory' }).click();
-  await expect(page.locator('.daily-screen .board')).toBeVisible();
-  await check('daily');
 });
 
 test('a failed worker can be retried without reloading the game', async ({
@@ -234,13 +231,9 @@ test('malformed generated metadata is discarded before rendering', async ({
   expect(invalid).toBeNull();
 });
 
-test('small Daily board remains touchable with an open hint', async ({
-  page,
-}) => {
+test('small board remains touchable with an open hint', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await start(page);
-  await page.getByRole('button', { name: 'Open Daily Territory' }).click();
-  await expect(page.locator('.daily-screen .board')).toBeVisible();
   await page.getByRole('button', { name: 'Hint', exact: true }).click();
   await expect(page.getByLabel('Close hint')).toBeVisible();
   await expect(page.getByRole('grid')).not.toHaveClass(/board-assembling/);

@@ -210,8 +210,8 @@ test('first visit supports offline reload and unopened screens', async ({
   await page.getByRole('button', { name: 'How to play' }).click();
   await expect(page.locator('.rules-modal')).toBeVisible();
   await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: 'Open Daily Territory' }).click();
-  await expect(page.locator('.daily-screen .board')).toBeVisible();
+  await page.getByRole('button', { name: 'Progress and achievements' }).click();
+  await expect(page.locator('.achievements-modal')).toBeVisible();
 });
 
 test('new release waits for old tabs and retains progress', async ({
@@ -261,8 +261,10 @@ test('new release waits for old tabs and retains progress', async ({
   await goOffline(context, site, browserName);
   await fresh.reload();
   await expect(fresh.getByRole('grid')).toBeVisible();
-  await fresh.getByRole('button', { name: 'Open Daily Territory' }).click();
-  await expect(fresh.locator('.daily-screen .board')).toBeVisible();
+  await fresh
+    .getByRole('button', { name: 'Progress and achievements' })
+    .click();
+  await expect(fresh.locator('.achievements-modal')).toBeVisible();
 });
 
 test('incomplete update preserves the working offline release', async ({

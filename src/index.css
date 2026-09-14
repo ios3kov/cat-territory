@@ -125,8 +125,7 @@ h1 {
 .subhead-row .chapter-label {
   flex: 1;
 }
-.difficulty-badge,
-.daily-shortcut {
+.difficulty-badge {
   flex: 0 0 auto;
   border-radius: 999px;
   font-size: 9px;
@@ -180,23 +179,6 @@ h1 {
   font-size: 9px;
   font-weight: 850;
   white-space: nowrap;
-}
-.daily-shortcut {
-  position: relative;
-  min-height: 25px;
-  padding: 0 8px;
-  border: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: #f1ede7;
-  color: #675f57;
-  cursor: pointer;
-}
-.daily-shortcut:after {
-  content: '';
-  position: absolute;
-  inset: -10px -4px;
 }
 .cat-progress {
   min-width: 72px;
@@ -707,7 +689,7 @@ h1 {
 }
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
   margin-bottom: 8px;
 }
@@ -741,7 +723,7 @@ h1 {
 }
 .territory-journal {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 5px;
 }
 .journal-mark {
@@ -916,61 +898,6 @@ h1 {
   margin: 0;
   font-size: clamp(23px, 6vw, 30px);
 }
-.daily-subtitle {
-  margin: 3px 0 0;
-  color: #817970;
-  font-size: 9px;
-}
-.daily-playing .daily-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 7px 2px 8px;
-}
-.daily-playing .board-stage {
-  min-height: 0;
-}
-.daily-playing .board-wrap {
-  width: min(100%, calc(100dvh - 184px));
-  margin: auto;
-}
-.daily-spacer {
-  min-height: 12px;
-  flex: 1;
-}
-.daily-result {
-  width: min(100%, 390px);
-  margin: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 9px;
-  padding: 20px 14px;
-}
-.daily-result-cat {
-  width: 58px;
-  height: 58px;
-}
-.daily-result h3 {
-  margin: 0;
-  font-size: 28px;
-}
-.daily-streak-badge {
-  padding: 5px 9px;
-  border-radius: 999px;
-  background: #eef2e8;
-  color: #527451;
-  font-size: 9px;
-  font-weight: 900;
-}
-.daily-result .subdued-result {
-  margin-bottom: 0;
-}
-.daily-streak-pop {
-  display: inline-block;
-  animation: streak 0.55s;
-}
 .moon-run-label {
   animation: moon 0.75s;
 }
@@ -1082,32 +1009,6 @@ h1 {
   .overlay {
     place-items: center;
     backdrop-filter: blur(4px);
-  }
-}
-@media (max-height: 480px) and (orientation: landscape) {
-  .daily-playing {
-    width: min(100%, 920px);
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(220px, 36%);
-    grid-template-rows: auto auto 1fr auto;
-    gap: 4px 12px;
-  }
-  .daily-playing .secondary-header {
-    grid-column: 2;
-  }
-  .daily-playing .daily-meta {
-    grid-column: 2;
-  }
-  .daily-playing .board-stage {
-    grid-column: 1;
-    grid-row: 1/-1;
-  }
-  .daily-playing .board-wrap {
-    width: min(100%, calc(100svh - 18px));
-  }
-  .daily-playing .context-slot {
-    grid-column: 2;
-    grid-row: 4;
   }
 }
 @media (pointer: coarse) {
@@ -1359,11 +1260,6 @@ h1 {
 @keyframes scratch {
   58% {
     transform: translateY(-1px) scale(1.08);
-  }
-}
-@keyframes streak {
-  55% {
-    transform: scale(1.18);
   }
 }
 @keyframes moon {

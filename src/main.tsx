@@ -4,8 +4,10 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { runWhenIdle } from './scheduler';
 import { installAudioUnlock } from './audio';
+import { removeRetiredModeSaves } from './storageMigration';
 import './index.css';
 import './round2.css';
+removeRetiredModeSaves();
 installAudioUnlock();
 const syncPageVisibility = () =>
   document.documentElement.classList.toggle(

@@ -1,4 +1,3 @@
-import { getDailyLevel } from '../src/infiniteLevels';
 import { expect, test } from '@playwright/test';
 const levelOneSolution = [2, 5, 14, 16, 23];
 async function seedLevel(page: import('@playwright/test').Page, level = 0) {
@@ -193,80 +192,4 @@ test.describe('CAT TERRITORY production flows', () => {
     await page.keyboard.press('Escape');
     await expect(progress).toBeFocused();
   });
-  test('Daily is fullscreen, board is square and restart is protected', async ({
-    page,
-  }) => {
-    await seedLevel(page);
-    await page.goto('/');
-    await page.getByRole('button', { name: 'Open Daily Territory' }).click();
-    const daily = page.getByRole('dialog', { name: "Today's territory" });
-    await expect(daily).toBeVisible();
-    await expect(
-      page.getByRole('button', { name: 'Back to endless' }),
-    ).toBeFocused();
-    const grid = daily.getByRole('grid'),
-      box = await grid.boundingBox();
-    expect(box).not.toBeNull();
-    expect(Math.abs(box!.width - box!.height)).toBeLessThan(2);
-    expect(box!.x).toBeGreaterThanOrEqual(0);
-    expect(box!.x + box!.width).toBeLessThanOrEqual(
-      (await page.evaluate(() => innerWidth)) + 1,
-    );
-    const first = daily.locator('[data-cell-index="0"]');
-    await first.click();
-    await daily.getByRole('button', { name: 'Restart' }).click();
-    await expect(daily.getByRole('button', { name: 'Restart?' })).toBeVisible();
-    await expect(first.locator('.mark-x')).toHaveCount(1);
-    await page.keyboard.press('Escape');
-    await expect(daily).toHaveCount(0);
-  });
-});
-
-test('Daily paws preserve discovery colors across reload and Undo', async ({
-  page,
-}) => {
-  const date = '2026-09-14';
-  const level = getDailyLevel(date);
-  await page.clock.setFixedTime(new Date(`${date}T12:00:00Z`));
-  await seedLevel(page);
-  await page.goto('/');
-  const open = () =>
-    page.getByRole('button', { name: 'Open Daily Territory' }).click();
-  await open();
-  const paws = page.locator('.daily-screen .paw-progress-icon');
-  const read = () =>
-    paws.evaluateAll((xs) =>
-      xs.map((x) =>
-        x.classList.contains('filled') ? getComputedStyle(x).color : null,
-      ),
-    );
-  const expected: string[] = [];
-  for (const row of [level.size - 1, 0]) {
-    const cell = page.locator(
-      `.daily-screen [data-cell-index="${row * level.size + level.solution[row]}"]`,
-    );
-    expected.push(
-      await cell.evaluate((x) => getComputedStyle(x).backgroundColor),
-    );
-    await cell.click({ button: 'right' });
-    await expect
-      .poll(read)
-      .toEqual([
-        ...expected,
-        ...Array(level.size - expected.length).fill(null),
-      ]);
-    await page.waitForTimeout(450);
-  }
-  await page.reload();
-  await open();
-  await expect
-    .poll(read)
-    .toEqual([...expected, ...Array(level.size - 2).fill(null)]);
-  await page.getByRole('button', { name: 'Undo', exact: true }).click();
-  await expect
-    .poll(read)
-    .toEqual([expected[0], ...Array(level.size - 1).fill(null)]);
-  await page.getByRole('button', { name: 'Restart', exact: true }).click();
-  await page.getByRole('button', { name: 'Restart?', exact: true }).click();
-  await expect.poll(read).toEqual(Array(level.size).fill(null));
 });

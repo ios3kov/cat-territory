@@ -1,12 +1,8 @@
-import { getLevel, getDailyLevel } from './infiniteLevels';
-self.onmessage = (
-  event: MessageEvent<{ index?: number; dateKey?: string }>,
-) => {
+import { getLevel } from './infiniteLevels';
+self.onmessage = (event: MessageEvent<{ index: number }>) => {
   try {
     self.postMessage({
-      level: event.data.dateKey
-        ? getDailyLevel(event.data.dateKey)
-        : getLevel(event.data.index!),
+      level: getLevel(event.data.index),
     });
   } catch (error) {
     self.postMessage({

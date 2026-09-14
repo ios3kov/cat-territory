@@ -1,7 +1,6 @@
 import { AchievementIcon } from './AchievementIcon';
 import { LoadingTerritory } from './LoadingTerritory';
 import {
-  CalendarDays,
   CircleHelp,
   Lightbulb,
   RotateCcw,
@@ -21,9 +20,6 @@ import { MistakeIndicator } from './MistakeIndicator';
 import { getProgressionMeta } from './progression';
 import { storageGet, storageSet } from './storage';
 import { useGameController } from './useGameController';
-const DailyTerritory = lazy(() =>
-  import('./DailyTerritory').then((m) => ({ default: m.DailyTerritory })),
-);
 const RulesDialog = lazy(() =>
   import('./GameDialogs').then((m) => ({ default: m.RulesDialog })),
 );
@@ -50,7 +46,6 @@ function App() {
   const game = useGameController();
   const [showRules, setShowRules] = useState(false),
     [showAchievements, setShowAchievements] = useState(false),
-    [showDaily, setShowDaily] = useState(false),
     [soundEnabled, setSoundEnabledState] = useState(readSoundEnabled),
     [rankPulse, setRankPulse] = useState(false),
     [coachStep, setCoachStep] = useState<CoachStep>(readCoachStep);
@@ -174,7 +169,6 @@ function App() {
   const blocking =
     showRules ||
     showAchievements ||
-    showDaily ||
     (game.won && game.winDialogReady && Boolean(game.completionSummary));
   const hintText = game.hintInfo
     ? game.hintRevealed
@@ -218,14 +212,6 @@ function App() {
                   ? `${progression.special ? `Moon Run ${progression.run}` : `Run ${progression.run}: ${progression.runName}`} · ${progression.rank}`
                   : `Chapter ${game.level.chapter}`}
               </p>
-              <button
-                className="daily-shortcut"
-                type="button"
-                onClick={() => open(setShowDaily)}
-                aria-label="Open Daily Territory"
-              >
-                <CalendarDays size={13} /> Daily
-              </button>
             </div>
           </div>
           <div className="top-actions">
@@ -397,9 +383,8 @@ function App() {
         fallback={
           <LoadingTerritory
             onCancel={
-              showDaily || showRules || showAchievements
+              showRules || showAchievements
                 ? () => {
-                    setShowDaily(false);
                     setShowRules(false);
                     setShowAchievements(false);
                   }
@@ -411,12 +396,6 @@ function App() {
         {showRules && <RulesDialog onClose={() => close(setShowRules)} />}{' '}
         {showAchievements && (
           <AchievementsDialog onClose={() => close(setShowAchievements)} />
-        )}{' '}
-        {showDaily && (
-          <DailyTerritory
-            onClose={() => close(setShowDaily)}
-            onAchievements={game.receiveAchievements}
-          />
         )}{' '}
         {game.won && game.winDialogReady && game.completionSummary && (
           <WinDialog summary={game.completionSummary} onNext={game.nextLevel} />

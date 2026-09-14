@@ -7,7 +7,6 @@ import {
   Moon,
   PawPrint,
   Sparkles,
-  Sun,
 } from 'lucide-react';
 export function AchievementIcon({
   id,
@@ -25,12 +24,10 @@ export function AchievementIcon({
           clean: Sparkles,
           instinct: Brain,
           'big-cat': Cat,
-          'daily-first': Sun,
           apex: Crown,
           perfect: Sparkles,
           'no-hint': Brain,
           'moon-run': Moon,
-          daily: Sun,
         } as const
       )[id] ?? PawPrint);
   return <Icon size={20} strokeWidth={1.8} aria-hidden="true" />;
