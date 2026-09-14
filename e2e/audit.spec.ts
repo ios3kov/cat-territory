@@ -235,5 +235,6 @@ test('small Daily board remains touchable with an open hint', async ({page}) => 
  await expect(page.getByRole('grid')).not.toHaveClass(/board-assembling/);
  const clipped=await page.getByRole('gridcell').evaluateAll(cells=>cells.filter(cell=>{const r=cell.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('[role="gridcell"]')!==cell}).length);
  expect(clipped).toBe(0);
+ await expect(page.getByLabel('Close hint')).toBeInViewport();await page.getByLabel('Close hint').click();
  for(const name of ['Undo','Hint','Restart'])await expect(page.getByRole('button',{name,exact:true})).toBeInViewport();
 });
