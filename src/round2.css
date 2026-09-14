@@ -16,3 +16,17 @@
 .icon-button{min-width:44px;min-height:44px}.screen-back-button{display:inline-flex;align-items:center;justify-content:center;gap:3px}.board-stage{padding:3px}.daily-screen .board-stage{padding:3px}
 .achievements-toggle,.modal-back-button{display:flex;align-items:center;justify-content:center;gap:5px}.journal-mark>span{display:flex;justify-content:center}.achievement-toast>div{min-width:0;display:grid;gap:2px}.achievement-toast strong{font-size:10px;color:#69625b}.achievement-toast>div>span{font-size:12px;font-weight:700}.achievement-toast>span{align-self:center}.journal-mark{opacity:1}.journal-mark small{color:#69625b}
 @media (orientation:landscape) and (max-height:620px){.win-modal{width:min(100%,620px);display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);grid-template-rows:repeat(4,auto) auto;gap:0 18px;padding:16px 20px}.win-celebration{grid-column:1;grid-row:1}.win-modal h2{grid-column:1;grid-row:2;font-size:25px}.personal-best-badge{grid-column:1;grid-row:3;justify-self:center}.win-modal>.win-result-summary{grid-column:1;grid-row:4}.win-modal>.score-result{grid-column:2;grid-row:1/5;margin:0 0 10px}.win-next-button{grid-column:1/-1;grid-row:5;min-height:48px}.win-modal .score-result dl>div{padding:2px 0}.win-modal .score-explanation{font-size:10px}.win-modal>[role="alert"]{grid-column:1/-1}}
+/* Keep navigation separate from the achievement title, including narrow phones. */
+.achievements-all-view .nested-heading{padding:46px 0 0;margin-bottom:14px}
+.achievements-all-view .nested-heading h2{margin:4px 0 6px;font-size:24px;font-weight:800;line-height:1.15;letter-spacing:-.025em}
+.achievements-all-view .modal-back-button{min-height:44px}
+.rules-core span,.rules-more{color:#69625b}
+.stats-grid span,.achievement-summary,.stats-detail,.journal-mark small{color:#69625b}
+.secondary-title-block .eyebrow{color:#88564e}
+.achievement-list-all:focus-visible{outline:3px solid #2f2b27;outline-offset:3px;border-radius:12px}
+/* Size the portrait Daily board to its actual space, including an open hint. */
+@media (max-width:699px) and (orientation:portrait){
+ .daily-playing .daily-spacer{display:none}
+ .daily-playing .board-stage{container-type:size}
+ .daily-playing .board-wrap{width:min(100%,100cqh);max-width:100%}
+}
