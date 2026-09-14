@@ -1,6 +1,6 @@
-import { getCatOrder, rememberCatOrder } from "./catOrder";
-import { HISTORY_LIMIT, type Level, type CellState } from "./game";
-import { storageGet, storageRemove, storageSet } from "./storage";
+import { getCatOrder, rememberCatOrder } from './catOrder';
+import { HISTORY_LIMIT, type Level, type CellState } from './game';
+import { storageGet, storageRemove, storageSet } from './storage';
 type LevelSession = {
   board: CellState[];
   catOrder?: unknown;
@@ -26,17 +26,17 @@ function parseSession(raw: string | null, size: number): LevelSession | null {
     const p = JSON.parse(raw) as Partial<LevelSession>;
     if (
       !p ||
-      typeof p !== "object" ||
+      typeof p !== 'object' ||
       (p.savedAtMs !== undefined &&
         (!Number.isFinite(p.savedAtMs) || p.savedAtMs < 0)) ||
       !isBoard(p.board, size) ||
       (p.history !== undefined && !isHistory(p.history, size)) ||
       !Number.isFinite(p.seconds) ||
       Number(p.seconds) < 0 ||
-      (p.started !== undefined && typeof p.started !== "boolean") ||
+      (p.started !== undefined && typeof p.started !== 'boolean') ||
       (p.mistakes !== undefined &&
         (!Number.isInteger(p.mistakes) || p.mistakes < 0 || p.mistakes > 2)) ||
-      (p.usedHint !== undefined && typeof p.usedHint !== "boolean")
+      (p.usedHint !== undefined && typeof p.usedHint !== 'boolean')
     )
       return null;
     const started = p.started ?? false,

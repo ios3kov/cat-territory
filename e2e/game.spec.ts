@@ -1,58 +1,272 @@
 import { getDailyLevel } from '../src/infiniteLevels';
-import { expect,test } from '@playwright/test';
-const levelOneSolution=[2,5,14,16,23];
-async function seedLevel(page:import('@playwright/test').Page,level=0){await page.addInitScript(index=>{localStorage.setItem('cat-territory-progress-migrated-v3','1');localStorage.setItem('cat-territory-current-level-v3',String(index));localStorage.setItem('cat-territory-gesture-coach-v3','done')},level)}
-test.describe('CAT TERRITORY production flows',()=>{
-test('core controls and wrong-cat feedback',async({page})=>{await seedLevel(page);await page.goto('/');await expect(page.getByText(/Level 1 ·/)).toBeVisible();await expect(page.getByRole('img',{name:'0 of 3 mistakes'})).toBeVisible();await page.locator('[data-cell-index="0"]').click({button:'right'});await expect(page.locator('[data-cell-index="0"]')).toHaveClass(/mistake-cell/);await expect(page.getByText(/Mistake 1\/3/)).toBeVisible();await expect(page.locator('[data-cell-index="0"] .cat-face')).toHaveCount(0,{timeout:1500})});
-test('smart marks animate, cat feedback stays clean and undo is one action',async({page})=>{await seedLevel(page);await page.goto('/');const before=await page.locator('.mark-x').count();const first=page.locator('[data-cell-index="0"]'),cat=page.locator('[data-cell-index="5"]');await first.focus();await page.keyboard.press('ArrowDown');await expect(cat).toBeFocused();await page.keyboard.press('c');await expect(cat.locator('.cat-face')).toHaveCount(1);await expect(cat.locator('.score-pop,.correct-spark')).toHaveCount(0);await expect.poll(()=>page.locator('.mark-x-drawn').count()).toBeGreaterThan(0);await expect(page.getByRole('button',{name:'Undo'})).toBeEnabled();await page.getByRole('button',{name:'Undo'}).click();await expect(cat.locator('.cat-face')).toHaveCount(0);await expect(page.locator('.mark-x')).toHaveCount(before)});
-test('paws fill left to right in discovery colors and restore through Undo and reload',async({page})=>{
- await seedLevel(page);await page.goto('/');
- const paws=page.locator('.paw-progress-icon');
- const read=()=>paws.evaluateAll(xs=>xs.map(x=>x.classList.contains('filled')?getComputedStyle(x).color:null));
- const color=(index:number)=>page.locator(`[data-cell-index="${index}"]`).evaluate(x=>getComputedStyle(x).backgroundColor);
- const expected=[await color(2)];
- await expect.poll(read).toEqual([...expected,null,null,null,null]);
- for(const index of [23,5]){await page.locator(`[data-cell-index="${index}"]`).click({button:'right'});expected.push(await color(index));await expect.poll(read).toEqual([...expected,...Array(5-expected.length).fill(null)]);await page.waitForTimeout(450)}
- await page.reload();await expect.poll(read).toEqual([...expected,null,null]);
- // Removing an earlier cat compacts the row; Undo restores its original position.
- await page.locator('[data-cell-index="23"]').click({button:'right'});
- await expect.poll(read).toEqual([expected[0],expected[2],null,null,null]);
- await page.reload();await page.getByRole('button',{name:'Undo',exact:true}).click();
- await expect.poll(read).toEqual([...expected,null,null]);
- await page.getByRole('button',{name:'Undo',exact:true}).click();
- await expect.poll(read).toEqual([expected[0],expected[1],null,null,null]);
- await page.getByRole('button',{name:'Restart',exact:true}).click();
- await page.getByRole('button',{name:'Restart?',exact:true}).click();
- await expect.poll(read).toEqual([expected[0],null,null,null,null]);
-});
-test('win dialog has one stable Next level action',async({page})=>{await seedLevel(page);await page.goto('/');for(const index of levelOneSolution.slice(1)){const cell=page.locator(`[data-cell-index="${index}"]`);await cell.click({button:'right'});await expect(cell.locator('.cat-face')).toHaveCount(1);await page.waitForTimeout(450)}const dialog=page.getByRole('dialog');await expect(dialog).toContainText('Perfect.');await expect(dialog.getByRole('heading',{name:'Perfect.'})).toBeInViewport();await expect(dialog.locator('.score-result dt')).toHaveText(['Board','Speed','Clean play','No hint','Total']);await expect(dialog.getByRole('button',{name:/Next level/})).toHaveCount(1);await dialog.getByRole('button',{name:/Next level/}).click();await expect(page.getByText(/Level 2 ·/)).toBeVisible()});
-test('territories map one-to-one to deterministic colors',async({page})=>{await seedLevel(page);await page.goto('/');const cells=page.locator('[data-cell-index]');const read=()=>cells.evaluateAll(items=>items.map(el=>({region:el.getAttribute('data-region'),color:getComputedStyle(el).backgroundColor})));const before=await read();const byRegion=new Map<string,string>();for(const cell of before){expect(cell.region).not.toBeNull();const existing=byRegion.get(cell.region!);if(existing)expect(cell.color).toBe(existing);else byRegion.set(cell.region!,cell.color)}expect(byRegion.size).toBe(levelOneSolution.length);expect(new Set(byRegion.values()).size).toBe(byRegion.size);await page.reload();expect(await read()).toEqual(before)});
-test('board exposes grid semantics keyboard navigation and stays in viewport',async({page})=>{await seedLevel(page);await page.goto('/');const grid=page.getByRole('grid');await expect(grid).toHaveAttribute('aria-rowcount','5');await expect(grid).toHaveAttribute('aria-colcount','5');const cells=page.getByRole('gridcell');await expect(cells).toHaveCount(25);const first=page.locator('[data-cell-index="0"]');await first.focus();await page.keyboard.press('ArrowRight');await expect(page.locator('[data-cell-index="1"]')).toBeFocused();const box=await grid.boundingBox();expect(box).not.toBeNull();expect(box!.x).toBeGreaterThanOrEqual(0);expect(box!.x+box!.width).toBeLessThanOrEqual((await page.evaluate(()=>innerWidth))+1);expect(box!.y+box!.height).toBeLessThanOrEqual((await page.evaluate(()=>innerHeight))+1)});
-test('rules and progress restore focus',async({page})=>{await seedLevel(page);await page.goto('/');const help=page.getByRole('button',{name:'How to play'});await help.focus();await help.click();const rules=page.getByRole('dialog',{name:'Give every cat its own territory.'});await expect(rules).toBeVisible();await rules.getByRole('button',{name:'More rules'}).click();await expect(rules.getByText(/Smart marks:/)).toBeVisible();await page.keyboard.press('Escape');await expect(help).toBeFocused();const progress=page.getByRole('button',{name:/Progress and achievements/i});await progress.click();await expect(page.getByLabel('Territory Journal')).toBeVisible();await page.keyboard.press('Escape');await expect(progress).toBeFocused()});
-test('Daily is fullscreen, board is square and restart is protected',async({page})=>{await seedLevel(page);await page.goto('/');await page.getByRole('button',{name:'Open Daily Territory'}).click();const daily=page.getByRole('dialog',{name:"Today's territory"});await expect(daily).toBeVisible();await expect(page.getByRole('button',{name:'Back to endless'})).toBeFocused();const grid=daily.getByRole('grid'),box=await grid.boundingBox();expect(box).not.toBeNull();expect(Math.abs(box!.width-box!.height)).toBeLessThan(2);expect(box!.x).toBeGreaterThanOrEqual(0);expect(box!.x+box!.width).toBeLessThanOrEqual((await page.evaluate(()=>innerWidth))+1);const first=daily.locator('[data-cell-index="0"]');await first.click();await daily.getByRole('button',{name:'Restart'}).click();await expect(daily.getByRole('button',{name:'Restart?'})).toBeVisible();await expect(first.locator('.mark-x')).toHaveCount(1);await page.keyboard.press('Escape');await expect(daily).toHaveCount(0)});
+import { expect, test } from '@playwright/test';
+const levelOneSolution = [2, 5, 14, 16, 23];
+async function seedLevel(page: import('@playwright/test').Page, level = 0) {
+  await page.addInitScript((index) => {
+    localStorage.setItem('cat-territory-progress-migrated-v3', '1');
+    localStorage.setItem('cat-territory-current-level-v3', String(index));
+    localStorage.setItem('cat-territory-gesture-coach-v3', 'done');
+  }, level);
+}
+test.describe('CAT TERRITORY production flows', () => {
+  test('core controls and wrong-cat feedback', async ({ page }) => {
+    await seedLevel(page);
+    await page.goto('/');
+    await expect(page.getByText(/Level 1 ·/)).toBeVisible();
+    await expect(
+      page.getByRole('img', { name: '0 of 3 mistakes' }),
+    ).toBeVisible();
+    await page.locator('[data-cell-index="0"]').click({ button: 'right' });
+    await expect(page.locator('[data-cell-index="0"]')).toHaveClass(
+      /mistake-cell/,
+    );
+    await expect(page.getByText(/Mistake 1\/3/)).toBeVisible();
+    await expect(page.locator('[data-cell-index="0"] .cat-face')).toHaveCount(
+      0,
+      { timeout: 1500 },
+    );
+  });
+  test('smart marks animate, cat feedback stays clean and undo is one action', async ({
+    page,
+  }) => {
+    await seedLevel(page);
+    await page.goto('/');
+    const before = await page.locator('.mark-x').count();
+    const first = page.locator('[data-cell-index="0"]'),
+      cat = page.locator('[data-cell-index="5"]');
+    await first.focus();
+    await page.keyboard.press('ArrowDown');
+    await expect(cat).toBeFocused();
+    await page.keyboard.press('c');
+    await expect(cat.locator('.cat-face')).toHaveCount(1);
+    await expect(cat.locator('.score-pop,.correct-spark')).toHaveCount(0);
+    await expect
+      .poll(() => page.locator('.mark-x-drawn').count())
+      .toBeGreaterThan(0);
+    await expect(page.getByRole('button', { name: 'Undo' })).toBeEnabled();
+    await page.getByRole('button', { name: 'Undo' }).click();
+    await expect(cat.locator('.cat-face')).toHaveCount(0);
+    await expect(page.locator('.mark-x')).toHaveCount(before);
+  });
+  test('paws fill left to right in discovery colors and restore through Undo and reload', async ({
+    page,
+  }) => {
+    await seedLevel(page);
+    await page.goto('/');
+    const paws = page.locator('.paw-progress-icon');
+    const read = () =>
+      paws.evaluateAll((xs) =>
+        xs.map((x) =>
+          x.classList.contains('filled') ? getComputedStyle(x).color : null,
+        ),
+      );
+    const color = (index: number) =>
+      page
+        .locator(`[data-cell-index="${index}"]`)
+        .evaluate((x) => getComputedStyle(x).backgroundColor);
+    const expected = [await color(2)];
+    await expect.poll(read).toEqual([...expected, null, null, null, null]);
+    for (const index of [23, 5]) {
+      await page
+        .locator(`[data-cell-index="${index}"]`)
+        .click({ button: 'right' });
+      expected.push(await color(index));
+      await expect
+        .poll(read)
+        .toEqual([...expected, ...Array(5 - expected.length).fill(null)]);
+      await page.waitForTimeout(450);
+    }
+    await page.reload();
+    await expect.poll(read).toEqual([...expected, null, null]);
+    // Removing an earlier cat compacts the row; Undo restores its original position.
+    await page.locator('[data-cell-index="23"]').click({ button: 'right' });
+    await expect
+      .poll(read)
+      .toEqual([expected[0], expected[2], null, null, null]);
+    await page.reload();
+    await page.getByRole('button', { name: 'Undo', exact: true }).click();
+    await expect.poll(read).toEqual([...expected, null, null]);
+    await page.getByRole('button', { name: 'Undo', exact: true }).click();
+    await expect
+      .poll(read)
+      .toEqual([expected[0], expected[1], null, null, null]);
+    await page.getByRole('button', { name: 'Restart', exact: true }).click();
+    await page.getByRole('button', { name: 'Restart?', exact: true }).click();
+    await expect.poll(read).toEqual([expected[0], null, null, null, null]);
+  });
+  test('win dialog has one stable Next level action', async ({ page }) => {
+    await seedLevel(page);
+    await page.goto('/');
+    for (const index of levelOneSolution.slice(1)) {
+      const cell = page.locator(`[data-cell-index="${index}"]`);
+      await cell.click({ button: 'right' });
+      await expect(cell.locator('.cat-face')).toHaveCount(1);
+      await page.waitForTimeout(450);
+    }
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toContainText('Perfect.');
+    await expect(
+      dialog.getByRole('heading', { name: 'Perfect.' }),
+    ).toBeInViewport();
+    await expect(dialog.locator('.score-result dt')).toHaveText([
+      'Board',
+      'Speed',
+      'Clean play',
+      'No hint',
+      'Total',
+    ]);
+    await expect(
+      dialog.getByRole('button', { name: /Next level/ }),
+    ).toHaveCount(1);
+    await dialog.getByRole('button', { name: /Next level/ }).click();
+    await expect(page.getByText(/Level 2 ·/)).toBeVisible();
+  });
+  test('territories map one-to-one to deterministic colors', async ({
+    page,
+  }) => {
+    await seedLevel(page);
+    await page.goto('/');
+    const cells = page.locator('[data-cell-index]');
+    const read = () =>
+      cells.evaluateAll((items) =>
+        items.map((el) => ({
+          region: el.getAttribute('data-region'),
+          color: getComputedStyle(el).backgroundColor,
+        })),
+      );
+    const before = await read();
+    const byRegion = new Map<string, string>();
+    for (const cell of before) {
+      expect(cell.region).not.toBeNull();
+      const existing = byRegion.get(cell.region!);
+      if (existing) expect(cell.color).toBe(existing);
+      else byRegion.set(cell.region!, cell.color);
+    }
+    expect(byRegion.size).toBe(levelOneSolution.length);
+    expect(new Set(byRegion.values()).size).toBe(byRegion.size);
+    await page.reload();
+    expect(await read()).toEqual(before);
+  });
+  test('board exposes grid semantics keyboard navigation and stays in viewport', async ({
+    page,
+  }) => {
+    await seedLevel(page);
+    await page.goto('/');
+    const grid = page.getByRole('grid');
+    await expect(grid).toHaveAttribute('aria-rowcount', '5');
+    await expect(grid).toHaveAttribute('aria-colcount', '5');
+    const cells = page.getByRole('gridcell');
+    await expect(cells).toHaveCount(25);
+    const first = page.locator('[data-cell-index="0"]');
+    await first.focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(page.locator('[data-cell-index="1"]')).toBeFocused();
+    const box = await grid.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(
+      (await page.evaluate(() => innerWidth)) + 1,
+    );
+    expect(box!.y + box!.height).toBeLessThanOrEqual(
+      (await page.evaluate(() => innerHeight)) + 1,
+    );
+  });
+  test('rules and progress restore focus', async ({ page }) => {
+    await seedLevel(page);
+    await page.goto('/');
+    const help = page.getByRole('button', { name: 'How to play' });
+    await help.focus();
+    await help.click();
+    const rules = page.getByRole('dialog', {
+      name: 'Give every cat its own territory.',
+    });
+    await expect(rules).toBeVisible();
+    await rules.getByRole('button', { name: 'More rules' }).click();
+    await expect(rules.getByText(/Smart marks:/)).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(help).toBeFocused();
+    const progress = page.getByRole('button', {
+      name: /Progress and achievements/i,
+    });
+    await progress.click();
+    await expect(page.getByLabel('Territory Journal')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(progress).toBeFocused();
+  });
+  test('Daily is fullscreen, board is square and restart is protected', async ({
+    page,
+  }) => {
+    await seedLevel(page);
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Open Daily Territory' }).click();
+    const daily = page.getByRole('dialog', { name: "Today's territory" });
+    await expect(daily).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Back to endless' }),
+    ).toBeFocused();
+    const grid = daily.getByRole('grid'),
+      box = await grid.boundingBox();
+    expect(box).not.toBeNull();
+    expect(Math.abs(box!.width - box!.height)).toBeLessThan(2);
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(
+      (await page.evaluate(() => innerWidth)) + 1,
+    );
+    const first = daily.locator('[data-cell-index="0"]');
+    await first.click();
+    await daily.getByRole('button', { name: 'Restart' }).click();
+    await expect(daily.getByRole('button', { name: 'Restart?' })).toBeVisible();
+    await expect(first.locator('.mark-x')).toHaveCount(1);
+    await page.keyboard.press('Escape');
+    await expect(daily).toHaveCount(0);
+  });
 });
 
-
-test('Daily paws preserve discovery colors across reload and Undo', async ({page}) => {
- const date='2026-09-14'; const level=getDailyLevel(date);
- await page.clock.setFixedTime(new Date(`${date}T12:00:00Z`));
- await seedLevel(page);await page.goto('/');
- const open=()=>page.getByRole('button',{name:'Open Daily Territory'}).click();
- await open();const paws=page.locator('.daily-screen .paw-progress-icon');
- const read=()=>paws.evaluateAll(xs=>xs.map(x=>x.classList.contains('filled')?getComputedStyle(x).color:null));
- const expected:string[]=[];
- for(const row of [level.size-1,0]) {
-  const cell=page.locator(`.daily-screen [data-cell-index="${row*level.size+level.solution[row]}"]`);
-  expected.push(await cell.evaluate(x=>getComputedStyle(x).backgroundColor));
-  await cell.click({button:'right'});
-  await expect.poll(read).toEqual([...expected,...Array(level.size-expected.length).fill(null)]);
-  await page.waitForTimeout(450);
- }
- await page.reload();await open();
- await expect.poll(read).toEqual([...expected,...Array(level.size-2).fill(null)]);
- await page.getByRole('button',{name:'Undo',exact:true}).click();
- await expect.poll(read).toEqual([expected[0],...Array(level.size-1).fill(null)]);
- await page.getByRole('button',{name:'Restart',exact:true}).click();
- await page.getByRole('button',{name:'Restart?',exact:true}).click();
- await expect.poll(read).toEqual(Array(level.size).fill(null));
+test('Daily paws preserve discovery colors across reload and Undo', async ({
+  page,
+}) => {
+  const date = '2026-09-14';
+  const level = getDailyLevel(date);
+  await page.clock.setFixedTime(new Date(`${date}T12:00:00Z`));
+  await seedLevel(page);
+  await page.goto('/');
+  const open = () =>
+    page.getByRole('button', { name: 'Open Daily Territory' }).click();
+  await open();
+  const paws = page.locator('.daily-screen .paw-progress-icon');
+  const read = () =>
+    paws.evaluateAll((xs) =>
+      xs.map((x) =>
+        x.classList.contains('filled') ? getComputedStyle(x).color : null,
+      ),
+    );
+  const expected: string[] = [];
+  for (const row of [level.size - 1, 0]) {
+    const cell = page.locator(
+      `.daily-screen [data-cell-index="${row * level.size + level.solution[row]}"]`,
+    );
+    expected.push(
+      await cell.evaluate((x) => getComputedStyle(x).backgroundColor),
+    );
+    await cell.click({ button: 'right' });
+    await expect
+      .poll(read)
+      .toEqual([
+        ...expected,
+        ...Array(level.size - expected.length).fill(null),
+      ]);
+    await page.waitForTimeout(450);
+  }
+  await page.reload();
+  await open();
+  await expect
+    .poll(read)
+    .toEqual([...expected, ...Array(level.size - 2).fill(null)]);
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  await expect
+    .poll(read)
+    .toEqual([expected[0], ...Array(level.size - 1).fill(null)]);
+  await page.getByRole('button', { name: 'Restart', exact: true }).click();
+  await page.getByRole('button', { name: 'Restart?', exact: true }).click();
+  await expect.poll(read).toEqual(Array(level.size).fill(null));
 });

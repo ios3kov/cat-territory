@@ -1,17 +1,17 @@
-import { getCatOrder } from "./catOrder";
-import { memo, useMemo } from "react";
+import { getCatOrder } from './catOrder';
+import { memo, useMemo } from 'react';
 import {
   REGION_COLORS,
   getRegionColorMap,
   type CellState,
   type Level,
-} from "./game";
+} from './game';
 type Props = { board: CellState[]; level: Level };
-type PawProps = { color?: string; side: "left" | "right" };
+type PawProps = { color?: string; side: 'left' | 'right' };
 function Paw({ color, side }: PawProps) {
   return (
     <svg
-      className={`paw-progress-icon paw-${side} ${color ? "filled" : ""}`.trim()}
+      className={`paw-progress-icon paw-${side} ${color ? 'filled' : ''}`.trim()}
       viewBox="0 0 20 20"
       style={color ? { color } : undefined}
       aria-hidden="true"
@@ -60,7 +60,7 @@ function CatProgressView({ board, level }: Props) {
                 REGION_COLORS[filledRegions[index] % REGION_COLORS.length])
               : undefined
           }
-          side={index % 2 === 0 ? "left" : "right"}
+          side={index % 2 === 0 ? 'left' : 'right'}
           key={index}
         />
       ))}

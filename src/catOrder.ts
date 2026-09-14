@@ -1,4 +1,4 @@
-import type { CellState } from "./game";
+import type { CellState } from './game';
 
 // Metadata follows immutable board snapshots, so Undo restores the exact color order.
 // Weak keys allow discarded animation frames and old history to be collected.

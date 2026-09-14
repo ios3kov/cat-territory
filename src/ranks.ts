@@ -1,4 +1,26 @@
-export type RankMeta = { title: string; progress: number; };
-type RankDefinition = { minCompleted: number; title: string; };
-const RANKS: RankDefinition[] = [{ minCompleted: 0, title: 'Kitten' },{ minCompleted: 10, title: 'House Cat' },{ minCompleted: 25, title: 'Territory Scout' },{ minCompleted: 50, title: 'Night Prowler' },{ minCompleted: 100, title: 'Apex Prowler' },{ minCompleted: 250, title: 'Territory Legend' }];
-export function getRankMeta(completed: number): RankMeta { const safeCompleted = Math.max(0, Math.floor(completed)); let index = RANKS.length - 1; while (index > 0 && safeCompleted < RANKS[index].minCompleted) index -= 1; const current = RANKS[index]; const next = RANKS[index + 1]; if (!next) return { title: current.title, progress: 1 }; const span = next.minCompleted - current.minCompleted; return { title: current.title, progress: Math.max(0, Math.min(1, (safeCompleted - current.minCompleted) / span)) }; }
+export type RankMeta = { title: string; progress: number };
+type RankDefinition = { minCompleted: number; title: string };
+const RANKS: RankDefinition[] = [
+  { minCompleted: 0, title: 'Kitten' },
+  { minCompleted: 10, title: 'House Cat' },
+  { minCompleted: 25, title: 'Territory Scout' },
+  { minCompleted: 50, title: 'Night Prowler' },
+  { minCompleted: 100, title: 'Apex Prowler' },
+  { minCompleted: 250, title: 'Territory Legend' },
+];
+export function getRankMeta(completed: number): RankMeta {
+  const safeCompleted = Math.max(0, Math.floor(completed));
+  let index = RANKS.length - 1;
+  while (index > 0 && safeCompleted < RANKS[index].minCompleted) index -= 1;
+  const current = RANKS[index];
+  const next = RANKS[index + 1];
+  if (!next) return { title: current.title, progress: 1 };
+  const span = next.minCompleted - current.minCompleted;
+  return {
+    title: current.title,
+    progress: Math.max(
+      0,
+      Math.min(1, (safeCompleted - current.minCompleted) / span),
+    ),
+  };
+}

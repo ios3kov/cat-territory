@@ -1,10 +1,208 @@
-import { useBoardState } from './useBoardState';
+import { ChevronLeft, Lightbulb, RotateCcw, Undo2, X } from 'lucide-react';
+import { playSound } from './audio';
+import { CatMark } from './CatMark';
+import { CatProgress } from './CatProgress';
+import { ContextPanel } from './ContextPanel';
+import { formatTime } from './game';
+import { GameBoard } from './GameBoard';
+import { MistakeIndicator } from './MistakeIndicator';
 import { ScoreResult } from './ScoreResult';
-import{ChevronLeft,Lightbulb,RotateCcw,Undo2,X}from'lucide-react';import{useEffect,useMemo,useRef,useState,type KeyboardEvent}from'react';import{recordDailyCompletion,type Achievement}from'./achievements';import{playSound}from'./audio';import{CatMark}from'./CatMark';import{CatProgress}from'./CatProgress';import{ContextPanel}from'./ContextPanel';import{getDailyKey,getDailyLevel,isDailyComplete,readDailyProgress,recordDailyWin,readDailyResult,saveDailyResult}from'./daily';import{GameBoard}from'./GameBoard';import{trapTabKey}from'./GameDialogs';import{boardsEqual,createInitialBoard,findConflicts,formatTime,type CellState}from'./game';import{haptic}from'./haptics';import{MistakeIndicator}from'./MistakeIndicator';import{getLogicalHint,type LogicalHint}from'./logicalEngine';import{getFinishGrade,getFinishLabel,getScoreBreakdown,type ScoreBreakdown}from'./score';import{clearLevelSession,loadLevelSession}from'./session';import{useBoardGestures}from'./useBoardGestures';import{useCellFeedback}from'./useCellFeedback';import{useSessionPersistence}from'./useSessionPersistence';type Props={onClose:()=>void;onAchievements:(items:Achievement[])=>void};type Summary={label:string;score:number;breakdown:ScoreBreakdown;seconds:number;mistakes:number;usedHint:boolean};
-export function DailyTerritory({onClose,onAchievements}:Props){const key=useMemo(()=>getDailyKey(),[]),level=useMemo(()=>getDailyLevel(new Date(`${key}T12:00:00Z`)),[key]),saved=useMemo(()=>loadLevelSession(level.id,level.size,level),[level.id,level.size]),pristine=useMemo(()=>createInitialBoard(level),[level]),fixedCells=useMemo(()=>new Set<number>(),[]),initialStreak=useMemo(()=>readDailyProgress().currentStreak,[]);const[board,setBoard]=useBoardState(saved?.board??pristine),[history,setHistory]=useState<CellState[][]>(saved?.history??[]),[seconds,setSeconds]=useState(saved?.seconds??0),[started,setStarted]=useState(saved?.started??false),[mistakes,setMistakes]=useState(saved?.mistakes??0),[mistakeNotice,setMistakeNotice]=useState<string|null>(null),[usedHint,setUsedHint]=useState(saved?.usedHint??false),[mistakeCell,setMistakeCell]=useState<number|null>(null),[correctCell,setCorrectCell]=useState<number|null>(null),[summary,setSummary]=useState<Summary|null>(()=>{const r=readDailyResult(key);if(!r)return null;const breakdown=getScoreBreakdown(r.size,r.seconds,r.mistakes,r.usedHint);return{label:getFinishLabel(getFinishGrade(r.mistakes,r.usedHint)),score:breakdown.total,breakdown,seconds:r.seconds,mistakes:r.mistakes,usedHint:r.usedHint}}),[hintInfo,setHintInfo]=useState<LogicalHint|null>(null),[hintRevealed,setHintRevealed]=useState(false),[won,setWon]=useState(isDailyComplete(key)),[celebrating,setCelebrating]=useState(false),[streak,setStreak]=useState(initialStreak),[displayedStreak,setDisplayedStreak]=useState(initialStreak),[streakAnimating,setStreakAnimating]=useState(false),[restartArmed,setRestartArmed]=useState(false),cellFeedback=useCellFeedback();const mistakesRef=useRef(mistakes),usedHintRef=useRef(usedHint),startedRef=useRef(started),startedAt=useRef(Date.now()-seconds*1000),feedbackTimer=useRef<number|null>(null),noticeTimer=useRef<number|null>(null),correctTimer=useRef<number|null>(null),completionTimer=useRef<number|null>(null),streakStepTimer=useRef<number|null>(null),streakAnimationTimer=useRef<number|null>(null),restartArmTimer=useRef<number|null>(null),dialogRef=useRef<HTMLElement>(null),backRef=useRef<HTMLButtonElement>(null),previousFocus=useRef<HTMLElement|null>(null),resetRef=useRef<()=>void>(()=>undefined);const conflicts=useMemo(()=>findConflicts(board,level),[board,level]),catCount=useMemo(()=>board.filter(v=>v===2).length,[board]),solved=catCount===level.size&&conflicts.size===0,shouldPersist=!solved&&!won&&!celebrating&&mistakes<3&&(started||!boardsEqual(board,pristine));useSessionPersistence({levelId:level.id,board,seconds,history,started,mistakes,usedHint,persist:shouldPersist});useEffect(()=>{previousFocus.current=document.activeElement instanceof HTMLElement?document.activeElement:null;backRef.current?.focus();return()=>previousFocus.current?.focus()},[]);useEffect(()=>{if(won)backRef.current?.focus()},[won]);const keyDown=(e:KeyboardEvent<HTMLElement>)=>{if(e.key==='Escape'){e.preventDefault();onClose();return}trapTabKey(e,dialogRef.current)},startTimer=()=>{if(startedRef.current)return;startedRef.current=true;startedAt.current=Date.now()-seconds*1000;setStarted(true)},dismissHint=()=>{setHintInfo(null);setHintRevealed(false)};
-const registerCorrect=(idx:number)=>{if(correctTimer.current!==null)clearTimeout(correctTimer.current);setCorrectCell(idx);playSound('correct');correctTimer.current=window.setTimeout(()=>setCorrectCell(null),500)},registerMistake=(idx:number,restore:()=>void)=>{if(mistakeCell!==null||won||celebrating)return;const next=Math.min(3,mistakesRef.current+1);mistakesRef.current=next;setMistakes(next);setMistakeCell(idx);setMistakeNotice(next===3?'3 mistakes · Restarting…':`Wrong cat · Mistake ${next}/3`);if(noticeTimer.current!==null)clearTimeout(noticeTimer.current);noticeTimer.current=window.setTimeout(()=>setMistakeNotice(null),next===3?1600:1400);playSound(next===3?'strikeout':'mistake');haptic(next===3?'strikeout':'mistake');if(feedbackTimer.current!==null)clearTimeout(feedbackTimer.current);feedbackTimer.current=window.setTimeout(()=>{if(next===3)resetRef.current();else{restore();setMistakeCell(null)}},520)};
-const gestures=useBoardGestures({board,level,setBoard,setHistory,disabled:won||celebrating||mistakeCell!==null,fixedCells,onBoardInteraction:dismissHint,onFirstInteraction:startTimer,onCellChange:(idx,mode,source)=>{cellFeedback.flashCell(idx,source==='swipe'?(mode==='erase'?'swipe-erase':'swipe-paint'):mode);if(source!=='auto')playSound(mode==='erase'?'erase':'mark')},onCatRemoved:()=>{playSound('catRemove')},onCorrectCat:registerCorrect,onMistake:registerMistake});const reset=()=>{[feedbackTimer,noticeTimer,correctTimer,completionTimer].forEach(r=>{if(r.current!==null)clearTimeout(r.current);r.current=null});setMistakeNotice(null);if(restartArmTimer.current!==null)clearTimeout(restartArmTimer.current);setRestartArmed(false);gestures.resetInteraction();cellFeedback.clear();clearLevelSession(level.id);setBoard(pristine);setHistory([]);setSeconds(0);setStarted(false);startedRef.current=false;startedAt.current=Date.now();mistakesRef.current=0;setMistakes(0);usedHintRef.current=false;setUsedHint(false);setMistakeCell(null);setCorrectCell(null);setSummary(null);setHintInfo(null);setHintRevealed(false);setCelebrating(false)};resetRef.current=reset;const requestRestart=()=>{if(celebrating||mistakeCell!==null)return;const has=!boardsEqual(board,pristine)||mistakes>0||usedHint;if(!has)return;if(!restartArmed){setRestartArmed(true);if(restartArmTimer.current!==null)clearTimeout(restartArmTimer.current);restartArmTimer.current=window.setTimeout(()=>setRestartArmed(false),2200);return}playSound('restart');haptic('restart');reset()};
-useEffect(()=>{if(!started||won||celebrating)return;const update=()=>{if(document.visibilityState==='visible')setSeconds(Math.floor((Date.now()-startedAt.current)/1000))};update();const t=setInterval(update,1000);return()=>clearInterval(t)},[started,won,celebrating]);useEffect(()=>{if(!solved||won||celebrating)return;setCelebrating(true);const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;completionTimer.current=window.setTimeout(()=>{clearLevelSession(level.id);playSound('win');haptic('win');setSummary({label:getFinishLabel(getFinishGrade(mistakes,usedHintRef.current)),score:getScoreBreakdown(level.size,seconds,mistakes,usedHintRef.current).total,breakdown:getScoreBreakdown(level.size,seconds,mistakes,usedHintRef.current),seconds,mistakes,usedHint:usedHintRef.current});saveDailyResult({key,size:level.size,seconds,mistakes,usedHint:usedHintRef.current});const p=recordDailyWin(key),next=p.currentStreak;if(next!==streak){playSound('streak');haptic('milestone');setStreakAnimating(true);streakStepTimer.current=window.setTimeout(()=>setDisplayedStreak(next),120);streakAnimationTimer.current=window.setTimeout(()=>setStreakAnimating(false),700)}else setDisplayedStreak(next);setStreak(next);onAchievements(recordDailyCompletion(next));setWon(true);setCelebrating(false)},reduced?0:700)},[celebrating,key,level.id,level.size,mistakes,onAchievements,seconds,solved,streak,won]);useEffect(()=>()=>{[feedbackTimer,noticeTimer,correctTimer,completionTimer,streakStepTimer,streakAnimationTimer,restartArmTimer].forEach(r=>{if(r.current!==null)clearTimeout(r.current)})},[]);
-const undo=()=>{const previous=history.at(-1);if(!previous||won||celebrating||mistakeCell!==null)return;gestures.resetInteraction();cellFeedback.flashDiff(board,previous);setBoard(previous);setHistory(h=>h.slice(0,-1));playSound('rollback');haptic('undo')},hint=()=>{if(won||celebrating||mistakeCell!==null)return;startTimer();if(!usedHintRef.current){usedHintRef.current=true;setUsedHint(true)}gestures.resetInteraction();if(hintInfo){if(!hintRevealed&&hintInfo.cell>=0){playSound('reveal');haptic('reveal');setHintRevealed(true)}return}playSound('hint');haptic('hint');const next=getLogicalHint(level.regions,board)??{kind:'repair' as const,cell:-1,highlight:[],prompt:'No forced move is visible from the current marks.',reason:'Recheck uncertain marks and look for the row, column or territory with the fewest candidates.',technique:'repair' as const};setHintInfo(next);if(next.cell<0)setHintRevealed(true)},hintCanReveal=Boolean(hintInfo&&!hintRevealed&&hintInfo.cell>=0),hintText=hintInfo?(hintRevealed?hintInfo.reason:hintInfo.prompt):'',hintTitle=!hintRevealed?'Think here':hintInfo?.kind==='place'?'Place cat':hintInfo?.kind==='eliminate'?'Mark X':'Check this',milestone=[3,7,30].find(v=>displayedStreak<v)??null;
-return <div className="secondary-screen daily-screen" role="dialog" aria-modal="true" aria-labelledby="daily-title"><section ref={dialogRef} className={`secondary-shell daily-shell ${won?'daily-won':'daily-playing'}`} onKeyDown={keyDown}><header className="secondary-header daily-header"><button ref={backRef} className="screen-back-button" type="button" onClick={onClose} aria-label="Back to endless"><ChevronLeft size={20}/><span>Back</span></button><div className="secondary-title-block"><p className="eyebrow">DAILY TERRITORY</p><h2 id="daily-title">Today's territory</h2><p className="daily-subtitle">{key} · {level.size}×{level.size} · streak <span className={streakAnimating?'daily-streak-pop':''}>{displayedStreak}</span></p></div></header>{won?<div className="daily-result"><span className="daily-result-cat" aria-hidden="true"><CatMark happy/></span><h3>{summary?.label??'Territory Secured'}</h3><p className="win-result-summary subdued-result">{summary?`${formatTime(summary.seconds)} · ${summary.score.toLocaleString()} pts · ${summary.mistakes} ${summary.mistakes===1?'mistake':'mistakes'} · ${summary.usedHint?'hint used':'no hint'}`:'Come back tomorrow for a new territory.'}</p>{summary&&<ScoreResult breakdown={summary.breakdown}/>}<span className="daily-streak-badge">Daily streak {displayedStreak}</span>{milestone&&<p className="win-result-summary subdued-result">Next streak milestone · {displayedStreak}/{milestone}</p>}<button className="primary-button" type="button" onClick={onClose}>Back to endless</button></div>:<><div className="daily-meta"><CatProgress board={board} level={level}/><MistakeIndicator count={mistakes}/></div><div className="board-stage"><GameBoard board={board} level={level} levelIndex={0} mistakeCell={mistakeCell} correctCell={correctCell} hintCells={hintInfo?(hintRevealed?hintInfo.highlight:hintInfo.focus??[]):undefined} hintTarget={hintInfo&&hintRevealed?hintInfo.cell:undefined} cellFeedback={cellFeedback.effects} celebrateCats={celebrating} onToggleCat={gestures.toggleCat} onKeyboardMark={gestures.keyboardMark} onPointerDown={gestures.pointerDown} onPointerMove={gestures.pointerMove} onPointerEnd={gestures.pointerEnd} onPointerCancel={gestures.pointerCancel} onMouseLeave={gestures.finishMouseDragOnLeave}/></div><div className="daily-spacer"/><div className="context-slot">{mistakeNotice?<ContextPanel tone="error" icon={<X size={18}/>} title={mistakeNotice.startsWith('3 mistakes')?'Restarting':'Wrong cat'} text={mistakeNotice}/>:hintInfo?<ContextPanel tone="hint" icon={<Lightbulb size={18}/>} title={hintTitle} text={hintText}>{hintCanReveal&&<button className="hint-reveal-button" onClick={hint}>Reveal</button>}<button className="hint-close-button" aria-label="Close hint" onClick={()=>{playSound('uiClose');dismissHint()}}><X size={17}/></button></ContextPanel>:<div className="action-row"><button className="undo-action" onClick={undo} disabled={!history.length||celebrating||mistakeCell!==null}><Undo2 size={20}/><span>Undo</span></button><button className="hint-action" onClick={hint} disabled={celebrating||mistakeCell!==null}><Lightbulb size={20}/><span>Hint</span></button><button onClick={requestRestart} className={`restart-action ${restartArmed?'restart-armed':''}`} disabled={celebrating||mistakeCell!==null}><RotateCcw size={20}/><span>{restartArmed?'Restart?':'Restart'}</span></button></div>}</div></>}</section></div>}
-
+import { useDailyController, type DailyProps } from './useDailyController';
+export function DailyTerritory(props: DailyProps) {
+  const { onClose } = props;
+  const {
+    dialogRef,
+    keyDown,
+    won,
+    backRef,
+    key,
+    level,
+    streakAnimating,
+    displayedStreak,
+    summary,
+    milestone,
+    board,
+    mistakes,
+    mistakeCell,
+    correctCell,
+    hintInfo,
+    hintRevealed,
+    cellFeedback,
+    celebrating,
+    gestures,
+    mistakeNotice,
+    hintTitle,
+    hintText,
+    hintCanReveal,
+    hint,
+    dismissHint,
+    undo,
+    history,
+    restartArmed,
+    requestRestart,
+  } = useDailyController(props);
+  return (
+    <div
+      className="secondary-screen daily-screen"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="daily-title"
+    >
+      <section
+        ref={dialogRef}
+        className={`secondary-shell daily-shell ${won ? 'daily-won' : 'daily-playing'}`}
+        onKeyDown={keyDown}
+      >
+        <header className="secondary-header daily-header">
+          <button
+            ref={backRef}
+            className="screen-back-button"
+            type="button"
+            onClick={onClose}
+            aria-label="Back to endless"
+          >
+            <ChevronLeft size={20} />
+            <span>Back</span>
+          </button>
+          <div className="secondary-title-block">
+            <p className="eyebrow">DAILY TERRITORY</p>
+            <h2 id="daily-title">Today's territory</h2>
+            <p className="daily-subtitle">
+              {key} · {level.size}×{level.size} · streak{' '}
+              <span className={streakAnimating ? 'daily-streak-pop' : ''}>
+                {displayedStreak}
+              </span>
+            </p>
+          </div>
+        </header>
+        {won ? (
+          <div className="daily-result">
+            <span className="daily-result-cat" aria-hidden="true">
+              <CatMark happy className="celebrating-cat" />
+            </span>
+            <h3>{summary?.label ?? 'Territory Secured'}</h3>
+            <p className="win-result-summary subdued-result">
+              {summary
+                ? `${formatTime(summary.seconds)} · ${summary.score.toLocaleString()} pts · ${summary.mistakes} ${summary.mistakes === 1 ? 'mistake' : 'mistakes'} · ${summary.usedHint ? 'hint used' : 'no hint'}`
+                : 'Come back tomorrow for a new territory.'}
+            </p>
+            {summary && <ScoreResult breakdown={summary.breakdown} />}
+            <span className="daily-streak-badge">
+              Daily streak {displayedStreak}
+            </span>
+            {milestone && (
+              <p className="win-result-summary subdued-result">
+                Next streak milestone · {displayedStreak}/{milestone}
+              </p>
+            )}
+            <button className="primary-button" type="button" onClick={onClose}>
+              Back to endless
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="daily-meta">
+              <CatProgress board={board} level={level} />
+              <MistakeIndicator count={mistakes} />
+            </div>
+            <div className="board-stage">
+              <GameBoard
+                board={board}
+                level={level}
+                levelIndex={0}
+                mistakeCell={mistakeCell}
+                correctCell={correctCell}
+                hintCells={
+                  hintInfo
+                    ? hintRevealed
+                      ? hintInfo.highlight
+                      : (hintInfo.focus ?? [])
+                    : undefined
+                }
+                hintTarget={
+                  hintInfo && hintRevealed ? hintInfo.cell : undefined
+                }
+                cellFeedback={cellFeedback.effects}
+                celebrateCats={celebrating}
+                onToggleCat={gestures.toggleCat}
+                onKeyboardMark={gestures.keyboardMark}
+                onPointerDown={gestures.pointerDown}
+                onPointerMove={gestures.pointerMove}
+                onPointerEnd={gestures.pointerEnd}
+                onPointerCancel={gestures.pointerCancel}
+                onMouseLeave={gestures.finishMouseDragOnLeave}
+              />
+            </div>
+            <div className="daily-spacer" />
+            <div className="context-slot">
+              {mistakeNotice ? (
+                <ContextPanel
+                  tone="error"
+                  icon={<X size={18} />}
+                  title={
+                    mistakeNotice.startsWith('3 mistakes')
+                      ? 'Restarting'
+                      : 'Wrong cat'
+                  }
+                  text={mistakeNotice}
+                />
+              ) : hintInfo ? (
+                <ContextPanel
+                  tone="hint"
+                  icon={<Lightbulb size={18} />}
+                  title={hintTitle}
+                  text={hintText}
+                >
+                  {hintCanReveal && (
+                    <button className="hint-reveal-button" onClick={hint}>
+                      Reveal
+                    </button>
+                  )}
+                  <button
+                    className="hint-close-button"
+                    aria-label="Close hint"
+                    onClick={() => {
+                      playSound('uiClose');
+                      dismissHint();
+                    }}
+                  >
+                    <X size={17} />
+                  </button>
+                </ContextPanel>
+              ) : (
+                <div className="action-row">
+                  <button
+                    className="undo-action"
+                    onClick={undo}
+                    disabled={
+                      !history.length || celebrating || mistakeCell !== null
+                    }
+                  >
+                    <Undo2 size={20} />
+                    <span>Undo</span>
+                  </button>
+                  <button
+                    className="hint-action"
+                    onClick={hint}
+                    disabled={celebrating || mistakeCell !== null}
+                  >
+                    <Lightbulb size={20} />
+                    <span>Hint</span>
+                  </button>
+                  <button
+                    onClick={requestRestart}
+                    className={`restart-action ${restartArmed ? 'restart-armed' : ''}`}
+                    disabled={celebrating || mistakeCell !== null}
+                  >
+                    <RotateCcw size={20} />
+                    <span>{restartArmed ? 'Restart?' : 'Restart'}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </section>
+    </div>
+  );
+}
