@@ -24,3 +24,9 @@
 .stats-grid span,.achievement-summary,.stats-detail,.journal-mark small{color:#69625b}
 .secondary-title-block .eyebrow{color:#88564e}
 .achievement-list-all:focus-visible{outline:3px solid #2f2b27;outline-offset:3px;border-radius:12px}
+/* Size the portrait Daily board to its actual space, including an open hint. */
+@media (max-width:699px) and (orientation:portrait){
+ .daily-playing .daily-spacer{display:none}
+ .daily-playing .board-stage{container-type:size}
+ .daily-playing .board-wrap{width:min(100%,100cqh);max-width:100%}
+}

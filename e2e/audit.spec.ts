@@ -225,3 +225,15 @@ test('malformed generated metadata is discarded before rendering', async ({page}
  });
  expect(invalid).toBeNull();
 });
+
+test('small Daily board remains touchable with an open hint', async ({page}) => {
+ await page.setViewportSize({width:320,height:568});await start(page);
+ await page.getByRole('button',{name:'Open Daily Territory'}).click();
+ await expect(page.locator('.daily-screen .board')).toBeVisible();
+ await page.getByRole('button',{name:'Hint',exact:true}).click();
+ await expect(page.getByLabel('Close hint')).toBeVisible();
+ await expect(page.getByRole('grid')).not.toHaveClass(/board-assembling/);
+ const clipped=await page.getByRole('gridcell').evaluateAll(cells=>cells.filter(cell=>{const r=cell.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('[role="gridcell"]')!==cell}).length);
+ expect(clipped).toBe(0);
+ for(const name of ['Undo','Hint','Restart'])await expect(page.getByRole('button',{name,exact:true})).toBeInViewport();
+});

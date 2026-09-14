@@ -10,6 +10,7 @@ Preserve puzzle rules, canonical finish scoring, deterministic territories and d
 
 | Finding | Resolution and evidence |
 | --- | --- |
+| Daily portrait could clip its bottom row while board bounds still looked valid | Remove the competing spacer and size the square board to its available container, including open hints. Hit-testing verifies every cell on normal and 320 px phones. |
 | Hint on an untouched board was not saved and could not be restarted | Hint starts the solve timer in both game modes; restart recognizes hint usage. Reload regression verifies persistence. Hint dismissal now depends on board changes rather than timer startup. |
 | Invalid timestamps could turn elapsed time into NaN; corrupted starter cells could make a session unplayable | Validate timestamps, starter cats, placed cats and undo history before restoring. Malformed generated metadata is rejected before rendering. |
 | Stored statistics accepted invalid data; Journal described flawless wins as Perfect and all 10×10 wins as Moon Run | Validate numeric fields and achievement IDs. Show accurate Flawless and 10×10 labels without inventing historical data. |
