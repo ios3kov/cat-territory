@@ -111,7 +111,10 @@ const test = base.extend<{ site: Site }>({
         },
       });
     } finally {
-      await new Promise<void>((r) => server.close(() => r()));
+      await new Promise<void>((r) => {
+        server.close(() => r());
+        server.closeAllConnections();
+      });
     }
   },
 });
