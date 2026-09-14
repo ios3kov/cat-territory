@@ -6,9 +6,17 @@ type Props = {
   title: string;
   text: string;
   children?: ReactNode;
+  caption?: string;
 };
 
-export function ContextPanel({ tone, icon, title, text, children }: Props) {
+export function ContextPanel({
+  tone,
+  icon,
+  title,
+  text,
+  children,
+  caption,
+}: Props) {
   return (
     <div
       className={`context-panel context-${tone}`}
@@ -26,6 +34,7 @@ export function ContextPanel({ tone, icon, title, text, children }: Props) {
         >
           {text}
         </span>
+        {caption && <small className="hint-legend">{caption}</small>}
       </div>
       {children && <div className="context-panel-actions">{children}</div>}
     </div>

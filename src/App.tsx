@@ -29,18 +29,12 @@ const AchievementsDialog = lazy(() =>
 const WinDialog = lazy(() =>
   import('./GameDialogs').then((m) => ({ default: m.WinDialog })),
 );
-type CoachStep = 'tap' | 'cat' | 'swipe' | 'rules' | 'deduction' | 'done';
+type CoachStep = 'tap' | 'cat' | 'done';
 const COACH_KEY = 'cat-territory-gesture-coach-v3';
 function readCoachStep(): CoachStep {
   const v = storageGet(COACH_KEY);
-  return v === 'tap' ||
-    v === 'cat' ||
-    v === 'swipe' ||
-    v === 'rules' ||
-    v === 'deduction' ||
-    v === 'done'
-    ? v
-    : 'tap';
+  if (v === 'tap' || v === 'cat') return v;
+  return v ? 'done' : 'tap';
 }
 function App() {
   const game = useGameController();
@@ -57,6 +51,14 @@ function App() {
   const hintCanReveal = Boolean(
     game.hintInfo && !game.hintRevealed && game.hintInfo.cell >= 0,
   );
+  const hintCells = useMemo(() => {
+    const hint = game.hintInfo;
+    if (!hint) return undefined;
+    const clue = hint.focus ?? [];
+    return game.hintRevealed
+      ? Array.from(new Set([...clue, ...hint.highlight]))
+      : clue;
+  }, [game.hintInfo, game.hintRevealed]);
   const solutionCells = useMemo(
     () =>
       new Set(
@@ -73,13 +75,7 @@ function App() {
     const feedback = Object.values(game.cellFeedback);
     if (coachStep === 'tap' && feedback.some((e) => e.kind === 'paint'))
       setCoach('cat');
-    else if (coachStep === 'cat' && game.correctCell !== null)
-      setCoach('swipe');
-    else if (
-      coachStep === 'swipe' &&
-      feedback.some((e) => e.kind === 'swipe-paint' || e.kind === 'swipe-erase')
-    )
-      setCoach('rules');
+    else if (coachStep === 'cat' && game.correctCell !== null) setCoach('done');
   }, [coachStep, game.cellFeedback, game.correctCell, game.levelIndex]);
   useEffect(() => {
     const previous = previousProgression.current;
@@ -136,22 +132,8 @@ function App() {
         : undefined;
   const coachText =
     coachStep === 'tap'
-      ? 'Tap a tile to mark an X.'
-      : coachStep === 'cat'
-        ? 'Double tap the highlighted tile to place a cat.'
-        : coachStep === 'swipe'
-          ? 'Swipe across tiles to mark several Xs.'
-          : coachStep === 'rules'
-            ? 'One cat in every row, column and color. Cats cannot touch, even diagonally.'
-            : coachStep === 'deduction'
-              ? 'Use each cat to rule out its row, column, color and neighboring tiles. What remains is where the next cat can live.'
-              : '';
-  const coachTitle =
-    coachStep === 'rules'
-      ? 'Core rule'
-      : coachStep === 'deduction'
-        ? 'Think like a cat'
-        : 'Quick tip';
+      ? 'Tap the outlined tile to draw an X. Tap again to erase.'
+      : 'Double tap the outlined tile to place a cat. Keyboard: press C.';
   const toggleSound = () => {
     const next = !soundEnabled;
     setSoundEnabled(next);
@@ -256,12 +238,9 @@ function App() {
             levelIndex={game.levelIndex}
             mistakeCell={game.mistakeCell}
             correctCell={game.correctCell}
-            hintCells={
-              game.hintInfo
-                ? game.hintRevealed
-                  ? game.hintInfo.highlight
-                  : (game.hintInfo.focus ?? [])
-                : undefined
+            hintCells={hintCells}
+            hintExcluded={
+              game.hintRevealed ? game.hintInfo?.eliminate : undefined
             }
             hintTarget={
               game.hintInfo && game.hintRevealed
@@ -295,10 +274,19 @@ function App() {
               icon={<Lightbulb size={18} />}
               title={hintTitle}
               text={hintText}
+              caption={
+                game.hintRevealed && game.hintInfo.kind === 'eliminate'
+                  ? 'Solid outline: the clue. Dashed outline: cells to mark X.'
+                  : game.hintRevealed && game.hintInfo.kind === 'place'
+                    ? 'Solid outline: the clue. Double outline: place a cat.'
+                    : game.hintInfo.focus?.length
+                      ? 'Follow the outlined row, column or territory.'
+                      : undefined
+              }
             >
               {hintCanReveal && (
                 <button className="hint-reveal-button" onClick={game.hint}>
-                  Reveal
+                  Show move
                 </button>
               )}
               <button
@@ -316,25 +304,20 @@ function App() {
             <ContextPanel
               tone="info"
               icon={<CircleHelp size={18} />}
-              title={coachTitle}
+              title={
+                coachStep === 'tap'
+                  ? '1 of 2 · Mark a tile'
+                  : '2 of 2 · Find a cat'
+              }
               text={coachText}
             >
-              {coachStep === 'rules' && (
-                <button
-                  className="hint-reveal-button"
-                  onClick={() => setCoach('deduction')}
-                >
-                  Got it
-                </button>
-              )}
-              {coachStep === 'deduction' && (
-                <button
-                  className="hint-reveal-button"
-                  onClick={() => setCoach('done')}
-                >
-                  Play
-                </button>
-              )}
+              <button
+                className="hint-close-button"
+                aria-label="Skip introduction"
+                onClick={() => setCoach('done')}
+              >
+                <X size={17} />
+              </button>
             </ContextPanel>
           ) : (
             <div className="action-row">
