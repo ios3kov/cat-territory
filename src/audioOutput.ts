@@ -3,12 +3,15 @@ import { storageGet, storageSet } from './storage';
 const SOUND_KEY = 'cat-territory-sound-enabled-v1';
 const MASTER_VOLUME = 0.18;
 const CUE_MAX_AGE_MS = 350;
+// The first device activation can take longer than an ordinary interruption.
+const STARTUP_CUE_MAX_AGE_MS = 1500;
 type AudioWindow = Window & { webkitAudioContext?: typeof AudioContext };
 export type AudioOutput = { context: AudioContext; master: GainNode };
-type PendingCue = { play: (output: AudioOutput) => void; requestedAt: number };
+type PendingCue = { play: (output: AudioOutput) => void; expiresAt: number };
 let output: AudioOutput | null = null;
 let enabled = storageGet(SOUND_KEY) !== '0';
 let installed = false;
+let outputReady = false;
 let pendingCue: PendingCue | null = null;
 let resuming: Promise<void> | null = null;
 
@@ -25,19 +28,20 @@ function setVolume() {
     0.015,
   );
 }
-function ensureOutput() {
+function ensureOutput(allowCreation = false) {
   if (!enabled || !visible()) return null;
   if (output?.context.state === 'closed') {
     output = null;
+    outputReady = false;
     resuming = null;
     pendingCue = null;
   }
-  if (!output) {
+  if (!output && allowCreation) {
     const Constructor =
       window.AudioContext ?? (window as AudioWindow).webkitAudioContext;
     if (!Constructor) return null;
     try {
-      const context = new Constructor();
+      const context = new Constructor({ latencyHint: 'interactive' });
       const master = context.createGain();
       master.gain.value = MASTER_VOLUME;
       master.connect(context.destination);
@@ -71,19 +75,31 @@ function prime(context: AudioContext) {
 }
 function flushCue(current: AudioOutput) {
   if (current !== output || current.context.state !== 'running') return;
+  outputReady = true;
   const cue = pendingCue;
   pendingCue = null;
-  if (
-    cue &&
-    enabled &&
-    visible() &&
-    performance.now() - cue.requestedAt <= CUE_MAX_AGE_MS
-  )
+  if (cue && enabled && visible() && performance.now() <= cue.expiresAt)
     cue.play(current);
 }
+function suspendOutput(current: AudioOutput) {
+  if (current.context.state !== 'running') return;
+  void current.context
+    .suspend()
+    .then(() => {
+      // A rapid return can happen before the device finishes suspending.
+      if (current === output && enabled && visible()) void unlockAudio();
+    })
+    .catch(() => undefined);
+}
 export async function unlockAudio(fromGesture = false) {
-  const current = ensureOutput();
-  if (!current || current.context.state === 'running') return;
+  const current = ensureOutput(fromGesture);
+  if (!current) return;
+  if (current.context.state === 'running') {
+    if (resuming) return resuming;
+    if (!outputReady) prime(current.context);
+    flushCue(current);
+    return;
+  }
   // A fresh gesture must be allowed to retry a resume pending since tab activation.
   if (resuming && !fromGesture) return resuming;
   prime(current.context);
@@ -92,13 +108,19 @@ export async function unlockAudio(fromGesture = false) {
     .then(() => {
       if (current !== output) return;
       flushCue(current);
+      if (!visible()) suspendOutput(current);
     })
     .catch(() => {
       // Autoplay policy or an OS interruption can require another user gesture.
     });
   resuming = attempt;
   await attempt;
-  if (resuming === attempt) resuming = null;
+  if (resuming === attempt) {
+    resuming = null;
+    // A game event can arrive between the resume callback and this continuation.
+    // Flush that cue now rather than waiting for an unrelated later gesture.
+    flushCue(current);
+  }
 }
 export function setSoundEnabled(value: boolean) {
   enabled = value;
@@ -108,15 +130,20 @@ export function setSoundEnabled(value: boolean) {
   if (value) void unlockAudio(true);
 }
 export function playAudioCue(play: (output: AudioOutput) => void) {
+  if (!enabled || !visible()) return;
   const current = ensureOutput();
-  if (!current) return;
-  if (current.context.state === 'running') {
+  if (current?.context.state === 'running' && !resuming && outputReady) {
     pendingCue = null;
     play(current);
     return;
   }
   // Keep one recent cue instead of replaying a backlog when audio returns.
-  pendingCue = { play, requestedAt: performance.now() };
+  pendingCue = {
+    play,
+    expiresAt:
+      performance.now() +
+      (outputReady ? CUE_MAX_AGE_MS : STARTUP_CUE_MAX_AGE_MS),
+  };
   void unlockAudio();
 }
 export function installAudioUnlock() {
@@ -126,13 +153,15 @@ export function installAudioUnlock() {
     if (enabled) void unlockAudio(true);
   };
   // Keep these listeners: iOS can interrupt an already-unlocked context later.
-  document.addEventListener('pointerdown', unlock, true);
-  document.addEventListener('touchstart', unlock, {
-    capture: true,
-    passive: true,
-  });
-  // Touch activation is granted on release. A resume requested at touchstart
-  // can remain blocked, so retry inside the release gesture itself.
+  document.addEventListener(
+    'pointerdown',
+    (event) => {
+      if (event.pointerType === 'mouse') unlock();
+    },
+    true,
+  );
+  // Do not construct a cold context at touchstart: touch activation arrives
+  // on release. A first swipe can queue its latest cue until that release.
   document.addEventListener('pointerup', unlock, true);
   document.addEventListener('touchend', unlock, {
     capture: true,
@@ -143,16 +172,7 @@ export function installAudioUnlock() {
   document.addEventListener('visibilitychange', () => {
     if (!visible()) {
       pendingCue = null;
-      const current = output;
-      if (current?.context.state === 'running') {
-        void current.context
-          .suspend()
-          .then(() => {
-            // The tab may have returned before the asynchronous suspend completed.
-            if (current === output && enabled && visible()) void unlockAudio();
-          })
-          .catch(() => undefined);
-      }
+      if (output) suspendOutput(output);
     } else if (output && enabled) void unlockAudio();
   });
 }
