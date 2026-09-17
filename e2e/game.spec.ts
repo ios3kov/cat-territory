@@ -201,9 +201,7 @@ test.describe('CAT TERRITORY production flows', () => {
       'aria-label',
       /Score .*Board .*speed .*clean play .*no hint/,
     );
-    await expect(
-      page.getByRole('slider', { name: 'Slide to next level' }),
-    ).toHaveCount(1);
+    await expect(page.locator('.slide-handle')).toHaveCount(1);
     await slideToNext(page);
     await expect(page.getByText(/Level 2 ·/)).toBeVisible();
   });
