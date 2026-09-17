@@ -9,6 +9,7 @@ import './index.css';
 import './round2.css';
 import './autoX.css';
 import './nextLevelSlide.css';
+import './achievementFeedback.css';
 removeRetiredModeSaves();
 installAudioUnlock();
 const syncPageVisibility = () =>
