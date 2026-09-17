@@ -28,10 +28,12 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run build
+      - run: npm run audit:prod
       - run: npx playwright install --with-deps chromium webkit
       - run: npm run test:e2e
       - run: npm run test:feedback:webkit
       - run: npm run test:offline
+      - run: npm run profile:check
 
       - uses: actions/upload-artifact@v4
         if: failure()
