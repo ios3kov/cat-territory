@@ -29,7 +29,10 @@ async function expectEmpty(page: Page) {
 }
 
 test('the first 24 levels are generated, unique, logically solvable and keep the old size curve', async ({}, testInfo) => {
-  test.skip(testInfo.project.name !== 'chromium', 'Pure generator suite runs once');
+  test.skip(
+    testInfo.project.name !== 'chromium',
+    'Pure generator suite runs once',
+  );
   test.setTimeout(180000);
   const expectedSizes = [
     ...Array(4).fill(5),
@@ -60,7 +63,10 @@ test('the first 24 levels are generated, unique, logically solvable and keep the
 });
 
 test('later generated levels keep no preset cats', async ({}, testInfo) => {
-  test.skip(testInfo.project.name !== 'chromium', 'Pure generator suite runs once');
+  test.skip(
+    testInfo.project.name !== 'chromium',
+    'Pure generator suite runs once',
+  );
   test.setTimeout(180000);
   for (const index of [24, 28, 34, 43]) {
     const level = getLevel(index);
@@ -86,7 +92,10 @@ test('legacy generated cache with a retired starter cat is replaced safely', asy
     localStorage.setItem('cat-territory-progress-migrated-v3', '1');
     localStorage.setItem('cat-territory-current-level-v3', '24');
     localStorage.setItem('cat-territory-gesture-coach-v3', 'done');
-    localStorage.setItem('cat-territory-generated-v5-24', JSON.stringify(level));
+    localStorage.setItem(
+      'cat-territory-generated-v5-24',
+      JSON.stringify(level),
+    );
   }, legacy);
   await page.goto('/');
   await expect(page.getByRole('gridcell')).toHaveCount(64, { timeout: 60000 });
@@ -115,7 +124,9 @@ test('saved generated games retain moves and Undo; restart is empty', async ({
     ),
     board = applySmartMarks(data.level, before, secondCat),
     solution = new Set(data.solutionCells),
-    manual = board.findIndex((value, cell) => value === 0 && !solution.has(cell));
+    manual = board.findIndex(
+      (value, cell) => value === 0 && !solution.has(cell),
+    );
   expect(manual).toBeGreaterThanOrEqual(0);
   board[manual] = 1;
   await page.addInitScript(
