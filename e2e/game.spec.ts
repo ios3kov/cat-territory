@@ -45,7 +45,9 @@ test.describe('CAT TERRITORY production flows', () => {
     await seedLevel(page);
     await page.goto('/');
     const before = await page.locator('.mark-x').count(),
-      catIndex = levelOneSolution.find((index) => index >= levelOne.level.size)!,
+      catIndex = levelOneSolution.find(
+        (index) => index >= levelOne.level.size,
+      )!,
       previousIndex = catIndex - levelOne.level.size,
       first = page.locator(`[data-cell-index="${previousIndex}"]`),
       cat = page.locator(`[data-cell-index="${catIndex}"]`);
@@ -94,7 +96,9 @@ test.describe('CAT TERRITORY production flows', () => {
     await expect(
       page.getByRole('button', { name: 'Automatic X marks on' }),
     ).toHaveAttribute('aria-pressed', 'true');
-    await expect.poll(() => page.locator('.mark-x').count()).toBeGreaterThan(before);
+    await expect
+      .poll(() => page.locator('.mark-x').count())
+      .toBeGreaterThan(before);
     const afterBackfill = await page.locator('.mark-x').count(),
       secondCat = page.locator(`[data-cell-index="${secondCatIndex}"]`);
     await secondCat.click({ button: 'right' });
