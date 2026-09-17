@@ -17,9 +17,15 @@ async function start(page: Page) {
 async function placeCat(page: Page, index: number, isMobile: boolean) {
   const cell = page.locator(`[data-cell-index="${index}"]`);
   if (isMobile) {
-    await cell.tap();
+    // Native coordinate taps avoid locator actionability waits consuming the
+    // game's short double-tap window, especially in WebKit with a fake clock.
+    await cell.scrollIntoViewIfNeeded();
+    const bounds = (await cell.boundingBox())!;
+    const x = bounds.x + bounds.width / 2,
+      y = bounds.y + bounds.height / 2;
+    await page.touchscreen.tap(x, y);
     await page.waitForTimeout(100);
-    await cell.tap({ force: true });
+    await page.touchscreen.tap(x, y);
   } else await cell.click({ button: 'right' });
   await expect(cell.locator('.cat-face')).toHaveCount(1);
   await page.waitForTimeout(450);
