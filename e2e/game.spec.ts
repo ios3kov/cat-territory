@@ -47,7 +47,9 @@ test.describe('CAT TERRITORY production flows', () => {
     await expect(cat.locator('.cat-face')).toHaveCount(0);
     await expect(page.locator('.mark-x')).toHaveCount(before);
   });
-  test('Auto X toggle disables future smart marks and persists', async ({ page }) => {
+  test('Auto X toggle disables future smart marks and persists', async ({
+    page,
+  }) => {
     await seedLevel(page);
     await page.goto('/');
     await expect(page.locator('.action-row > button')).toHaveCount(4);
