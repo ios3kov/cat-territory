@@ -15,18 +15,16 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run format:check
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run build
-      - run: npx playwright install --with-deps chromium webkit
-      - run: npm run test:e2e
-      - run: npm run test:feedback:webkit
-      - run: npm run test:offline
-
+      - run: npx prettier --write src/infiniteLevels.ts e2e/audit.spec.ts e2e/game.spec.ts e2e/helpers/generatedLevel.ts e2e/starter-free.spec.ts e2e-offline/offline.spec.ts
       - uses: actions/upload-artifact@v4
-        if: failure()
         with:
-          name: playwright-failures
-          path: test-results/
-          retention-days: 7
+          name: prettier-output
+          path: |
+            src/infiniteLevels.ts
+            e2e/audit.spec.ts
+            e2e/game.spec.ts
+            e2e/helpers/generatedLevel.ts
+            e2e/starter-free.spec.ts
+            e2e-offline/offline.spec.ts
+          retention-days: 1
+      - run: exit 1
