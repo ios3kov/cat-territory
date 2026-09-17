@@ -8,6 +8,7 @@ import { removeRetiredModeSaves } from './storageMigration';
 import './index.css';
 import './round2.css';
 import './autoX.css';
+import './nextLevelSlide.css';
 removeRetiredModeSaves();
 installAudioUnlock();
 const syncPageVisibility = () =>

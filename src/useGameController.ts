@@ -70,7 +70,8 @@ export function useGameController(autoMarksEnabled: boolean) {
       useState<CompletionSummary | null>(null),
     [restartingFromMistakes, setRestartingFromMistakes] = useState(false),
     [won, setWon] = useState(false),
-    [winDialogReady, setWinDialogReady] = useState(false),
+    [completionReady, setCompletionReady] = useState(false),
+    [levelLeaving, setLevelLeaving] = useState(false),
     [idleHelpVisible, setIdleHelpVisible] = useState(false),
     [achievementQueue, setAchievementQueue] = useState<Achievement[]>([]),
     [achievementCount, setAchievementCount] = useState(
@@ -104,7 +105,7 @@ export function useGameController(autoMarksEnabled: boolean) {
     correctFeedbackTimer = useRef<number | null>(null),
     mistakeNoticeTimer = useRef<number | null>(null),
     achievementToastTimer = useRef<number | null>(null),
-    winDialogTimer = useRef<number | null>(null),
+    completionTimer = useRef<number | null>(null),
     trackedLevelStartRef = useRef<string | null>(null),
     trackedFirstMoveRef = useRef<string | null>(null);
   const level = useMemo(() => getLevel(levelIndex), [levelIndex]),
@@ -210,13 +211,13 @@ export function useGameController(autoMarksEnabled: boolean) {
       mistakeRestartTimer,
       mistakeFeedbackTimer,
       correctFeedbackTimer,
-      winDialogTimer,
+      completionTimer,
     ].forEach(clearTimer);
     clearLevelSession(level.id);
     setBoard(createInitialBoard(level));
     setHistory([]);
     setWon(false);
-    setWinDialogReady(false);
+    setCompletionReady(false);
     setCompletionSummary(null);
     cancelRestart();
     restoreClock();
@@ -259,7 +260,7 @@ export function useGameController(autoMarksEnabled: boolean) {
   useEffect(() => {
     if (!solved || won) return;
     setWon(true);
-    setWinDialogReady(false);
+    setCompletionReady(false);
     track('level_complete');
     haptic('win');
     clearLevelSession(level.id);
@@ -284,11 +285,11 @@ export function useGameController(autoMarksEnabled: boolean) {
     );
     if (unlocked.length) setAchievementQueue((q) => [...q, ...unlocked]);
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    winDialogTimer.current = window.setTimeout(
+    completionTimer.current = window.setTimeout(
       () => {
         playSound('win');
-        setWinDialogReady(true);
-        winDialogTimer.current = null;
+        setCompletionReady(true);
+        completionTimer.current = null;
       },
       reduced ? 0 : 700,
     );
@@ -325,7 +326,7 @@ export function useGameController(autoMarksEnabled: boolean) {
         correctFeedbackTimer,
         mistakeNoticeTimer,
         achievementToastTimer,
-        winDialogTimer,
+        completionTimer,
       ].forEach(clearTimer);
     },
     [],
@@ -375,35 +376,71 @@ export function useGameController(autoMarksEnabled: boolean) {
       setAchievementCount(
         getAchievementSnapshot().filter((i) => i.unlocked).length,
       );
+  const nextLevelBusy = useRef(false),
+    mounted = useRef(false),
+    exitTransition = useRef<{ timer: number; finish: () => void } | null>(null);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      const exit = exitTransition.current;
+      if (exit) {
+        clearTimeout(exit.timer);
+        exit.finish();
+        exitTransition.current = null;
+      }
+    };
+  }, []);
   const nextLevel = async () => {
     const next = levelIndex + 1;
-    if (!won || next > unlockedLevelIndex) return;
-    await prepareLevel(next);
-    gestures.resetInteraction();
-    cellFeedback.clear();
-    playSound('next');
-    const l = getLevel(next),
-      saved = loadLevelSession(l.id, l.size, l),
-      restoredSeconds = saved?.seconds ?? 0,
-      restoredStarted = saved?.started ?? false,
-      restoredMistakes = saved?.mistakes ?? 0,
-      restoredHint = saved?.usedHint ?? false;
-    setLevelIndex(next);
-    setBoard(saved?.board ?? createInitialBoard(l));
-    setHistory(saved?.history ?? []);
-    setWon(false);
-    setWinDialogReady(false);
-    setCompletionSummary(null);
-    cancelRestart();
-    setMistakeNotice(null);
-    setMistakeCell(null);
-    setCorrectCell(null);
-    setRestartingFromMistakes(false);
-    restoreClock(restoredSeconds, restoredStarted);
-    mistakesRef.current = restoredMistakes;
-    setMistakes(restoredMistakes);
-    resetHints(restoredHint);
-    trackedFirstMoveRef.current = null;
+    if (!won || next > unlockedLevelIndex || nextLevelBusy.current) return;
+    nextLevelBusy.current = true;
+    try {
+      await prepareLevel(next);
+      if (!mounted.current) return;
+      // Keep the solved board visible throughout generation. Only leave when ready.
+      if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        setLevelLeaving(true);
+        await new Promise<void>((finish) => {
+          exitTransition.current = {
+            timer: window.setTimeout(() => {
+              exitTransition.current = null;
+              finish();
+            }, 180),
+            finish,
+          };
+        });
+      }
+      if (!mounted.current) return;
+      gestures.resetInteraction();
+      cellFeedback.clear();
+      playSound('next');
+      const l = getLevel(next),
+        saved = loadLevelSession(l.id, l.size, l),
+        restoredSeconds = saved?.seconds ?? 0,
+        restoredStarted = saved?.started ?? false,
+        restoredMistakes = saved?.mistakes ?? 0,
+        restoredHint = saved?.usedHint ?? false;
+      setLevelIndex(next);
+      setBoard(saved?.board ?? createInitialBoard(l));
+      setHistory(saved?.history ?? []);
+      setWon(false);
+      setCompletionReady(false);
+      setCompletionSummary(null);
+      cancelRestart();
+      setMistakeNotice(null);
+      setMistakeCell(null);
+      setCorrectCell(null);
+      setRestartingFromMistakes(false);
+      restoreClock(restoredSeconds, restoredStarted);
+      mistakesRef.current = restoredMistakes;
+      setMistakes(restoredMistakes);
+      resetHints(restoredHint);
+      trackedFirstMoveRef.current = null;
+    } finally {
+      nextLevelBusy.current = false;
+      if (mounted.current) setLevelLeaving(false);
+    }
   };
   return {
     level,
@@ -420,7 +457,8 @@ export function useGameController(autoMarksEnabled: boolean) {
     completionSummary,
     restartingFromMistakes,
     won,
-    winDialogReady,
+    completionReady,
+    levelLeaving,
     restartArmed,
     conflicts,
     catCount,
