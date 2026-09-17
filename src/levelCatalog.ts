@@ -1,3 +1,4 @@
+import { getLevel } from './infiniteLevels';
 import type { Difficulty } from './puzzleEngine';
 
 export type CatalogLevel = {
@@ -17,11 +18,9 @@ export type CatalogLevel = {
 };
 
 /**
- * Compatibility view for tests and older modules. The catalog is no longer
- * baked into the bundle: these 24 entries come from the same generator as
- * every later level.
+ * Compatibility view for older callers. The catalog is no longer baked into
+ * the bundle: these 24 entries come from the same generator as every later level.
  */
-export async function buildLevelCatalog() {
-  const { getLevel } = await import('./infiniteLevels');
+export function buildLevelCatalog() {
   return Array.from({ length: 24 }, (_, index) => getLevel(index));
 }
