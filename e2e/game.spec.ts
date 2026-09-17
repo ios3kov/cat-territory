@@ -20,11 +20,9 @@ test.describe('CAT TERRITORY production flows', () => {
     await expect(page.locator('.cat-face')).toHaveCount(0);
     await expect(page.locator('.mark-x')).toHaveCount(0);
     await expect(page.locator('.paw-progress-icon.filled')).toHaveCount(0);
-    const starterCounts = await page.evaluate(async () => {
-      const { getLevel } = await import('/src/game.ts');
-      return [0, 4, 10, 16].map((index) => getLevel(index).starterCats.length);
-    });
-    expect(starterCounts).toEqual([0, 0, 0, 0]);
+    expect(
+      [0, 4, 10, 16].map((index) => levelData(index).level.starterCats.length),
+    ).toEqual([0, 0, 0, 0]);
   });
 
   test('core controls and wrong-cat feedback', async ({ page }) => {
