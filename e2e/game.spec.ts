@@ -87,6 +87,8 @@ test.describe('CAT TERRITORY production flows', () => {
     await expect(
       page.getByRole('button', { name: 'Automatic X marks on' }),
     ).toHaveAttribute('aria-pressed', 'true');
+    // Enabling now backfills the existing cat before accepting the next move.
+    await expect(page.locator('.mark-x')).toHaveCount(before + 10);
     const secondCat = page.locator('[data-cell-index="14"]');
     await secondCat.click({ button: 'right' });
     await expect(secondCat.locator('.cat-face')).toHaveCount(1);
