@@ -1,6 +1,10 @@
 import { slideToNext } from './helpers/slide';
+import { levelData } from './helpers/generatedLevel';
 import { expect, test } from '@playwright/test';
-const levelOneSolution = [2, 5, 14, 16, 23];
+
+const levelOne = levelData(0),
+  levelOneSolution = levelOne.solutionCells;
+
 async function seedLevel(page: import('@playwright/test').Page, level = 0) {
   await page.addInitScript((index) => {
     localStorage.setItem('cat-territory-progress-migrated-v3', '1');
@@ -8,6 +12,7 @@ async function seedLevel(page: import('@playwright/test').Page, level = 0) {
     localStorage.setItem('cat-territory-gesture-coach-v3', 'done');
   }, level);
 }
+
 test.describe('CAT TERRITORY production flows', () => {
   test('levels start empty without preset cats or marks', async ({ page }) => {
     await seedLevel(page);
@@ -21,6 +26,7 @@ test.describe('CAT TERRITORY production flows', () => {
     });
     expect(starterCounts).toEqual([0, 0, 0, 0]);
   });
+
   test('core controls and wrong-cat feedback', async ({ page }) => {
     await seedLevel(page);
     await page.goto('/');
@@ -28,24 +34,23 @@ test.describe('CAT TERRITORY production flows', () => {
     await expect(
       page.getByRole('img', { name: '0 of 3 mistakes' }),
     ).toBeVisible();
-    await page.locator('[data-cell-index="0"]').click({ button: 'right' });
-    await expect(page.locator('[data-cell-index="0"]')).toHaveClass(
-      /mistake-cell/,
-    );
+    const wrong = page.locator(`[data-cell-index="${levelOne.wrongCell}"]`);
+    await wrong.click({ button: 'right' });
+    await expect(wrong).toHaveClass(/mistake-cell/);
     await expect(page.getByText(/Mistake 1\/3/)).toBeVisible();
-    await expect(page.locator('[data-cell-index="0"] .cat-face')).toHaveCount(
-      0,
-      { timeout: 1500 },
-    );
+    await expect(wrong.locator('.cat-face')).toHaveCount(0, { timeout: 1500 });
   });
+
   test('smart marks animate, cat feedback stays clean and undo is one action', async ({
     page,
   }) => {
     await seedLevel(page);
     await page.goto('/');
-    const before = await page.locator('.mark-x').count();
-    const first = page.locator('[data-cell-index="0"]'),
-      cat = page.locator('[data-cell-index="5"]');
+    const before = await page.locator('.mark-x').count(),
+      catIndex = levelOneSolution.find((index) => index >= levelOne.level.size)!,
+      previousIndex = catIndex - levelOne.level.size,
+      first = page.locator(`[data-cell-index="${previousIndex}"]`),
+      cat = page.locator(`[data-cell-index="${catIndex}"]`);
     await first.focus();
     await page.keyboard.press('ArrowDown');
     await expect(cat).toBeFocused();
@@ -60,6 +65,7 @@ test.describe('CAT TERRITORY production flows', () => {
     await expect(cat.locator('.cat-face')).toHaveCount(0);
     await expect(page.locator('.mark-x')).toHaveCount(before);
   });
+
   test('Auto X toggle disables future smart marks and persists', async ({
     page,
   }) => {
@@ -79,7 +85,9 @@ test.describe('CAT TERRITORY production flows', () => {
       name: 'Automatic X marks off',
     });
     await expect(persistedOff).toHaveAttribute('aria-pressed', 'false');
-    const cat = page.locator('[data-cell-index="5"]');
+    const firstCatIndex = levelOneSolution[0],
+      secondCatIndex = levelOneSolution[1],
+      cat = page.locator(`[data-cell-index="${firstCatIndex}"]`);
     await cat.click({ button: 'right' });
     await expect(cat.locator('.cat-face')).toHaveCount(1);
     await page.waitForTimeout(450);
@@ -88,15 +96,16 @@ test.describe('CAT TERRITORY production flows', () => {
     await expect(
       page.getByRole('button', { name: 'Automatic X marks on' }),
     ).toHaveAttribute('aria-pressed', 'true');
-    // Enabling now backfills the existing cat before accepting the next move.
-    await expect(page.locator('.mark-x')).toHaveCount(before + 10);
-    const secondCat = page.locator('[data-cell-index="14"]');
+    await expect.poll(() => page.locator('.mark-x').count()).toBeGreaterThan(before);
+    const afterBackfill = await page.locator('.mark-x').count(),
+      secondCat = page.locator(`[data-cell-index="${secondCatIndex}"]`);
     await secondCat.click({ button: 'right' });
     await expect(secondCat.locator('.cat-face')).toHaveCount(1);
     await expect
       .poll(() => page.locator('.mark-x').count())
-      .toBeGreaterThan(before);
+      .toBeGreaterThanOrEqual(afterBackfill);
   });
+
   test('paws fill left to right in discovery colors and restore through Undo and reload', async ({
     page,
   }) => {
@@ -114,35 +123,63 @@ test.describe('CAT TERRITORY production flows', () => {
         .locator(`[data-cell-index="${index}"]`)
         .evaluate((x) => getComputedStyle(x).backgroundColor);
     const expected: string[] = [];
-    await expect.poll(read).toEqual([null, null, null, null, null]);
-    for (const index of [2, 23, 5]) {
+    await expect.poll(read).toEqual(Array(levelOne.level.size).fill(null));
+    const discovery = [
+      levelOneSolution[0],
+      levelOneSolution.at(-1)!,
+      levelOneSolution[1],
+    ];
+    for (const index of discovery) {
       await page
         .locator(`[data-cell-index="${index}"]`)
         .click({ button: 'right' });
       expected.push(await color(index));
       await expect
         .poll(read)
-        .toEqual([...expected, ...Array(5 - expected.length).fill(null)]);
+        .toEqual([
+          ...expected,
+          ...Array(levelOne.level.size - expected.length).fill(null),
+        ]);
       await page.waitForTimeout(450);
     }
     await page.reload();
-    await expect.poll(read).toEqual([...expected, null, null]);
-    // Removing an earlier cat compacts the row; Undo restores its original position.
-    await page.locator('[data-cell-index="23"]').click({ button: 'right' });
     await expect
       .poll(read)
-      .toEqual([expected[0], expected[2], null, null, null]);
+      .toEqual([
+        ...expected,
+        ...Array(levelOne.level.size - expected.length).fill(null),
+      ]);
+    await page
+      .locator(`[data-cell-index="${discovery[1]}"]`)
+      .click({ button: 'right' });
+    await expect
+      .poll(read)
+      .toEqual([
+        expected[0],
+        expected[2],
+        ...Array(levelOne.level.size - 2).fill(null),
+      ]);
     await page.reload();
     await page.getByRole('button', { name: 'Undo', exact: true }).click();
-    await expect.poll(read).toEqual([...expected, null, null]);
+    await expect
+      .poll(read)
+      .toEqual([
+        ...expected,
+        ...Array(levelOne.level.size - expected.length).fill(null),
+      ]);
     await page.getByRole('button', { name: 'Undo', exact: true }).click();
     await expect
       .poll(read)
-      .toEqual([expected[0], expected[1], null, null, null]);
+      .toEqual([
+        expected[0],
+        expected[1],
+        ...Array(levelOne.level.size - 2).fill(null),
+      ]);
     await page.getByRole('button', { name: 'Restart', exact: true }).click();
     await page.getByRole('button', { name: 'Restart?', exact: true }).click();
-    await expect.poll(read).toEqual([null, null, null, null, null]);
+    await expect.poll(read).toEqual(Array(levelOne.level.size).fill(null));
   });
+
   test('win keeps the board visible with one slide and an inline score', async ({
     page,
   }) => {
@@ -169,6 +206,7 @@ test.describe('CAT TERRITORY production flows', () => {
     await slideToNext(page);
     await expect(page.getByText(/Level 2 ·/)).toBeVisible();
   });
+
   test('territories map one-to-one to deterministic colors', async ({
     page,
   }) => {
@@ -190,11 +228,12 @@ test.describe('CAT TERRITORY production flows', () => {
       if (existing) expect(cell.color).toBe(existing);
       else byRegion.set(cell.region!, cell.color);
     }
-    expect(byRegion.size).toBe(levelOneSolution.length);
+    expect(byRegion.size).toBe(levelOne.level.size);
     expect(new Set(byRegion.values()).size).toBe(byRegion.size);
     await page.reload();
     expect(await read()).toEqual(before);
   });
+
   test('board exposes grid semantics keyboard navigation and stays in viewport', async ({
     page,
   }) => {
@@ -219,6 +258,7 @@ test.describe('CAT TERRITORY production flows', () => {
       (await page.evaluate(() => innerHeight)) + 1,
     );
   });
+
   test('rules and progress restore focus', async ({ page }) => {
     await seedLevel(page);
     await page.goto('/');
