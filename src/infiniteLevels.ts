@@ -72,13 +72,33 @@ type LevelPlan = {
 function levelPlan(levelIndex: number): LevelPlan {
   const i = normalizeIndex(levelIndex);
   if (i < 4)
-    return { size: 5, chapter: 1, chapterName: 'Kitten Steps', source: 'curated' };
+    return {
+      size: 5,
+      chapter: 1,
+      chapterName: 'Kitten Steps',
+      source: 'curated',
+    };
   if (i < 10)
-    return { size: 6, chapter: 2, chapterName: 'House Rules', source: 'curated' };
+    return {
+      size: 6,
+      chapter: 2,
+      chapterName: 'House Rules',
+      source: 'curated',
+    };
   if (i < 16)
-    return { size: 7, chapter: 3, chapterName: 'Long Hallways', source: 'curated' };
+    return {
+      size: 7,
+      chapter: 3,
+      chapterName: 'Long Hallways',
+      source: 'curated',
+    };
   if (i < RUN_START_INDEX)
-    return { size: 8, chapter: 4, chapterName: 'Night Shift', source: 'curated' };
+    return {
+      size: 8,
+      chapter: 4,
+      chapterName: 'Night Shift',
+      source: 'curated',
+    };
 
   const offset = i - RUN_START_INDEX;
   let size: number;
@@ -204,9 +224,7 @@ function regionConnected(
 
 function initialRegions(size: number, solution: number[]) {
   const finalRegion = size - 1,
-    regions = Array.from({ length: size }, () =>
-      Array(size).fill(finalRegion),
-    );
+    regions = Array.from({ length: size }, () => Array(size).fill(finalRegion));
   for (let r = 0; r < size - 1; r++) regions[r][solution[r]] = r;
   return regions;
 }
@@ -335,7 +353,9 @@ function valid(level: CatalogLevel, size: number, source: LevelPlan['source']) {
       (row) =>
         Array.isArray(row) &&
         row.length === size &&
-        row.every((group) => Number.isInteger(group) && group >= 0 && group < size),
+        row.every(
+          (group) => Number.isInteger(group) && group >= 0 && group < size,
+        ),
     )
   )
     return false;
@@ -404,7 +424,7 @@ function candidate(
   const analysis = analyzePuzzle(regions),
     matches = Boolean(
       analysis.firstSolution &&
-        analysis.firstSolution.every((col, row) => col === solution[row]),
+      analysis.firstSolution.every((col, row) => col === solution[row]),
     );
   if (analysis.solutionCount !== 1 || !analysis.logicalSolved || !matches)
     return null;
@@ -447,7 +467,9 @@ export function chooseCandidate(
   special: boolean,
   phase: number,
 ) {
-  const qualified = candidates.filter((candidate) => candidate.logicalScore >= floor);
+  const qualified = candidates.filter(
+    (candidate) => candidate.logicalScore >= floor,
+  );
   if (!qualified.length)
     return candidates.reduce<CatalogLevel | null>(
       (best, candidate) =>
@@ -482,7 +504,8 @@ function select(
 function progressionPhase(index: number) {
   if (index >= RUN_START_INDEX) return (index - RUN_START_INDEX) % 10;
   const plan = levelPlan(index),
-    start = plan.size === 5 ? 0 : plan.size === 6 ? 4 : plan.size === 7 ? 10 : 16,
+    start =
+      plan.size === 5 ? 0 : plan.size === 6 ? 4 : plan.size === 7 ? 10 : 16,
     count = plan.size === 5 ? 4 : plan.size === 8 ? 8 : 6,
     local = index - start;
   return count <= 1 ? 0 : Math.round((local / (count - 1)) * 9);
