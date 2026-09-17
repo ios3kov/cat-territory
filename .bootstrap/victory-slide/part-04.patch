@@ -192,15 +192,3 @@
 +                    game.restartingFromMistakes ||
 +                    game.mistakeCell !== null
 +                  }
-+                >
-+                  <Sparkles size={20} />
-+                  <span>Auto X</span>
-+                </button>
-+                <button
-+                  onClick={game.restart}
-+                  className={`restart-action ${game.restartArmed ? 'restart-armed' : ''}`}
-+                  disabled={
-+                    game.won ||
-+                    game.restartingFromMistakes ||
-+                    game.mistakeCell !== null
-+                  }
