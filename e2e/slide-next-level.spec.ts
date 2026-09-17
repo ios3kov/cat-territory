@@ -2,8 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { getLevel } from '../src/infiniteLevels';
 import { slideToNext } from './helpers/slide';
 
-const slider = (page: Page) =>
-  page.getByRole('slider', { name: 'Slide to next level' });
+const slider = (page: Page) => page.locator('.slide-handle');
 const track = (page: Page) => page.getByTestId('next-level-slide');
 
 async function start(page: Page, index = 0, almostWon = false) {
@@ -60,7 +59,7 @@ async function placeCat(page: Page, index: number, touch: boolean) {
 async function win(page: Page, touch: boolean, index = 0) {
   const cells = await start(page, index, true);
   await placeCat(page, cells.at(-1)!, touch);
-  await expect(slider(page)).toHaveAttribute('aria-disabled', 'false');
+  await expect(slider(page)).toHaveAttribute('data-disabled', 'false');
 }
 
 test('victory stays on the board and four actions morph without changing the dock bounds', async ({
@@ -70,7 +69,7 @@ test('victory stays on the board and four actions morph without changing the doc
   const cats = await start(page);
   const before = (await page.locator('.action-row').boundingBox())!;
   for (const cat of cats) await placeCat(page, cat, isMobile);
-  await expect(slider(page)).toHaveAttribute('aria-disabled', 'false');
+  await expect(slider(page)).toHaveAttribute('data-disabled', 'false');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('grid')).toBeVisible();
   await expect(page.locator('.board .cat-face')).toHaveCount(5);
@@ -104,6 +103,22 @@ test('victory stays on the board and four actions morph without changing the doc
   );
 });
 
+test('keyboard and assistive users can continue without changing the drag contract', async ({
+  page,
+  isMobile,
+}) => {
+  await win(page, isMobile);
+  const fallback = page.getByRole('button', { name: 'Continue to next level' });
+  await expect(fallback).toHaveCount(1);
+  await fallback.focus();
+  await expect(fallback).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('grid')).toHaveAttribute(
+    'aria-label',
+    /Puzzle level 2,/,
+  );
+});
+
 test('tap, edge clicks, short drags, backtracking and extra keys cannot advance', async ({
   page,
   isMobile,
@@ -120,7 +135,7 @@ test('tap, edge clicks, short drags, backtracking and extra keys cannot advance'
     await page.keyboard.press(key);
   }
   await slideToNext(page, 0.79);
-  await expect(slider(page)).toHaveAttribute('aria-valuenow', '0');
+  await expect(slider(page)).toHaveAttribute('data-progress', '0');
   await page.waitForTimeout(350);
   await slideToNext(page, 0.9, false);
   await expect(page.getByRole('grid')).toHaveAttribute(
@@ -132,7 +147,7 @@ test('tap, edge clicks, short drags, backtracking and extra keys cannot advance'
     bounds.y + bounds.height / 2,
   );
   await page.mouse.up();
-  await expect(slider(page)).toHaveAttribute('aria-valuenow', '0');
+  await expect(slider(page)).toHaveAttribute('data-progress', '0');
   await page.waitForTimeout(350);
   await expect(page.getByRole('grid')).toHaveAttribute(
     'aria-label',
@@ -186,7 +201,7 @@ for (const interrupt of ['cancel', 'lost-capture', 'blur', 'resize'] as const) {
     await expect(track(page)).toHaveAttribute('data-state', 'idle');
     await page.mouse.up();
     await page.waitForTimeout(350);
-    await expect(slider(page)).toHaveAttribute('aria-valuenow', '0');
+    await expect(slider(page)).toHaveAttribute('data-progress', '0');
     await expect(page.getByRole('grid')).toHaveAttribute(
       'aria-label',
       /Puzzle level 1,/,
@@ -282,7 +297,7 @@ test('slow generation keeps the solved board; failure retries in the slider with
   );
   await expect(track(page)).toHaveAttribute('data-state', 'error');
   await expect(track(page)).toContainText('Slide to retry');
-  await expect(slider(page)).toHaveAttribute('aria-disabled', 'false');
+  await expect(slider(page)).toHaveAttribute('data-disabled', 'false');
   await page.waitForTimeout(350);
   await slideToNext(page);
   expect(await page.evaluate(() => (window as any).__workerCalls)).toBe(2);
