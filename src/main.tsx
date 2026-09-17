@@ -7,6 +7,7 @@ import { installAudioUnlock } from './audio';
 import { removeRetiredModeSaves } from './storageMigration';
 import './index.css';
 import './round2.css';
+import './autoX.css';
 removeRetiredModeSaves();
 installAudioUnlock();
 const syncPageVisibility = () =>

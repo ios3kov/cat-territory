@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
+import { readAutoMarksEnabled } from './autoMarks';
 import {
   DOUBLE_TAP_MS,
   DRAG_THRESHOLD_PX,
@@ -101,9 +102,11 @@ export function useBoardGestures({
     saveHistory: boolean,
   ) => {
     clearSmartMarkTimers();
-    const finalBoard = applySmartMarks(level, current, idx),
-      firstFrame = [...current] as CellState[];
+    const firstFrame = [...current] as CellState[];
     firstFrame[idx] = 2;
+    const finalBoard = readAutoMarksEnabled()
+      ? applySmartMarks(level, current, idx)
+      : firstFrame;
     const catRow = Math.floor(idx / level.size),
       catCol = idx % level.size;
     const smartMarks = finalBoard
