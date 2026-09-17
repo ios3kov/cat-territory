@@ -1,6 +1,5 @@
 import { NextLevelSlide } from './NextLevelSlide';
 import { ScoreResult } from './ScoreResult';
-import { AchievementIcon } from './AchievementIcon';
 import { LoadingTerritory } from './LoadingTerritory';
 import {
   CircleHelp,
@@ -171,6 +170,7 @@ function App() {
       : game.hintInfo?.kind === 'eliminate'
         ? 'Mark X'
         : 'Check this';
+  const achievementNotice = game.achievementToast;
   return (
     <main className="app-shell">
       <section
@@ -192,7 +192,12 @@ function App() {
               )}
             </div>
             <div className="subhead-row">
-              {game.completionReady && game.completionSummary ? (
+              {achievementNotice && !game.completionReady ? (
+                <p className="chapter-label achievement-inline" role="status">
+                  <span>New achievement</span>
+                  <strong>{achievementNotice.title}</strong>
+                </p>
+              ) : game.completionReady && game.completionSummary ? (
                 <ScoreResult summary={game.completionSummary} />
               ) : (
                 <p
@@ -216,11 +221,16 @@ function App() {
               {soundEnabled ? <Volume2 size={19} /> : <VolumeX size={19} />}
             </button>
             <button
-              className="icon-button quiet-icon-button achievement-button"
+              className={`icon-button quiet-icon-button achievement-button ${achievementNotice ? 'achievement-attention' : ''}`}
               onClick={() => open(setShowAchievements)}
-              aria-label={`Progress and achievements, ${game.achievementCount} unlocked`}
+              aria-label={`Progress and achievements, ${game.achievementCount} unlocked${achievementNotice ? ', new achievement' : ''}`}
             >
               <Trophy size={19} />
+              {achievementNotice && (
+                <span className="achievement-gain" aria-hidden="true">
+                  +1
+                </span>
+              )}
             </button>
             <button
               className="icon-button quiet-icon-button"
@@ -424,20 +434,6 @@ function App() {
           <AchievementsDialog onClose={() => close(setShowAchievements)} />
         )}{' '}
       </Suspense>
-      {game.achievementToast && (
-        <div
-          className={`achievement-toast ${game.achievementToast.secret ? 'secret-toast' : ''}`}
-          role="status"
-        >
-          <span>
-            <AchievementIcon id={game.achievementToast.id} />
-          </span>
-          <div>
-            <strong>Achievement unlocked</strong>
-            <span>{game.achievementToast.title}</span>
-          </div>
-        </div>
-      )}
     </main>
   );
 }
