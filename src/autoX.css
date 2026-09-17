@@ -1,0 +1,39 @@
+.action-row {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.auto-x-action {
+  color: #746d66;
+  background: #f7f4f0 !important;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.auto-x-action.auto-x-on {
+  color: #4f675d;
+  background: #edf4ef !important;
+  box-shadow: inset 0 0 0 1px #cfded5;
+}
+
+.auto-x-action.auto-x-off {
+  color: #817970;
+  background: #f7f4f0 !important;
+}
+
+@media (max-width: 360px) {
+  .action-row {
+    gap: 5px;
+  }
+
+  .action-row button {
+    font-size: 11px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 620px) {
+  .action-row {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
