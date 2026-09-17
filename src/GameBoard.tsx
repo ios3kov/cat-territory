@@ -41,6 +41,7 @@ type CellStyle = CSSProperties & {
   '--cat-idle-delay'?: string;
   '--cat-blink-delay'?: string;
   '--assemble-delay'?: string;
+  '--feedback-delay'?: string;
 };
 function MarkX({
   drawn = false,
@@ -186,6 +187,8 @@ function GameBoardView({
               };
               if (celebrating)
                 style['--cat-delay'] = `${(catOrder.get(idx) ?? 0) * 34}ms`;
+              if (feedback?.delayMs)
+                style['--feedback-delay'] = `${feedback.delayMs}ms`;
               if (value === 2) {
                 style['--cat-idle-delay'] = `${-((idx * 0.71) % 8)}s`;
                 style['--cat-blink-delay'] = `${-((idx * 0.43) % 6)}s`;
