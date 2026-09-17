@@ -61,17 +61,21 @@ test('legacy in-progress boards are reset once when starter cats are retired', a
   page,
 }) => {
   await page.addInitScript(() => {
-    localStorage.setItem(
-      'cat-territory-session-v3-v2-5-01',
-      JSON.stringify({
-        board: Array.from({ length: 25 }, (_, i) => (i === 2 ? 2 : 0)),
-        history: [],
-        seconds: 12,
-        started: true,
-        mistakes: 0,
-        usedHint: false,
-      }),
-    );
+    const seedKey = 'cat-territory-test-legacy-session-seeded';
+    if (!localStorage.getItem(seedKey)) {
+      localStorage.setItem(
+        'cat-territory-session-v3-v2-5-01',
+        JSON.stringify({
+          board: Array.from({ length: 25 }, (_, i) => (i === 2 ? 2 : 0)),
+          history: [],
+          seconds: 12,
+          started: true,
+          mistakes: 0,
+          usedHint: false,
+        }),
+      );
+      localStorage.setItem(seedKey, '1');
+    }
     localStorage.setItem('cat-territory-gesture-coach-v3', 'done');
   });
   await page.goto('/');
