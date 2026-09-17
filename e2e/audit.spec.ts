@@ -285,8 +285,11 @@ test('small board remains touchable with an open hint', async ({ page }) => {
   expect(clipped).toBe(0);
   await expect(page.getByLabel('Close hint')).toBeInViewport();
   await page.getByLabel('Close hint').click();
-  for (const name of ['Undo', 'Hint', 'Auto X', 'Restart'])
+  for (const name of ['Undo', 'Hint', 'Restart'])
     await expect(
       page.getByRole('button', { name, exact: true }),
     ).toBeInViewport();
+  await expect(
+    page.getByRole('button', { name: /Automatic X marks/ }),
+  ).toBeInViewport();
 });
