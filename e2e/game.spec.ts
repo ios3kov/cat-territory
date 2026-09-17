@@ -8,6 +8,18 @@ async function seedLevel(page: import('@playwright/test').Page, level = 0) {
   }, level);
 }
 test.describe('CAT TERRITORY production flows', () => {
+  test('levels start empty without preset cats or marks', async ({ page }) => {
+    await seedLevel(page);
+    await page.goto('/');
+    await expect(page.locator('.cat-face')).toHaveCount(0);
+    await expect(page.locator('.mark-x')).toHaveCount(0);
+    await expect(page.locator('.paw-progress-icon.filled')).toHaveCount(0);
+    const starterCounts = await page.evaluate(async () => {
+      const { getLevel } = await import('/src/game.ts');
+      return [0, 4, 10, 16].map((index) => getLevel(index).starterCats.length);
+    });
+    expect(starterCounts).toEqual([0, 0, 0, 0]);
+  });
   test('core controls and wrong-cat feedback', async ({ page }) => {
     await seedLevel(page);
     await page.goto('/');
@@ -98,9 +110,9 @@ test.describe('CAT TERRITORY production flows', () => {
       page
         .locator(`[data-cell-index="${index}"]`)
         .evaluate((x) => getComputedStyle(x).backgroundColor);
-    const expected = [await color(2)];
-    await expect.poll(read).toEqual([...expected, null, null, null, null]);
-    for (const index of [23, 5]) {
+    const expected: string[] = [];
+    await expect.poll(read).toEqual([null, null, null, null, null]);
+    for (const index of [2, 23, 5]) {
       await page
         .locator(`[data-cell-index="${index}"]`)
         .click({ button: 'right' });
@@ -126,12 +138,12 @@ test.describe('CAT TERRITORY production flows', () => {
       .toEqual([expected[0], expected[1], null, null, null]);
     await page.getByRole('button', { name: 'Restart', exact: true }).click();
     await page.getByRole('button', { name: 'Restart?', exact: true }).click();
-    await expect.poll(read).toEqual([expected[0], null, null, null, null]);
+    await expect.poll(read).toEqual([null, null, null, null, null]);
   });
   test('win dialog has one stable Next level action', async ({ page }) => {
     await seedLevel(page);
     await page.goto('/');
-    for (const index of levelOneSolution.slice(1)) {
+    for (const index of levelOneSolution) {
       const cell = page.locator(`[data-cell-index="${index}"]`);
       await cell.click({ button: 'right' });
       await expect(cell.locator('.cat-face')).toHaveCount(1);
