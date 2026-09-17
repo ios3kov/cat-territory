@@ -103,7 +103,9 @@ try {
         longTaskLimit = mobile ? 400 : 250,
         eventLimit = mobile ? 500 : 300;
       if (result.errors.length)
-        failures.push(`${result.name}: runtime errors: ${result.errors.join('; ')}`);
+        failures.push(
+          `${result.name}: runtime errors: ${result.errors.join('; ')}`,
+        );
       if (!(result.lcp > 0 && result.lcp <= lcpLimit))
         failures.push(
           `${result.name}: LCP ${Math.round(result.lcp)}ms > ${lcpLimit}ms or unavailable`,
