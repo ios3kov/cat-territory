@@ -56,9 +56,11 @@ async function placeCat(page: Page, index: number, touch: boolean) {
   await expect(cell.locator('.cat-face')).toHaveCount(1);
   await page.waitForTimeout(420);
 }
-async function win(page: Page, touch: boolean, index = 0) {
+async function win(page: Page, index = 0) {
   const cells = await start(page, index, true);
-  await placeCat(page, cells.at(-1)!, touch);
+  // State tests target the slider, not the runner's double-tap scheduling.
+  // The full victory flow below retains native touch cat placement.
+  await placeCat(page, cells.at(-1)!, false);
   await expect(slider(page)).toHaveAttribute('aria-disabled', 'false');
 }
 
@@ -105,9 +107,8 @@ test('victory stays on the board and four actions morph without changing the doc
 
 test('tap, edge clicks, short drags, backtracking and extra keys cannot advance', async ({
   page,
-  isMobile,
 }) => {
-  await win(page, isMobile);
+  await win(page);
   await slider(page).click();
   const bounds = (await track(page).boundingBox())!;
   await page.mouse.click(
@@ -147,9 +148,8 @@ test('tap, edge clicks, short drags, backtracking and extra keys cannot advance'
 for (const interrupt of ['cancel', 'lost-capture', 'blur', 'resize'] as const) {
   test(`an interrupted drag (${interrupt}) resets and the next drag still works`, async ({
     page,
-    isMobile,
   }) => {
-    await win(page, isMobile);
+    await win(page);
     await slideToNext(page, 0.5, false);
     await expect(track(page)).toHaveAttribute('data-state', 'dragging');
     if (interrupt === 'resize') {
@@ -193,7 +193,7 @@ test('a native touch drag follows the finger and releases to the next level', as
     browserName !== 'chromium' || !isMobile,
     'Native touch movement uses Chromium CDP; WebKit runs the pointer contract',
   );
-  await win(page, true);
+  await win(page);
   const thumb = (await slider(page).boundingBox())!,
     bounds = (await track(page).boundingBox())!;
   const cdp = await page.context().newCDPSession(page);
@@ -228,7 +228,6 @@ test('a native touch drag follows the finger and releases to the next level', as
 
 test('slow generation keeps the solved board; failure retries in the slider without duplicate requests', async ({
   page,
-  isMobile,
 }) => {
   const template = {
     ...buildLevelCatalog()[16],
@@ -248,7 +247,7 @@ test('slow generation keeps the solved board; failure retries in the slider with
     }
     window.Worker = TestWorker as any;
   });
-  await win(page, isMobile, 23);
+  await win(page, 23);
   await slideToNext(page);
   await expect(track(page)).toHaveAttribute('data-state', 'loading');
   await expect(track(page)).toContainText('Preparing');
@@ -291,11 +290,10 @@ test('slow generation keeps the solved board; failure retries in the slider with
 
 test('small 10x10 victory fits and reduced motion removes transition delays', async ({
   page,
-  isMobile,
 }, testInfo) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await win(page, isMobile, 34);
+  await win(page, 34);
   await expect(page.getByRole('gridcell')).toHaveCount(100);
   for (const item of [
     track(page),
