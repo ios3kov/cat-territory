@@ -76,7 +76,7 @@ test('idle cats have distinct visible motion and pause in hidden tabs', async ({
       };
     }),
   );
-  expect(new Set(motion.map((m) => m.name)).toHaveLength(3);
+  expect(new Set(motion.map((m) => m.name)).size).toBe(3);
   expect(motion.every((m) => m.changed)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('cats-and-colors.png') });
   await page.evaluate(() => {
