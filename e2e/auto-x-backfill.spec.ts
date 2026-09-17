@@ -29,9 +29,10 @@ const toggle = (page: Page) =>
   page.getByRole('button', { name: /Automatic X marks/ });
 const readBoard = (page: Page) =>
   page.getByRole('gridcell').evaluateAll((cells) =>
-    cells.map((cell) =>
-      cell.querySelector('.cat-face') ? 2 : cell.querySelector('.mark-x') ? 1 : 0,
-    ),
+    cells.map((cell) => {
+      if (cell.querySelector('.cat-face')) return 2;
+      return cell.querySelector('.mark-x') ? 1 : 0;
+    }),
   );
 const markedCells = async (page: Page) =>
   (await readBoard(page)).flatMap((value, index) => (value === 1 ? [index] : []));
