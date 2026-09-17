@@ -88,6 +88,13 @@ test('legacy in-progress boards are reset once when starter cats are retired', a
   ).toBe('1');
   await page.locator('[data-cell-index="0"]').click();
   await expect(page.locator('[data-cell-index="0"] .mark-x')).toHaveCount(1);
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        Boolean(localStorage.getItem('cat-territory-session-v3-v2-5-01')),
+      ),
+    )
+    .toBe(true);
   await page.reload();
   await expect(page.locator('[data-cell-index="0"] .mark-x')).toHaveCount(1);
 });
