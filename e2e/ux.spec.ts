@@ -31,6 +31,9 @@ test('introduction can be skipped and hints show clue and move without changing 
 }, testInfo) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Skip introduction' }).click();
+  await page.locator('[data-cell-index="2"]').click({ button: 'right' });
+  await expect(page.locator('[data-cell-index="2"] .cat-face')).toHaveCount(1);
+  await page.waitForTimeout(450);
   const before = await page
     .locator('[role=gridcell]')
     .evaluateAll((c) => c.map((x) => x.getAttribute('aria-label')));
