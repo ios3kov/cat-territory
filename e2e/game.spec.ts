@@ -1,5 +1,5 @@
 import { slideToNext } from './helpers/slide';
-import { levelData } from './helpers/generatedLevel';
+import { levelData, smartMarkCells } from './helpers/generatedLevel';
 import { expect, test } from '@playwright/test';
 
 const levelOne = levelData(0),
@@ -96,9 +96,8 @@ test.describe('CAT TERRITORY production flows', () => {
     await expect(
       page.getByRole('button', { name: 'Automatic X marks on' }),
     ).toHaveAttribute('aria-pressed', 'true');
-    await expect
-      .poll(() => page.locator('.mark-x').count())
-      .toBeGreaterThan(before);
+    const expectedBackfill = smartMarkCells(0, [firstCatIndex]).length;
+    await expect(page.locator('.mark-x')).toHaveCount(expectedBackfill);
     const afterBackfill = await page.locator('.mark-x').count(),
       secondCat = page.locator(`[data-cell-index="${secondCatIndex}"]`);
     await secondCat.click({ button: 'right' });
@@ -215,6 +214,9 @@ test.describe('CAT TERRITORY production flows', () => {
     await seedLevel(page);
     await page.goto('/');
     const cells = page.locator('[data-cell-index]');
+    await expect(cells).toHaveCount(levelOne.level.size * levelOne.level.size, {
+      timeout: 60000,
+    });
     const read = () =>
       cells.evaluateAll((items) =>
         items.map((el) => ({
