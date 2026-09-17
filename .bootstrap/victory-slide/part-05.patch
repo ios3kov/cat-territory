@@ -1,0 +1,228 @@
++                >
++                  <Sparkles size={20} />
++                  <span>Auto X</span>
++                </button>
++                <button
++                  onClick={game.restart}
++                  className={`restart-action ${game.restartArmed ? 'restart-armed' : ''}`}
++                  disabled={
++                    game.won ||
++                    game.restartingFromMistakes ||
++                    game.mistakeCell !== null
++                  }
++                >
++                  <RotateCcw size={20} />
++                  <span>{game.restartArmed ? 'Restart?' : 'Restart'}</span>
++                </button>
++              </div>
++              {game.won && (
++                <NextLevelSlide
++                  ready={game.completionReady}
++                  onNext={game.nextLevel}
++                />
++              )}
+             </div>
+           )}
+         </div>
+@@ -406,9 +423,6 @@ function App() {
+         {showAchievements && (
+           <AchievementsDialog onClose={() => close(setShowAchievements)} />
+         )}{' '}
+-        {game.won && game.winDialogReady && game.completionSummary && (
+-          <WinDialog summary={game.completionSummary} onNext={game.nextLevel} />
+-        )}
+       </Suspense>
+       {game.achievementToast && (
+         <div
+diff --git a/src/GameBoard.tsx b/src/GameBoard.tsx
+index 3588f34..3776931 100644
+--- a/src/GameBoard.tsx
++++ b/src/GameBoard.tsx
+@@ -269,7 +269,8 @@ function GameBoardView({
+                     )}{' '}
+                   {value === 2 && (
+                     <CatMark
+-                      className={`cat-face live-cat cat-personality-${idx % 4}`}
++                      happy={celebrateCats}
++                      className={`cat-face live-cat cat-personality-${idx % 4} ${celebrateCats ? 'celebrating-cat' : ''}`}
+                     />
+                   )}{' '}
+                   {coachCell === idx && value !== 2 && coachLabel && (
+diff --git a/src/GameDialogs.tsx b/src/GameDialogs.tsx
+index 56e2a5f..ef192fd 100644
+--- a/src/GameDialogs.tsx
++++ b/src/GameDialogs.tsx
+@@ -1,5 +1,4 @@
+ import { AchievementIcon } from './AchievementIcon';
+-import { ScoreResult } from './ScoreResult';
+ import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+ import { Check, ChevronLeft, ChevronRight, Lock, X } from 'lucide-react';
+ import {
+@@ -10,14 +9,8 @@ import {
+ } from './achievements';
+ import { CatMark } from './CatMark';
+ import { formatTime } from './game';
+-import { getFinishLabel } from './score';
+-import type { CompletionSummary } from './useGameController';
+ type RulesProps = { onClose: () => void };
+ type AchievementsProps = { onClose: () => void };
+-type WinProps = {
+-  summary: CompletionSummary;
+-  onNext: () => void | Promise<void>;
+-};
+ export function trapTabKey(
+   event: KeyboardEvent<HTMLElement>,
+   root: HTMLElement | null,
+@@ -374,68 +367,3 @@ export function AchievementsDialog({ onClose }: AchievementsProps) {
+     </div>
+   );
+ }
+-export function WinDialog({ summary, onNext }: WinProps) {
+-  const [pending, setPending] = useState(false),
+-    [error, setError] = useState<string | null>(null);
+-  const next = async () => {
+-    if (pending) return;
+-    setPending(true);
+-    setError(null);
+-    try {
+-      await onNext();
+-    } catch {
+-      setError('Could not prepare the next territory. Reload to retry.');
+-    } finally {
+-      setPending(false);
+-    }
+-  };
+-  const dialogRef = useRef<HTMLElement>(null);
+-  const title =
+-    summary.grade === 'perfect'
+-      ? 'Perfect.'
+-      : summary.grade === 'clean'
+-        ? 'Clean run.'
+-        : 'Territory secured.';
+-  const gradeLabel = getFinishLabel(summary.grade);
+-  return (
+-    <div className="overlay win-overlay" role="presentation">
+-      <section
+-        ref={dialogRef}
+-        className={`modal win-modal system-modal win-grade-${summary.grade}`}
+-        role="dialog"
+-        aria-modal="true"
+-        aria-labelledby="win-title"
+-        onKeyDown={(e) => trapTabKey(e, dialogRef.current)}
+-      >
+-        <div className="win-celebration" aria-hidden="true">
+-          <span className="win-cat">
+-            <CatMark happy className="celebrating-cat" />
+-          </span>
+-        </div>
+-        <h2 id="win-title">{title}</h2>
+-        {summary.personalBest && (
+-          <span className="personal-best-badge">Personal best</span>
+-        )}
+-        <p
+-          className="win-result-summary subdued-result"
+-          aria-label={`${gradeLabel}. Time ${formatTime(summary.seconds)}, score ${summary.score}, ${summary.mistakes} mistakes, Hint ${summary.usedHint ? 'used' : 'not used'}`}
+-        >
+-          {formatTime(summary.seconds)} · {summary.mistakes}{' '}
+-          {summary.mistakes === 1 ? 'mistake' : 'mistakes'} ·{' '}
+-          {summary.usedHint ? 'hint used' : 'no hint'}
+-        </p>
+-        {error && <p role="alert">{error}</p>}
+-        <button
+-          className="primary-button win-next-button"
+-          type="button"
+-          aria-disabled={pending}
+-          onClick={next}
+-          autoFocus
+-        >
+-          {pending ? 'Preparing…' : 'Next level'} <ChevronRight size={20} />
+-        </button>
+-        <ScoreResult breakdown={summary.breakdown} />
+-      </section>
+-    </div>
+-  );
+-}
+diff --git a/src/NextLevelSlide.tsx b/src/NextLevelSlide.tsx
+new file mode 100644
+index 0000000..7a7a7d2
+--- /dev/null
++++ b/src/NextLevelSlide.tsx
+@@ -0,0 +1,239 @@
++import {
++  useCallback,
++  useEffect,
++  useRef,
++  useState,
++  type CSSProperties,
++  type PointerEvent,
++} from 'react';
++import { ChevronRight, LoaderCircle, PawPrint } from 'lucide-react';
++import { haptic } from './haptics';
++
++type Props = { ready: boolean; onNext: () => Promise<void> };
++type Phase = 'idle' | 'dragging' | 'loading' | 'error';
++type Drag = {
++  id: number;
++  x: number;
++  y: number;
++  travel: number;
++  target: HTMLDivElement;
++};
++const THRESHOLD = 0.8;
++const clamp = (value: number) => Math.max(0, Math.min(1, value));
++
++export function NextLevelSlide({ ready, onNext }: Props) {
++  const track = useRef<HTMLDivElement>(null),
++    handle = useRef<HTMLDivElement>(null),
++    drag = useRef<Drag | null>(null),
++    submitting = useRef(false),
++    mounted = useRef(false);
++  const [armed, setArmed] = useState(false),
++    [phase, setPhase] = useState<Phase>('idle'),
++    [progress, setProgress] = useState(0),
++    [travel, setTravel] = useState(0);
++
++  const cancelDrag = useCallback(() => {
++    const current = drag.current;
++    if (!current) return;
++    drag.current = null;
++    if (current.target.hasPointerCapture(current.id))
++      current.target.releasePointerCapture(current.id);
++    setProgress(0);
++    setPhase('idle');
++  }, []);
++
++  useEffect(() => {
++    mounted.current = true;
++    const measure = () => {
++      cancelDrag();
++      setTravel(
++        Math.max(
++          0,
++          (track.current?.clientWidth ?? 0) -
++            (handle.current?.offsetWidth ?? 0),
++        ),
++      );
++    };
++    const hide = () => {
++      if (document.visibilityState === 'hidden') cancelDrag();
++    };
++    const observer = new ResizeObserver(measure);
++    if (track.current) observer.observe(track.current);
++    measure();
++    window.addEventListener('blur', cancelDrag);
++    window.addEventListener('resize', cancelDrag);
++    document.addEventListener('visibilitychange', hide);
++    return () => {
++      mounted.current = false;
++      drag.current = null;
++      observer.disconnect();
++      window.removeEventListener('blur', cancelDrag);
++      window.removeEventListener('resize', cancelDrag);
++      document.removeEventListener('visibilitychange', hide);
++    };
++  }, [cancelDrag]);
++
++  useEffect(() => {
++    setArmed(false);
++    if (!ready) return;
