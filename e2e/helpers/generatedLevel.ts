@@ -5,9 +5,10 @@ export function levelData(index = 0) {
   const level = getLevel(index),
     solutionCells = level.solution.map((col, row) => row * level.size + col),
     solution = new Set(solutionCells),
-    wrongCell = Array.from({ length: level.size * level.size }, (_, cell) => cell).find(
-      (cell) => !solution.has(cell),
-    )!;
+    wrongCell = Array.from(
+      { length: level.size * level.size },
+      (_, cell) => cell,
+    ).find((cell) => !solution.has(cell))!;
   return {
     level,
     solutionCells,
