@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { REGION_COLORS } from '../src/game';
+import { levelData } from './helpers/generatedLevel';
+
+const levelOne = levelData(0);
 
 function lab(hex: string) {
   const [r, g, b] = [1, 3, 5]
@@ -12,6 +15,7 @@ function lab(hex: string) {
     z = f((r * 0.0193339 + g * 0.119192 + b * 0.9503041) / 1.08883);
   return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
 }
+
 test('palette has stronger chroma and more separation without duplicate colors', () => {
   const old = [
     '#efabb2',
@@ -45,11 +49,15 @@ test('palette has stronger chroma and more separation without duplicate colors',
 test('idle cats have distinct visible motion and pause in hidden tabs', async ({
   page,
 }, testInfo) => {
-  await page.addInitScript(() =>
-    localStorage.setItem('cat-territory-gesture-coach-v3', 'done'),
+  await page.addInitScript(
+    ({ level, cacheKey }) => {
+      localStorage.setItem('cat-territory-gesture-coach-v3', 'done');
+      localStorage.setItem(cacheKey, JSON.stringify(level));
+    },
+    { level: levelOne.level, cacheKey: levelOne.cacheKey },
   );
   await page.goto('/');
-  for (const i of [2, 5, 16]) {
+  for (const i of levelOne.solutionCells.slice(0, 3)) {
     await page.locator(`[data-cell-index="${i}"]`).click({ button: 'right' });
     await page.waitForTimeout(450);
   }
@@ -68,7 +76,7 @@ test('idle cats have distinct visible motion and pause in hidden tabs', async ({
       };
     }),
   );
-  expect(new Set(motion.map((m) => m.name)).size).toBe(3);
+  expect(new Set(motion.map((m) => m.name)).toHaveLength(3);
   expect(motion.every((m) => m.changed)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('cats-and-colors.png') });
   await page.evaluate(() => {
@@ -88,11 +96,15 @@ test('idle cats have distinct visible motion and pause in hidden tabs', async ({
 test('winning cat animates in the result and respects reduced motion', async ({
   page,
 }, testInfo) => {
-  await page.addInitScript(() =>
-    localStorage.setItem('cat-territory-gesture-coach-v3', 'done'),
+  await page.addInitScript(
+    ({ level, cacheKey }) => {
+      localStorage.setItem('cat-territory-gesture-coach-v3', 'done');
+      localStorage.setItem(cacheKey, JSON.stringify(level));
+    },
+    { level: levelOne.level, cacheKey: levelOne.cacheKey },
   );
   await page.goto('/');
-  for (const i of [2, 5, 14, 16, 23]) {
+  for (const i of levelOne.solutionCells) {
     await page.locator(`[data-cell-index="${i}"]`).click({ button: 'right' });
     await page.waitForTimeout(450);
   }
