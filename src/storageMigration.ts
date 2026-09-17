@@ -1,4 +1,4 @@
-/** Remove retired-mode saves without touching the endless journey or preferences. */
+/** Retire old modes and reset pre-starter-free sessions once, preserving progression and preferences. */
 export function removeRetiredModeSaves() {
   try {
     const starterMigrationKey = 'cat-territory-starter-free-v1';
