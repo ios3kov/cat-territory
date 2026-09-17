@@ -93,6 +93,41 @@ try {
     await page.close();
   }
   console.log(JSON.stringify(results, null, 2));
+  if (process.argv.includes('--check')) {
+    const failures = [];
+    for (const result of results) {
+      const mobile = result.name === 'mobile',
+        maxLongTask = Math.max(0, ...result.longTasks),
+        maxEvent = Math.max(0, ...result.events),
+        lcpLimit = mobile ? 2000 : 1500,
+        longTaskLimit = mobile ? 400 : 250,
+        eventLimit = mobile ? 500 : 300;
+      if (result.errors.length)
+        failures.push(`${result.name}: runtime errors: ${result.errors.join('; ')}`);
+      if (!(result.lcp > 0 && result.lcp <= lcpLimit))
+        failures.push(
+          `${result.name}: LCP ${Math.round(result.lcp)}ms > ${lcpLimit}ms or unavailable`,
+        );
+      if (result.cls > 0.05)
+        failures.push(`${result.name}: CLS ${result.cls.toFixed(3)} > 0.05`);
+      if (maxLongTask > longTaskLimit)
+        failures.push(
+          `${result.name}: longest task ${Math.round(maxLongTask)}ms > ${longTaskLimit}ms`,
+        );
+      if (maxEvent > eventLimit)
+        failures.push(
+          `${result.name}: longest event ${Math.round(maxEvent)}ms > ${eventLimit}ms`,
+        );
+      if (result.jsBytes > 220 * 1024)
+        failures.push(
+          `${result.name}: JS transfer ${Math.round(result.jsBytes / 1024)}KiB > 220KiB`,
+        );
+      if (result.domNodes > 900)
+        failures.push(`${result.name}: DOM nodes ${result.domNodes} > 900`);
+    }
+    if (failures.length)
+      throw new Error(`Performance budgets failed:\n${failures.join('\n')}`);
+  }
 } finally {
   await browser?.close();
   server.kill();
