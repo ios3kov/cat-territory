@@ -269,7 +269,8 @@ function GameBoardView({
                     )}{' '}
                   {value === 2 && (
                     <CatMark
-                      className={`cat-face live-cat cat-personality-${idx % 4}`}
+                      happy={celebrateCats}
+                      className={`cat-face live-cat cat-personality-${idx % 4} ${celebrateCats ? 'celebrating-cat' : ''}`}
                     />
                   )}{' '}
                   {coachCell === idx && value !== 2 && coachLabel && (

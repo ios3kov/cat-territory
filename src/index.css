@@ -801,51 +801,6 @@ h1 {
 .achievement-list-all {
   overflow-y: auto;
 }
-.win-overlay {
-  place-items: center;
-}
-.win-modal {
-  width: min(100%, 390px);
-  padding: 26px 22px 22px;
-  text-align: center;
-}
-.win-modal h2 {
-  margin: 4px 0 10px;
-  font-size: 31px;
-}
-.win-celebration {
-  width: 62px;
-  height: 52px;
-  margin: 0 auto 2px;
-  display: grid;
-  place-items: center;
-}
-.win-cat {
-  width: 52px;
-  height: 52px;
-}
-.personal-best-badge {
-  display: inline-flex;
-  margin: -2px auto 12px;
-  padding: 5px 9px;
-  border-radius: 999px;
-  background: #eef2e8;
-  color: #527451;
-  font-size: 9px;
-  font-weight: 950;
-}
-.win-result-summary,
-.subdued-result {
-  margin: 0 0 30px;
-  color: #9a9188;
-  font-size: 10px;
-  font-weight: 720;
-  text-align: center;
-}
-.win-next-button {
-  min-height: 58px;
-  margin-top: 2px;
-}
 .achievement-toast {
   position: fixed;
   left: 50%;

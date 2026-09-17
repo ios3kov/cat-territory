@@ -1,5 +1,4 @@
 import { AchievementIcon } from './AchievementIcon';
-import { ScoreResult } from './ScoreResult';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { Check, ChevronLeft, ChevronRight, Lock, X } from 'lucide-react';
 import {
@@ -10,14 +9,8 @@ import {
 } from './achievements';
 import { CatMark } from './CatMark';
 import { formatTime } from './game';
-import { getFinishLabel } from './score';
-import type { CompletionSummary } from './useGameController';
 type RulesProps = { onClose: () => void };
 type AchievementsProps = { onClose: () => void };
-type WinProps = {
-  summary: CompletionSummary;
-  onNext: () => void | Promise<void>;
-};
 export function trapTabKey(
   event: KeyboardEvent<HTMLElement>,
   root: HTMLElement | null,
@@ -370,71 +363,6 @@ export function AchievementsDialog({ onClose }: AchievementsProps) {
             </div>
           </>
         )}
-      </section>
-    </div>
-  );
-}
-export function WinDialog({ summary, onNext }: WinProps) {
-  const [pending, setPending] = useState(false),
-    [error, setError] = useState<string | null>(null);
-  const next = async () => {
-    if (pending) return;
-    setPending(true);
-    setError(null);
-    try {
-      await onNext();
-    } catch {
-      setError('Could not prepare the next territory. Reload to retry.');
-    } finally {
-      setPending(false);
-    }
-  };
-  const dialogRef = useRef<HTMLElement>(null);
-  const title =
-    summary.grade === 'perfect'
-      ? 'Perfect.'
-      : summary.grade === 'clean'
-        ? 'Clean run.'
-        : 'Territory secured.';
-  const gradeLabel = getFinishLabel(summary.grade);
-  return (
-    <div className="overlay win-overlay" role="presentation">
-      <section
-        ref={dialogRef}
-        className={`modal win-modal system-modal win-grade-${summary.grade}`}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="win-title"
-        onKeyDown={(e) => trapTabKey(e, dialogRef.current)}
-      >
-        <div className="win-celebration" aria-hidden="true">
-          <span className="win-cat">
-            <CatMark happy className="celebrating-cat" />
-          </span>
-        </div>
-        <h2 id="win-title">{title}</h2>
-        {summary.personalBest && (
-          <span className="personal-best-badge">Personal best</span>
-        )}
-        <p
-          className="win-result-summary subdued-result"
-          aria-label={`${gradeLabel}. Time ${formatTime(summary.seconds)}, score ${summary.score}, ${summary.mistakes} mistakes, Hint ${summary.usedHint ? 'used' : 'not used'}`}
-        >
-          {formatTime(summary.seconds)} · {summary.mistakes}{' '}
-          {summary.mistakes === 1 ? 'mistake' : 'mistakes'} ·{' '}
-          {summary.usedHint ? 'hint used' : 'no hint'}
-        </p>
-        {error && <p role="alert">{error}</p>}
-        <button
-          className="primary-button win-next-button"
-          type="button"
-          aria-disabled={pending}
-          onClick={next}
-          autoFocus
-        >
-          {pending ? 'Preparing…' : 'Next level'} <ChevronRight size={20} />
-        </button>
-        <ScoreResult breakdown={summary.breakdown} />
       </section>
     </div>
   );

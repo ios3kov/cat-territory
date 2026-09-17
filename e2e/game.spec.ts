@@ -1,3 +1,4 @@
+import { slideToNext } from './helpers/slide';
 import { expect, test } from '@playwright/test';
 const levelOneSolution = [2, 5, 14, 16, 23];
 async function seedLevel(page: import('@playwright/test').Page, level = 0) {
@@ -142,7 +143,9 @@ test.describe('CAT TERRITORY production flows', () => {
     await page.getByRole('button', { name: 'Restart?', exact: true }).click();
     await expect.poll(read).toEqual([null, null, null, null, null]);
   });
-  test('win dialog has one stable Next level action', async ({ page }) => {
+  test('win keeps the board visible with one slide and an inline score', async ({
+    page,
+  }) => {
     await seedLevel(page);
     await page.goto('/');
     for (const index of levelOneSolution) {
@@ -151,22 +154,19 @@ test.describe('CAT TERRITORY production flows', () => {
       await expect(cell.locator('.cat-face')).toHaveCount(1);
       await page.waitForTimeout(450);
     }
-    const dialog = page.getByRole('dialog');
-    await expect(dialog).toContainText('Perfect.');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.getByRole('grid')).toBeVisible();
+    const result = page.locator('.completion-summary');
+    await expect(result).toContainText('Perfect.');
+    await expect(result).toBeInViewport();
+    await expect(result).toHaveAttribute(
+      'aria-label',
+      /Score .*Board .*speed .*clean play .*no hint/,
+    );
     await expect(
-      dialog.getByRole('heading', { name: 'Perfect.' }),
-    ).toBeInViewport();
-    await expect(dialog.locator('.score-result dt')).toHaveText([
-      'Board',
-      'Speed',
-      'Clean play',
-      'No hint',
-      'Total',
-    ]);
-    await expect(
-      dialog.getByRole('button', { name: /Next level/ }),
+      page.getByRole('slider', { name: 'Slide to next level' }),
     ).toHaveCount(1);
-    await dialog.getByRole('button', { name: /Next level/ }).click();
+    await slideToNext(page);
     await expect(page.getByText(/Level 2 ·/)).toBeVisible();
   });
   test('territories map one-to-one to deterministic colors', async ({

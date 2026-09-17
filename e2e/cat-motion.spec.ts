@@ -96,7 +96,7 @@ test('winning cat animates in the result and respects reduced motion', async ({
     await page.locator(`[data-cell-index="${i}"]`).click({ button: 'right' });
     await page.waitForTimeout(450);
   }
-  const body = page.locator('.win-cat .cat-idle-body');
+  const body = page.locator('.board .celebrating-cat .cat-idle-body').first();
   await expect(body).toHaveCSS('animation-name', 'cat-victory');
   const changed = await body.evaluate((el) => {
     const a = el.getAnimations()[0];
