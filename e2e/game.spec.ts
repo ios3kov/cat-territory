@@ -47,6 +47,39 @@ test.describe('CAT TERRITORY production flows', () => {
     await expect(cat.locator('.cat-face')).toHaveCount(0);
     await expect(page.locator('.mark-x')).toHaveCount(before);
   });
+  test('Auto X toggle disables future smart marks and persists', async ({ page }) => {
+    await seedLevel(page);
+    await page.goto('/');
+    await expect(page.locator('.action-row > button')).toHaveCount(4);
+    const autoXOn = page.getByRole('button', { name: 'Automatic X marks on' });
+    await expect(autoXOn).toHaveAttribute('aria-pressed', 'true');
+    const before = await page.locator('.mark-x').count();
+    await autoXOn.click();
+    const autoXOff = page.getByRole('button', {
+      name: 'Automatic X marks off',
+    });
+    await expect(autoXOff).toHaveAttribute('aria-pressed', 'false');
+    await page.reload();
+    const persistedOff = page.getByRole('button', {
+      name: 'Automatic X marks off',
+    });
+    await expect(persistedOff).toHaveAttribute('aria-pressed', 'false');
+    const cat = page.locator('[data-cell-index="5"]');
+    await cat.click({ button: 'right' });
+    await expect(cat.locator('.cat-face')).toHaveCount(1);
+    await page.waitForTimeout(450);
+    await expect(page.locator('.mark-x')).toHaveCount(before);
+    await persistedOff.click();
+    await expect(
+      page.getByRole('button', { name: 'Automatic X marks on' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    const secondCat = page.locator('[data-cell-index="14"]');
+    await secondCat.click({ button: 'right' });
+    await expect(secondCat.locator('.cat-face')).toHaveCount(1);
+    await expect
+      .poll(() => page.locator('.mark-x').count())
+      .toBeGreaterThan(before);
+  });
   test('paws fill left to right in discovery colors and restore through Undo and reload', async ({
     page,
   }) => {
