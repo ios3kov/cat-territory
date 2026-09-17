@@ -149,8 +149,9 @@ test('backfill uses the sequential drawing and bounce feedback without moving ca
     const seen = new Set<Element>();
     const observer = new MutationObserver(() => {
       for (const mark of document.querySelectorAll('.board .mark-x')) {
-        if (seen.has(mark)) continue;
-        seen.add(mark);
+        const cell = mark.closest('[data-cell-index]')!;
+        if (seen.has(cell)) continue;
+        seen.add(cell);
         entries.push({
           time: performance.now(),
           bounce: Boolean(mark.closest('.feedback-paint')),
