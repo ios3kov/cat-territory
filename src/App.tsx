@@ -4,6 +4,7 @@ import {
   CircleHelp,
   Lightbulb,
   RotateCcw,
+  Sparkles,
   Trophy,
   Undo2,
   Volume2,
@@ -12,6 +13,7 @@ import {
 } from 'lucide-react';
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { playSound, readSoundEnabled, setSoundEnabled } from './audio';
+import { readAutoMarksEnabled, writeAutoMarksEnabled } from './autoMarks';
 import { CatProgress } from './CatProgress';
 import { ContextPanel } from './ContextPanel';
 import { GameBoard } from './GameBoard';
@@ -41,6 +43,7 @@ function App() {
   const [showRules, setShowRules] = useState(false),
     [showAchievements, setShowAchievements] = useState(false),
     [soundEnabled, setSoundEnabledState] = useState(readSoundEnabled),
+    [autoMarksEnabled, setAutoMarksEnabled] = useState(readAutoMarksEnabled),
     [rankPulse, setRankPulse] = useState(false),
     [coachStep, setCoachStep] = useState<CoachStep>(readCoachStep);
   const progression = getProgressionMeta(game.levelIndex),
@@ -139,6 +142,12 @@ function App() {
     setSoundEnabled(next);
     setSoundEnabledState(next);
     if (next) playSound('ui');
+  };
+  const toggleAutoMarks = () => {
+    const next = !autoMarksEnabled;
+    writeAutoMarksEnabled(next);
+    setAutoMarksEnabled(next);
+    playSound('ui');
   };
   const open = (setter: (v: boolean) => void) => {
     playSound('uiOpen');
@@ -345,6 +354,21 @@ function App() {
               >
                 <Lightbulb size={20} />
                 <span>Hint</span>
+              </button>
+              <button
+                type="button"
+                className={`auto-x-action ${autoMarksEnabled ? 'auto-x-on' : 'auto-x-off'}`}
+                onClick={toggleAutoMarks}
+                aria-pressed={autoMarksEnabled}
+                aria-label={`Automatic X marks ${autoMarksEnabled ? 'on' : 'off'}`}
+                disabled={
+                  game.won ||
+                  game.restartingFromMistakes ||
+                  game.mistakeCell !== null
+                }
+              >
+                <Sparkles size={20} />
+                <span>Auto X</span>
               </button>
               <button
                 onClick={game.restart}
