@@ -1,11 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CellState } from './game';
 export type CellFeedbackKind =
-  | 'paint'
-  | 'erase'
-  | 'swipe-paint'
-  | 'swipe-erase'
-  | 'undo';
+  'paint' | 'erase' | 'swipe-paint' | 'swipe-erase' | 'undo';
 export type CellFeedbackEntry = {
   kind: CellFeedbackKind;
   token: number;
