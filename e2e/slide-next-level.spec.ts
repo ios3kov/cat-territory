@@ -44,9 +44,14 @@ async function start(page: Page, index = 0, almostWon = false) {
 async function placeCat(page: Page, index: number, touch: boolean) {
   const cell = page.locator(`[data-cell-index="${index}"]`);
   if (touch) {
-    await cell.tap();
-    await page.waitForTimeout(100);
-    await cell.tap({ force: true });
+    await expect(page.getByRole('grid')).not.toHaveClass(/board-assembling/);
+    const bounds = (await cell.boundingBox())!;
+    const x = bounds.x + bounds.width / 2;
+    const y = bounds.y + bounds.height / 2;
+    // Keep real touch input, without locator post-action waits between taps.
+    await page.touchscreen.tap(x, y);
+    await page.waitForTimeout(90);
+    await page.touchscreen.tap(x, y);
   } else await cell.click({ button: 'right' });
   await expect(cell.locator('.cat-face')).toHaveCount(1);
   await page.waitForTimeout(420);
