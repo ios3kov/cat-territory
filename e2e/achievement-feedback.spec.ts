@@ -66,8 +66,8 @@ test('reduced motion keeps the quiet achievement feedback readable', async ({
   await page.locator('[data-cell-index="23"]').click({ button: 'right' });
   await expect(page.locator('.achievement-toast')).toHaveCount(0);
   await expect(page.locator('.achievement-gain')).toHaveText('+1');
-  await expect(page.locator('.achievement-inline')).toBeVisible();
   await expect(
     page.getByRole('slider', { name: 'Slide to next level' }),
   ).toHaveAttribute('aria-disabled', 'false');
+  await expect(page.locator('.completion-summary')).toBeVisible();
 });
