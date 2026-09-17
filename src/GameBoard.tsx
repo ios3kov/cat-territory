@@ -7,6 +7,7 @@ import {
   type CSSProperties,
 } from 'react';
 import { CatMark } from './CatMark';
+import { getCatOrder } from './catOrder';
 import { getRegionColorMap, indexOf, type CellState, type Level } from './game';
 import type { CellFeedbackMap } from './useCellFeedback';
 type Props = {
@@ -110,6 +111,13 @@ function GameBoardView({
       Array.from({ length: size * size }, (_, i) => i).find(
         (i) => !starterCats.has(i),
       ) ?? 0,
+  );
+  const catPersonalities = useMemo(
+    () =>
+      new Map(
+        getCatOrder(board).map((idx, ordinal) => [idx, ordinal % 4] as const),
+      ),
+    [board],
   );
   const catOrder = useMemo(() => {
     if (!celebrateCats) return new Map<number, number>();
@@ -270,7 +278,7 @@ function GameBoardView({
                   {value === 2 && (
                     <CatMark
                       happy={celebrateCats}
-                      className={`cat-face live-cat cat-personality-${idx % 4} ${celebrateCats ? 'celebrating-cat' : ''}`}
+                      className={`cat-face live-cat cat-personality-${catPersonalities.get(idx) ?? idx % 4} ${celebrateCats ? 'celebrating-cat' : ''}`}
                     />
                   )}{' '}
                   {coachCell === idx && value !== 2 && coachLabel && (

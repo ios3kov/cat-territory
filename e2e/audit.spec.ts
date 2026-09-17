@@ -1,13 +1,22 @@
 import { test, expect, type Page } from '@playwright/test';
+import { levelData } from './helpers/generatedLevel';
+
+const levelOne = levelData(0);
+
 async function start(page: Page) {
-  await page.addInitScript(() => {
-    localStorage.setItem('cat-territory-progress-migrated-v3', '1');
-    localStorage.setItem('cat-territory-current-level-v3', '0');
-    localStorage.setItem('cat-territory-gesture-coach-v3', 'done');
-  });
+  await page.addInitScript(
+    ({ level, cacheKey }) => {
+      localStorage.setItem('cat-territory-progress-migrated-v3', '1');
+      localStorage.setItem('cat-territory-current-level-v3', '0');
+      localStorage.setItem('cat-territory-gesture-coach-v3', 'done');
+      localStorage.setItem(cacheKey, JSON.stringify(level));
+    },
+    { level: levelOne.level, cacheKey: levelOne.cacheKey },
+  );
   await page.goto('/');
   await expect(page.getByRole('grid')).toBeVisible();
 }
+
 test('hint on an untouched board is persisted and restartable', async ({
   page,
 }) => {
@@ -15,10 +24,10 @@ test('hint on an untouched board is persisted and restartable', async ({
   await page.getByRole('button', { name: 'Hint', exact: true }).click();
   await expect
     .poll(() =>
-      page.evaluate(() => {
-        const r = localStorage.getItem('cat-territory-session-v3-v2-5-01');
-        return r ? JSON.parse(r).usedHint : false;
-      }),
+      page.evaluate((sessionKey) => {
+        const raw = localStorage.getItem(sessionKey);
+        return raw ? JSON.parse(raw).usedHint : false;
+      }, levelOne.sessionKey),
     )
     .toBe(true);
   await expect(page.getByRole('region', { name: 'Think here' })).toBeVisible();
@@ -29,17 +38,19 @@ test('hint on an untouched board is persisted and restartable', async ({
     page.getByRole('button', { name: 'Restart?', exact: true }),
   ).toBeVisible();
 });
+
 test('grid exposes rows and assistive activation marks cells', async ({
   page,
 }) => {
   await start(page);
   const grid = page.getByRole('grid');
-  await expect(grid.getByRole('row')).toHaveCount(5);
+  await expect(grid.getByRole('row')).toHaveCount(levelOne.level.size);
   const c = grid.locator('[data-cell-index="0"]');
   await expect(c).toHaveAttribute('aria-label', /empty/);
   await c.evaluate((el: HTMLElement) => el.click());
   await expect(c).toHaveAttribute('aria-label', /marked X/);
 });
+
 test('malformed timestamps cannot poison a session', async ({ page }) => {
   await start(page);
   const result = await page.evaluate(async () => {
@@ -57,6 +68,7 @@ test('malformed timestamps cannot poison a session', async ({ page }) => {
   });
   expect(result).toBeNull();
 });
+
 test('journal labels describe the statistics actually counted', async ({
   page,
 }) => {
@@ -68,6 +80,7 @@ test('journal labels describe the statistics actually counted', async ({
   expect(labels).toContain('Flawless');
   expect(labels).toContain('10×10');
 });
+
 test('small phone keeps board, title and actions inside the viewport', async ({
   page,
 }) => {
@@ -100,8 +113,17 @@ test('saved statistics and invalid cats are validated', async ({ page }) => {
       import('/src/achievements.ts'),
     ]);
     const level = game.getLevel(0),
-      invalidBoard = Array(25).fill(0);
-    invalidBoard[0] = 2;
+      solution = new Set(
+        level.solution.map(
+          (col: number, row: number) => row * level.size + col,
+        ),
+      ),
+      wrong = Array.from(
+        { length: level.size * level.size },
+        (_, cell) => cell,
+      ).find((cell) => !solution.has(cell))!,
+      invalidBoard = Array(level.size * level.size).fill(0);
+    invalidBoard[wrong] = 2;
     localStorage.setItem(
       'cat-territory-session-v3-' + level.id,
       JSON.stringify({ board: invalidBoard, seconds: 0 }),
@@ -119,7 +141,7 @@ test('saved statistics and invalid cats are validated', async ({ page }) => {
       }),
     );
     return {
-      session: sessions.loadLevelSession(level.id, 5, level),
+      session: sessions.loadLevelSession(level.id, level.size, level),
       stats: stats.getPlayerStats(),
     };
   });

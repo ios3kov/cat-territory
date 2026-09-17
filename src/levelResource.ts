@@ -1,29 +1,31 @@
 import {
   CURATED_LEVEL_COUNT,
-  getLevel as getCuratedLevel,
   levelSizeAt,
   readGenerated,
   rememberGenerated,
 } from './infiniteLevels';
 import type { CatalogLevel } from './levelCatalog';
+
 export { CURATED_LEVEL_COUNT, levelSizeAt };
+
 type Resource = {
   level?: CatalogLevel;
   error?: Error;
   promise?: Promise<void>;
 };
+
 const resources = new Map<string, Resource>();
+
 function resource(key: string, request: { index: number }): Resource {
-  for (const [old, r] of resources) {
+  for (const [old, item] of resources) {
     if (resources.size < 20) break;
-    if (old !== key && (r.level || r.error)) resources.delete(old);
+    if (old !== key && (item.level || item.error)) resources.delete(old);
   }
   const cached = resources.get(key);
   if (cached) return cached;
-  const persisted = readGenerated(request.index);
-  const entry: Resource = { level: persisted ?? undefined };
+  const persisted = readGenerated(request.index),
+    entry: Resource = { level: persisted ?? undefined };
   resources.set(key, entry);
-  // Cached fields are validated synchronously; expensive candidate search runs only in a worker.
   if (entry.level) return entry;
   entry.promise = new Promise<void>((resolve) => {
     let worker: Worker;
@@ -42,9 +44,7 @@ function resource(key: string, request: { index: number }): Resource {
       clearTimeout(timeout);
       worker.terminate();
       entry.level = level;
-      if (level) {
-        rememberGenerated(request.index, level);
-      }
+      if (level) rememberGenerated(request.index, level);
       entry.error = error ? new Error(error) : undefined;
       resolve();
     };
@@ -63,25 +63,26 @@ function resource(key: string, request: { index: number }): Resource {
   });
   return entry;
 }
+
 function read(key: string, request: { index: number }) {
-  const r = resource(key, request);
-  if (r.error) throw r.error;
-  if (r.level) return r.level;
-  throw r.promise;
+  const entry = resource(key, request);
+  if (entry.error) throw entry.error;
+  if (entry.level) return entry.level;
+  throw entry.promise;
 }
+
 export function getLevel(index: number): CatalogLevel {
-  if (index < CURATED_LEVEL_COUNT) return getCuratedLevel(index);
   return read(`level-${index}`, { index });
 }
+
 export async function prepareLevel(index: number) {
-  if (index < CURATED_LEVEL_COUNT) return;
   const key = `level-${index}`;
   if (resources.get(key)?.error) resources.delete(key);
-  const r = resource(key, { index });
-  await r.promise;
-  if (r.error) throw r.error;
+  const entry = resource(key, { index });
+  await entry.promise;
+  if (entry.error) throw entry.error;
 }
+
 export function prewarmLevel(index: number) {
-  if (index >= CURATED_LEVEL_COUNT)
-    void prepareLevel(index).catch(() => undefined);
+  void prepareLevel(index).catch(() => undefined);
 }

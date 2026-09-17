@@ -1,33 +1,36 @@
 import { expect, test } from '@playwright/test';
-import { buildLevelCatalog } from '../src/levelCatalog';
+import { levelData } from './helpers/generatedLevel';
 import { slideToNext } from './helpers/slide';
+
+const first = levelData(0),
+  second = levelData(1);
 
 for (const mistakes of [0, 1]) {
   test(`small-phone result keeps the score readable and consecutive wins re-arm (${mistakes} mistakes)`, async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width: 320, height: 568 });
-    const first = buildLevelCatalog()[0];
-    const board = Array(25).fill(0);
-    for (const [row, col] of first.solution.entries())
-      if (row < 4) board[row * 5 + col] = 2;
+    const board = Array(first.level.size * first.level.size).fill(0);
+    for (const cell of first.solutionCells.slice(0, -1)) board[cell] = 2;
     await page.addInitScript(
-      ({ board, mistakes }) => {
+      ({ board, mistakes, sessionKey }) => {
         if (sessionStorage.getItem('slide-followthrough-seeded')) return;
         sessionStorage.setItem('slide-followthrough-seeded', '1');
         localStorage.setItem('cat-territory-progress-migrated-v3', '1');
         localStorage.setItem('cat-territory-current-level-v3', '0');
         localStorage.setItem('cat-territory-gesture-coach-v3', 'done');
         localStorage.setItem(
-          'cat-territory-session-v3-v2-5-01',
+          sessionKey,
           JSON.stringify({ board, seconds: 40, mistakes, usedHint: true }),
         );
       },
-      { board, mistakes },
+      { board, mistakes, sessionKey: first.sessionKey },
     );
     await page.goto('/');
     await expect(page.getByRole('grid')).not.toHaveClass(/board-assembling/);
-    await page.locator('[data-cell-index="23"]').click({ button: 'right' });
+    await page
+      .locator(`[data-cell-index="${first.solutionCells.at(-1)!}"]`)
+      .click({ button: 'right' });
     const slider = page.getByRole('slider', { name: 'Slide to next level' });
     await expect(slider).toHaveAttribute('aria-disabled', 'false');
     const summary = page.locator('.completion-summary');
@@ -50,10 +53,9 @@ for (const mistakes of [0, 1]) {
       /Puzzle level 2,/,
     );
     await expect(page.getByRole('grid')).not.toHaveClass(/board-assembling/);
-    const second = buildLevelCatalog()[1];
-    for (const [row, col] of second.solution.entries()) {
+    for (const cell of second.solutionCells) {
       await page
-        .locator(`[data-cell-index="${row * 5 + col}"]`)
+        .locator(`[data-cell-index="${cell}"]`)
         .click({ button: 'right' });
       await page.waitForTimeout(420);
     }

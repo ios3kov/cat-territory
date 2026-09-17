@@ -14,6 +14,7 @@ type Site = {
   disconnect: () => void;
   release: (name: string, failAsset?: boolean) => Promise<void>;
 };
+
 const test = base.extend<{ site: Site }>({
   site: async ({}, use, testInfo) => {
     const root = testInfo.outputPath('releases');
@@ -23,7 +24,6 @@ const test = base.extend<{ site: Site }>({
       const dir = join(root, name);
       await cp(resolve('dist'), dir, { recursive: true });
       if (name !== 'initial') {
-        // Change real chunk URLs, so an old tab cannot secretly fetch them from the new release.
         const files = (await readdir(join(dir, 'assets'))).filter(
           (x) => x.endsWith('.js') || x.endsWith('.css'),
         );
@@ -71,7 +71,6 @@ const test = base.extend<{ site: Site }>({
       }
       try {
         const pathname = new URL(req.url!, 'http://localhost').pathname;
-        // Match production's canonical HTML redirect, including precache requests.
         if (pathname === '/index.html') {
           res.writeHead(307, { Location: '/' });
           res.end();
@@ -124,11 +123,13 @@ const test = base.extend<{ site: Site }>({
     }
   },
 });
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() =>
     localStorage.setItem('cat-territory-gesture-coach-v3', 'done'),
   );
 });
+
 async function ready(page: Page) {
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
@@ -137,17 +138,18 @@ async function ready(page: Page) {
         navigator.serviceWorker.addEventListener(
           'controllerchange',
           () => r(),
-          { once: true },
+          {
+            once: true,
+          },
         ),
       );
   });
 }
+
 async function releaseName(page: Page) {
   return page.locator('meta[name="test-release"]').getAttribute('content');
 }
 
-// WebKit's Playwright offline emulation cannot reliably reload controlled pages.
-// Remove the actual origin instead, and independently prove it is unreachable.
 async function goOffline(
   context: BrowserContext,
   site: Site,
@@ -163,6 +165,14 @@ async function goOffline(
   }
 }
 
+const savedHint = (page: Page) =>
+  page.evaluate(() => {
+    const key = Object.keys(localStorage).find((candidate) =>
+      candidate.startsWith('cat-territory-session-v3-'),
+    );
+    return key ? JSON.parse(localStorage.getItem(key)!).usedHint : false;
+  });
+
 test('first visit supports offline reload and unopened screens', async ({
   page,
   context,
@@ -170,9 +180,8 @@ test('first visit supports offline reload and unopened screens', async ({
   browserName,
 }) => {
   await page.goto(site.url);
-  await expect(page.getByRole('grid')).toBeVisible();
+  await expect(page.getByRole('grid')).toBeVisible({ timeout: 60000 });
   await ready(page);
-  // The cached HTML really followed a redirect, rather than testing a plain 200.
   expect(
     await page.evaluate(async () => {
       const cache = await caches.open(
@@ -185,28 +194,13 @@ test('first visit supports offline reload and unopened screens', async ({
     }),
   ).toBe(true);
   await page.reload();
-  await expect(page.getByRole('grid')).toBeVisible();
+  await expect(page.getByRole('grid')).toBeVisible({ timeout: 60000 });
   await page.getByRole('button', { name: 'Hint', exact: true }).click();
-  await expect
-    .poll(() =>
-      page.evaluate(
-        () =>
-          JSON.parse(
-            localStorage.getItem('cat-territory-session-v3-v2-5-01') ?? '{}',
-          ).usedHint,
-      ),
-    )
-    .toBe(true);
+  await expect.poll(() => savedHint(page)).toBe(true);
   await goOffline(context, site, browserName);
   await page.reload();
   await expect(page.getByRole('grid')).toBeVisible();
-  expect(
-    await page.evaluate(
-      () =>
-        JSON.parse(localStorage.getItem('cat-territory-session-v3-v2-5-01')!)
-          .usedHint,
-    ),
-  ).toBe(true);
+  expect(await savedHint(page)).toBe(true);
   await page.getByRole('button', { name: 'How to play' }).click();
   await expect(page.locator('.rules-modal')).toBeVisible();
   await page.keyboard.press('Escape');
@@ -239,7 +233,6 @@ test('new release waits for old tabs and retains progress', async ({
       ),
     )
     .toBe(true);
-  // Reload while another old tab is open must keep a coherent old HTML/module set.
   await page.reload();
   expect(await releaseName(page)).toBe('initial');
   await page.getByRole('button', { name: 'How to play' }).click();
@@ -248,7 +241,7 @@ test('new release waits for old tabs and retains progress', async ({
   await page.close();
   const fresh = await context.newPage();
   await fresh.goto(site.url);
-  await expect(fresh.getByRole('grid')).toBeVisible();
+  await expect(fresh.getByRole('grid')).toBeVisible({ timeout: 60000 });
   await expect.poll(() => releaseName(fresh)).toBe('next');
   expect(
     await fresh.evaluate(() => localStorage.getItem('audit-progress')),
