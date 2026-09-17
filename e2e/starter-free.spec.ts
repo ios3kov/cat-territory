@@ -131,6 +131,8 @@ test('saved generated games retain moves and Undo; restart is empty', async ({
   board[manual] = 1;
   await page.addInitScript(
     ({ saved, level, sessionKey, cacheKey }) => {
+      if (sessionStorage.getItem('test-generated-session-seeded')) return;
+      sessionStorage.setItem('test-generated-session-seeded', '1');
       localStorage.setItem('cat-territory-progress-migrated-v3', '1');
       localStorage.setItem('cat-territory-current-level-v3', '0');
       localStorage.setItem('cat-territory-gesture-coach-v3', 'done');
