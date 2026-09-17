@@ -1,8 +1,8 @@
 import { expect, type Page } from '@playwright/test';
 
 export async function slideToNext(page: Page, fraction = 0.9, release = true) {
-  const handle = page.getByRole('slider', { name: 'Slide to next level' });
-  await expect(handle).toHaveAttribute('aria-disabled', 'false');
+  const handle = page.locator('.slide-handle');
+  await expect(handle).toHaveAttribute('data-disabled', 'false');
   const track = (await page.getByTestId('next-level-slide').boundingBox())!;
   // The state resets before the CSS spring finishes; wait for the actual hit area.
   await handle.scrollIntoViewIfNeeded();
