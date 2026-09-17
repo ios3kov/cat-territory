@@ -192,7 +192,7 @@ function App() {
               )}
             </div>
             <div className="subhead-row">
-              {achievementNotice && !game.completionReady ? (
+              {achievementNotice && game.won && !game.completionReady ? (
                 <p className="chapter-label achievement-inline" role="status">
                   <span>New achievement</span>
                   <strong>{achievementNotice.title}</strong>
