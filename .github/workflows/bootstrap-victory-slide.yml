@@ -1,0 +1,39 @@
+name: bootstrap-victory-slide
+on:
+  push:
+    branches: [feature/victory-slide-next]
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/victory-slide-next
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply staged victory slider patch
+        run: |
+          cat .bootstrap/victory-slide/part-*.patch > /tmp/victory-slide.patch
+          git apply --check /tmp/victory-slide.patch
+          git apply /tmp/victory-slide.patch
+          rm -rf .bootstrap
+          rm .github/workflows/bootstrap-victory-slide.yml
+          git diff --check
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+      - name: Commit verified implementation
+        run: |
+          git config user.name "ios3kov"
+          git config user.email "os3kov@gmail.com"
+          git add -A
+          git commit -m "Replace victory popup with slide-to-next transition"
+          git push origin HEAD:feature/victory-slide-next
