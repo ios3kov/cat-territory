@@ -36,13 +36,11 @@ test('grid exposes rows and assistive activation marks cells', async ({
   const grid = page.getByRole('grid');
   await expect(grid.getByRole('row')).toHaveCount(5);
   const c = grid.locator('[data-cell-index="0"]');
-  await expect(c).toHaveAttribute('aria-label', /marked X/);
-  await c.evaluate((el: HTMLElement) => el.click());
   await expect(c).toHaveAttribute('aria-label', /empty/);
+  await c.evaluate((el: HTMLElement) => el.click());
+  await expect(c).toHaveAttribute('aria-label', /marked X/);
 });
-test('malformed timestamps and invalid starter cats cannot poison a session', async ({
-  page,
-}) => {
+test('malformed timestamps cannot poison a session', async ({ page }) => {
   await start(page);
   const result = await page.evaluate(async () => {
     const m = await import('/src/session.ts');
@@ -58,6 +56,40 @@ test('malformed timestamps and invalid starter cats cannot poison a session', as
     return m.loadLevelSession('invalid', 5);
   });
   expect(result).toBeNull();
+});
+test('legacy in-progress boards are reset once when starter cats are retired', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'cat-territory-session-v3-v2-5-01',
+      JSON.stringify({
+        board: Array.from({ length: 25 }, (_, i) => (i === 2 ? 2 : 0)),
+        history: [],
+        seconds: 12,
+        started: true,
+        mistakes: 0,
+        usedHint: false,
+      }),
+    );
+    localStorage.setItem('cat-territory-gesture-coach-v3', 'done');
+  });
+  await page.goto('/');
+  await expect(page.locator('.cat-face')).toHaveCount(0);
+  expect(
+    await page.evaluate(() =>
+      localStorage.getItem('cat-territory-session-v3-v2-5-01'),
+    ),
+  ).toBeNull();
+  expect(
+    await page.evaluate(() =>
+      localStorage.getItem('cat-territory-starter-free-v1'),
+    ),
+  ).toBe('1');
+  await page.locator('[data-cell-index="0"]').click();
+  await expect(page.locator('[data-cell-index="0"] .mark-x')).toHaveCount(1);
+  await page.reload();
+  await expect(page.locator('[data-cell-index="0"] .mark-x')).toHaveCount(1);
 });
 test('journal labels describe the statistics actually counted', async ({
   page,
@@ -93,7 +125,7 @@ test('small phone keeps board, title and actions inside the viewport', async ({
   ).toBeInViewport();
 });
 
-test('saved statistics and starter cells are validated', async ({ page }) => {
+test('saved statistics and invalid cats are validated', async ({ page }) => {
   await start(page);
   const result = await page.evaluate(async () => {
     const [sessions, game, stats] = await Promise.all([
@@ -101,10 +133,12 @@ test('saved statistics and starter cells are validated', async ({ page }) => {
       import('/src/game.ts'),
       import('/src/achievements.ts'),
     ]);
-    const level = game.getLevel(0);
+    const level = game.getLevel(0),
+      invalidBoard = Array(25).fill(0);
+    invalidBoard[0] = 2;
     localStorage.setItem(
       'cat-territory-session-v3-' + level.id,
-      JSON.stringify({ board: Array(25).fill(0), seconds: 0 }),
+      JSON.stringify({ board: invalidBoard, seconds: 0 }),
     );
     localStorage.setItem(
       'cat-territory-achievements-v2',
@@ -251,7 +285,7 @@ test('small board remains touchable with an open hint', async ({ page }) => {
   expect(clipped).toBe(0);
   await expect(page.getByLabel('Close hint')).toBeInViewport();
   await page.getByLabel('Close hint').click();
-  for (const name of ['Undo', 'Hint', 'Restart'])
+  for (const name of ['Undo', 'Hint', 'Auto X', 'Restart'])
     await expect(
       page.getByRole('button', { name, exact: true }),
     ).toBeInViewport();
