@@ -26,7 +26,8 @@ export function NextLevelSlide({ ready, onNext }: Props) {
     handle = useRef<HTMLDivElement>(null),
     drag = useRef<Drag | null>(null),
     submitting = useRef(false),
-    mounted = useRef(false);
+    mounted = useRef(false),
+    restingPhase = useRef<'idle' | 'error'>('idle');
   const [armed, setArmed] = useState(false),
     [phase, setPhase] = useState<Phase>('idle'),
     [progress, setProgress] = useState(0),
@@ -39,7 +40,7 @@ export function NextLevelSlide({ ready, onNext }: Props) {
     if (current.target.hasPointerCapture(current.id))
       current.target.releasePointerCapture(current.id);
     setProgress(0);
-    setPhase('idle');
+    setPhase(restingPhase.current);
   }, []);
 
   useEffect(() => {
@@ -76,12 +77,10 @@ export function NextLevelSlide({ ready, onNext }: Props) {
   useEffect(() => {
     setArmed(false);
     if (!ready) return;
-    // Require a new gesture after the button-to-track morph, never the winning tap.
-    const timer = window.setTimeout(
-      () => setArmed(true),
-      matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 520,
-    );
-    return () => clearTimeout(timer);
+    // Arm on the next frame: the winning pointer sequence has ended, while the
+    // newly visible track responds immediately to the player's next gesture.
+    const frame = requestAnimationFrame(() => setArmed(true));
+    return () => cancelAnimationFrame(frame);
   }, [ready]);
 
   const advance = async () => {
@@ -93,11 +92,13 @@ export function NextLevelSlide({ ready, onNext }: Props) {
     try {
       await onNext();
       if (mounted.current) {
+        restingPhase.current = 'idle';
         setProgress(0);
         setPhase('idle');
       }
     } catch {
       if (mounted.current) {
+        restingPhase.current = 'error';
         setProgress(0);
         setPhase('error');
       }
