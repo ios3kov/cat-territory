@@ -1,0 +1,33 @@
+name: auto-x-check
+on:
+  push:
+    branches: [feature/remove-starter-cats]
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prettier --write e2e/auto-x-backfill.spec.ts
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e -- e2e/auto-x-backfill.spec.ts --project=chromium --retries=0
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: auto-x-diagnostics
+          path: |
+            src/
+            e2e/
+            playwright*.ts
+            .prettierrc.json
+            node_modules/prettier/
+            test-results/
+          include-hidden-files: true
+          retention-days: 1
