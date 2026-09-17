@@ -74,7 +74,9 @@ test('victory stays on the board and four actions morph without changing the doc
   await expect(page.getByRole('grid')).toBeVisible();
   await expect(page.locator('.board .cat-face')).toHaveCount(5);
   await expect(page.locator('.completion-summary')).toContainText('pts');
-  await expect(page.getByRole('button', { name: 'Next level' })).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: 'Next level', exact: true }),
+  ).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: 'Hint', exact: true }),
   ).toHaveCount(0);
