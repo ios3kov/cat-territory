@@ -1,13 +1,24 @@
 import { test, expect, type Page } from '@playwright/test';
+import { levelData } from './helpers/generatedLevel';
+
+const levelOne = levelData(0),
+  FIRST_CAT = levelOne.solutionCells[0],
+  WRONG_CELL = levelOne.wrongCell;
+
 async function start(page: Page, index = 0) {
-  await page.addInitScript((i) => {
-    localStorage.setItem('cat-territory-progress-migrated-v3', '1');
-    localStorage.setItem('cat-territory-current-level-v3', String(i));
-    localStorage.setItem('cat-territory-gesture-coach-v3', 'done');
-  }, index);
+  await page.addInitScript(
+    ({ i, level, cacheKey }) => {
+      localStorage.setItem('cat-territory-progress-migrated-v3', '1');
+      localStorage.setItem('cat-territory-current-level-v3', String(i));
+      localStorage.setItem('cat-territory-gesture-coach-v3', 'done');
+      if (i === 0) localStorage.setItem(cacheKey, JSON.stringify(level));
+    },
+    { i: index, level: levelOne.level, cacheKey: levelOne.cacheKey },
+  );
   await page.goto('/');
   await expect(page.getByRole('grid')).toBeVisible({ timeout: 60000 });
 }
+
 async function geometry(page: Page) {
   const g = page.getByRole('grid');
   await expect(g).not.toHaveClass(/board-assembling/);
@@ -46,23 +57,27 @@ async function geometry(page: Page) {
   );
   expect(clipped).toEqual([]);
 }
+
 test('reduced motion skips assembly and wave delays, undo restores everything', async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await start(page);
   const before = await page.locator('.mark-x').count();
-  await page.locator('[data-cell-index="5"]').focus();
+  await page.locator(`[data-cell-index="${FIRST_CAT}"]`).focus();
   await page.keyboard.press('c');
   expect(
     await page
-      .locator('[data-cell-index="5"]')
+      .locator(`[data-cell-index="${FIRST_CAT}"]`)
       .evaluate((el) => getComputedStyle(el).animationDuration),
   ).toBe('1e-06s');
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(page.locator('.mark-x')).toHaveCount(before);
-  await expect(page.locator('[data-cell-index="5"] .cat-face')).toHaveCount(0);
+  await expect(
+    page.locator(`[data-cell-index="${FIRST_CAT}"] .cat-face`),
+  ).toHaveCount(0);
 });
+
 test('sound setting persists and game emits no runtime errors', async ({
   page,
 }) => {
@@ -75,11 +90,14 @@ test('sound setting persists and game emits no runtime errors', async ({
     page.getByRole('button', { name: 'Sound effects off' }),
   ).toBeVisible();
   await page.getByRole('button', { name: 'Sound effects off' }).click();
-  await page.locator('[data-cell-index="5"]').click({ button: 'right' });
+  await page
+    .locator(`[data-cell-index="${FIRST_CAT}"]`)
+    .click({ button: 'right' });
   await page.waitForTimeout(450);
   await page.getByRole('button', { name: 'Undo' }).click();
   expect(errors).toEqual([]);
 });
+
 test('dialogs trap focus and achievements remain readable', async ({
   page,
 }) => {
@@ -99,6 +117,7 @@ test('dialogs trap focus and achievements remain readable', async ({
     page.getByRole('button', { name: /Progress and achievements/ }),
   ).toBeFocused();
 });
+
 test('late board is responsive while the worker generates and has no overflow', async ({
   page,
 }, testInfo) => {
@@ -122,7 +141,6 @@ test('late board is responsive while the worker generates and has no overflow', 
   );
   await page.waitForTimeout(450);
   await page.screenshot({ path: testInfo.outputPath('ten-territories.png') });
-
   await page.getByRole('button', { name: 'How to play' }).click();
   await expect(
     page.getByRole('dialog', { name: 'Give every cat its own territory.' }),
@@ -131,6 +149,7 @@ test('late board is responsive while the worker generates and has no overflow', 
   await page.getByRole('button', { name: 'Hint', exact: true }).click();
   await geometry(page);
 });
+
 test('Auto-X is a sequential wave and one undo survives remaining timers', async ({
   page,
 }) => {
@@ -153,7 +172,7 @@ test('Auto-X is a sequential wave and one undo survives remaining timers', async
       childList: true,
     });
   });
-  await page.locator('[data-cell-index="5"]').focus();
+  await page.locator(`[data-cell-index="${FIRST_CAT}"]`).focus();
   await page.keyboard.press('c');
   await page.waitForTimeout(500);
   const times = await page.evaluate(() => (window as any).wave as number[]);
@@ -162,8 +181,11 @@ test('Auto-X is a sequential wave and one undo survives remaining timers', async
   await page.getByRole('button', { name: 'Undo' }).click();
   await page.waitForTimeout(700);
   await expect(page.locator('.mark-x')).toHaveCount(before);
-  await expect(page.locator('[data-cell-index="5"] .cat-face')).toHaveCount(0);
+  await expect(
+    page.locator(`[data-cell-index="${FIRST_CAT}"] .cat-face`),
+  ).toHaveCount(0);
 });
+
 test('sound wiring emits one correct cue, throttles marks and resumes after visibility', async ({
   page,
 }) => {
@@ -214,7 +236,7 @@ test('sound wiring emits one correct cue, throttles marks and resumes after visi
     Object.defineProperty(window, 'AudioContext', { value: FakeAudio });
   });
   await start(page);
-  await page.locator('[data-cell-index="5"]').focus();
+  await page.locator(`[data-cell-index="${FIRST_CAT}"]`).focus();
   await page.keyboard.press('c');
   await page.waitForTimeout(450);
   expect(await page.evaluate(() => (window as any).audioStats.starts)).toBe(2);
@@ -248,6 +270,7 @@ test('sound wiring emits one correct cue, throttles marks and resumes after visi
     await page.evaluate(() => (window as any).audioStats.resumes),
   ).toBeGreaterThanOrEqual(2);
 });
+
 test('cold generation is deterministic and upgrades the persisted cache', async ({
   page,
 }) => {
@@ -263,17 +286,24 @@ test('cold generation is deterministic and upgrades the persisted cache', async 
   await expect(page.getByRole('grid')).toBeVisible();
   expect(await saved()).toBe(first);
 });
+
 test('double tap cat and all auto marks undo together; wrong cats do not fill paws', async ({
   page,
 }) => {
   await start(page);
   await page.locator('.board-assembling').waitFor({ state: 'detached' });
   const before = await page.locator('.mark-x').count();
-  await page.locator('[data-cell-index="5"]').dblclick({ delay: 100 });
+  await page
+    .locator(`[data-cell-index="${FIRST_CAT}"]`)
+    .dblclick({ delay: 100 });
   await page.waitForTimeout(450);
-  await expect(page.locator('[data-cell-index="5"] .cat-face')).toHaveCount(1);
+  await expect(
+    page.locator(`[data-cell-index="${FIRST_CAT}"] .cat-face`),
+  ).toHaveCount(1);
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(page.locator('.mark-x')).toHaveCount(before);
-  await page.locator('[data-cell-index="0"]').click({ button: 'right' });
+  await page
+    .locator(`[data-cell-index="${WRONG_CELL}"]`)
+    .click({ button: 'right' });
   await expect(page.locator('.paw-progress-icon.filled')).toHaveCount(0);
 });
