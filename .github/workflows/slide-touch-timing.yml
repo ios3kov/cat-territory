@@ -1,72 +1,36 @@
-name: slide-touch-timing
+name: slide-feature-final
 on:
   push:
     branches: [verify/slide-touch-timing]
 permissions:
   contents: read
 jobs:
-  diagnose:
+  verify-slide:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: f832916e318db48ca23ed2ba092a7640dd4aa8e8
           persist-credentials: false
+      - run: git rev-parse HEAD > slide-tested-head.txt
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium webkit
-      - name: Record real pointer targets and intervals
-        run: |
-          npm run dev -- --host 127.0.0.1 --port 4173 > /tmp/slide-vite.log 2>&1 &
-          for i in $(seq 1 40); do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep 0.5; done
-          cat > /tmp/unused-placeholder <<'EOF'
-          EOF
-          cat > slide-timing.mjs <<'EOF'
-          import { chromium, webkit, devices } from '@playwright/test';
-          import { writeFileSync } from 'node:fs';
-          const results = [];
-          for (const [name, engine, device] of [['chromium', chromium, 'Pixel 7'], ['webkit', webkit, 'iPhone 13']]) {
-            const browser = await engine.launch();
-            for (const mode of ['locator', 'coordinates']) {
-              const context = await browser.newContext({ ...devices[device] });
-              const page = await context.newPage();
-              await page.addInitScript(() => {
-                const board = Array(25).fill(0);
-                for (const i of [2, 5, 14, 16]) board[i] = 2;
-                localStorage.setItem('cat-territory-progress-migrated-v3', '1');
-                localStorage.setItem('cat-territory-current-level-v3', '0');
-                localStorage.setItem('cat-territory-gesture-coach-v3', 'done');
-                localStorage.setItem('cat-territory-session-v3-v2-5-01', JSON.stringify({ board, seconds: 40, history: [], mistakes: 0, usedHint: false }));
-                window.tapEvents = [];
-                for (const type of ['pointerdown', 'pointerup', 'pointercancel', 'click'])
-                  document.addEventListener(type, (event) => window.tapEvents.push({ type, time: performance.now(), date: Date.now(), id: event.pointerId, pointer: event.pointerType, target: event.target.closest('[data-cell-index]')?.getAttribute('data-cell-index'), detail: event.detail }), true);
-              });
-              await page.goto('http://127.0.0.1:4173/');
-              await page.getByRole('grid').waitFor();
-              const cell = page.locator('[data-cell-index="23"]');
-              await cell.tap();
-              await page.waitForTimeout(100);
-              if (mode === 'locator') await cell.tap({ force: true });
-              else {
-                const b = await cell.boundingBox();
-                await page.touchscreen.tap(b.x + b.width / 2, b.y + b.height / 2);
-              }
-              await page.waitForTimeout(800);
-              results.push({ name, mode, ...(await page.evaluate(() => ({ events: window.tapEvents, label: document.querySelector('[data-cell-index="23"]').getAttribute('aria-label'), cats: document.querySelectorAll('.board .cat-face').length, slide: Boolean(document.querySelector('[data-testid="next-level-slide"]')) }))) });
-              await context.close();
-            }
-            await browser.close();
-          }
-          writeFileSync('slide-touch-timing.json', JSON.stringify(results, null, 2));
-          console.log(JSON.stringify(results, null, 2));
-          EOF
-          node slide-timing.mjs
+      - name: Chromium desktop and mobile slide regressions
+        run: npm run test:e2e -- e2e/slide-next-level.spec.ts e2e/cat-motion.spec.ts --retries=0 --trace=retain-on-failure
+      - name: WebKit portrait and landscape slide regressions
+        if: success() || failure()
+        run: npm run test:feedback:webkit -- e2e/slide-next-level.spec.ts e2e/cat-motion.spec.ts --retries=0 --output=test-results-webkit --trace=retain-on-failure
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: slide-touch-timing
-          path: slide-touch-timing.json
-          retention-days: 1
+          name: slide-verified-screenshots
+          path: |
+            slide-tested-head.txt
+            test-results/
+            test-results-webkit/
+          retention-days: 3
