@@ -25,7 +25,7 @@ function resource(key: string, request: { index: number }): Resource {
   if (cached) return cached;
   const persisted = readGenerated(request.index),
     normalizedPersisted = persisted ? withoutStarterCats(persisted) : null;
-  if (persisted && normalizedPersisted !== persisted)
+  if (normalizedPersisted && normalizedPersisted !== persisted)
     rememberGenerated(request.index, normalizedPersisted);
   const entry: Resource = { level: normalizedPersisted ?? undefined };
   resources.set(key, entry);
