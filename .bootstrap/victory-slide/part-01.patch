@@ -139,14 +139,3 @@ index 0000000..ca8e485
 +        sessionStorage.setItem('slide-followthrough-seeded', '1');
 +        localStorage.setItem('cat-territory-progress-migrated-v3', '1');
 +        localStorage.setItem('cat-territory-current-level-v3', '0');
-+        localStorage.setItem('cat-territory-gesture-coach-v3', 'done');
-+        localStorage.setItem(
-+          'cat-territory-session-v3-v2-5-01',
-+          JSON.stringify({ board, seconds: 40, mistakes, usedHint: true }),
-+        );
-+      },
-+      { board, mistakes },
-+    );
-+    await page.goto('/');
-+    await expect(page.getByRole('grid')).not.toHaveClass(/board-assembling/);
-+    await page.locator('[data-cell-index="23"]').click({ button: 'right' });
