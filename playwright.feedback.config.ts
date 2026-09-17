@@ -4,7 +4,7 @@ import base from './playwright.config';
 export default defineConfig({
   ...base,
   testMatch:
-    /(?:audio-recovery|cat-motion|ux|starter-free|auto-x-backfill|slide-next-level)\.spec\.ts/,
+    /(?:audio-recovery|cat-motion|ux|starter-free|auto-x-backfill|slide-next-level|slide-followthrough)\.spec\.ts/,
   projects: [
     {
       name: 'webkit-portrait',
