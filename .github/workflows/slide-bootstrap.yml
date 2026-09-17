@@ -1,0 +1,51 @@
+name: slide-baseline
+on:
+  push:
+    branches: [feature/slide-next-level]
+    paths: [.github/workflows/slide-bootstrap.yml]
+permissions:
+  contents: read
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Confirm the new victory contract fails before implementation
+        run: |
+          cat > e2e/slide-next-level.spec.ts <<'EOF'
+          import { test, expect } from '@playwright/test';
+          test('victory stays on the board and replaces the actions with a slide control', async ({ page }) => {
+            await page.addInitScript(() => localStorage.setItem('cat-territory-gesture-coach-v3', 'done'));
+            await page.goto('/');
+            for (const index of [2, 5, 14, 16, 23]) {
+              await page.locator(`[data-cell-index="${index}"]`).click({ button: 'right' });
+              await expect(page.locator(`[data-cell-index="${index}"] .cat-face`)).toHaveCount(1);
+              await page.waitForTimeout(450);
+            }
+            await expect(page.getByTestId('next-level-slide')).toBeVisible();
+            await expect(page.getByRole('dialog')).toHaveCount(0);
+            await expect(page.getByRole('grid')).toBeVisible();
+          });
+          EOF
+          npm run test:e2e -- e2e/slide-next-level.spec.ts --project=chromium --retries=0
+      - name: Package only project sources and public dependencies for offline review
+        if: always()
+        run: |
+          tar -czf /tmp/slide-workspace.tgz --exclude=node_modules/.cache src e2e e2e-offline scripts public docs tests .github .gitignore .prettierignore .prettierrc.json README.md RELEASE.md index.html package.json package-lock.json *.config.* tsconfig.json node_modules
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: slide-baseline-workspace
+          path: |
+            /tmp/slide-workspace.tgz
+            test-results/
+          retention-days: 1
