@@ -1,0 +1,202 @@
+.action-dock {
+  position: relative;
+  width: 100%;
+  isolation: isolate;
+}
+.action-dock .action-row {
+  transition:
+    gap 0.42s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.18s 0.34s,
+    visibility 0s 0.52s;
+}
+.action-dock .action-row button {
+  transition:
+    border-radius 0.42s,
+    background-color 0.42s,
+    box-shadow 0.3s;
+}
+.action-dock .action-row button > * {
+  transition:
+    opacity 0.2s,
+    transform 0.35s;
+}
+.action-dock.is-won .action-row button:disabled {
+  opacity: 1;
+  cursor: default;
+}
+.action-dock.is-complete .action-row {
+  gap: 0;
+  opacity: 0;
+  visibility: hidden;
+}
+.action-dock.is-complete .action-row button {
+  background: #edf4ef !important;
+  border-radius: 0;
+  box-shadow: none;
+}
+.action-dock.is-complete .action-row button:first-child {
+  border-radius: 14px 0 0 14px;
+}
+.action-dock.is-complete .action-row button:last-child {
+  border-radius: 0 14px 14px 0;
+}
+.action-dock.is-complete .action-row button > * {
+  opacity: 0;
+  transform: translateY(-5px) scale(0.85);
+}
+.next-level-slide {
+  --slide-offset: 0px;
+  --slide-progress: 0;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #edf4ef;
+  box-shadow: inset 0 0 0 1px #cfded5;
+  color: #385548;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.32s 0.18s;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.next-level-slide.is-ready {
+  opacity: 1;
+  pointer-events: auto;
+}
+.slide-track-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--slide-offset) + 56px);
+  background: #dceade;
+  border-radius: inherit;
+}
+.slide-copy {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 40px 0 56px;
+  gap: 1px;
+  pointer-events: none;
+}
+.slide-copy strong {
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.slide-copy span {
+  font-size: 10px;
+  line-height: 1.25;
+  color: #4c685a;
+}
+.next-level-slide[data-state='dragging'] .slide-copy {
+  opacity: max(0, calc(1 - var(--slide-progress) * 1.5));
+}
+.slide-destination {
+  position: absolute;
+  right: 12px;
+  top: calc(50% - 10px);
+  opacity: calc(0.7 - var(--slide-progress) * 0.7);
+  pointer-events: none;
+}
+.slide-handle {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 56px;
+  height: 100%;
+  transform: translateX(var(--slide-offset));
+  touch-action: none;
+  cursor: grab;
+  -webkit-tap-highlight-color: transparent;
+}
+.slide-handle-face {
+  position: absolute;
+  inset: 4px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: #fffdf9;
+  box-shadow:
+    0 2px 6px #3855481a,
+    inset 0 0 0 1px #d0ddcf;
+}
+.slide-handle:focus-visible .slide-handle-face {
+  outline: 2px solid #385548;
+  outline-offset: -3px;
+}
+.slide-paw {
+  transform: rotate(90deg);
+}
+.next-level-slide[data-state='dragging'] .slide-handle {
+  cursor: grabbing;
+}
+.next-level-slide:not([data-state='dragging']) .slide-handle {
+  transition: transform 0.32s cubic-bezier(0.2, 0.9, 0.2, 1.1);
+}
+.next-level-slide:not([data-state='dragging']) .slide-track-fill {
+  transition: width 0.32s cubic-bezier(0.2, 0.9, 0.2, 1.1);
+}
+.next-level-slide[data-state='loading'] .slide-copy {
+  padding: 0 56px 0 12px;
+}
+.next-level-slide[data-state='loading'] .slide-handle {
+  cursor: wait;
+}
+.next-level-slide[data-state='error'] {
+  background: #f8ede7;
+  color: #823d32;
+}
+.next-level-slide[data-state='error'] .slide-copy span {
+  color: #823d32;
+}
+.slide-spinner {
+  animation: slide-spin 1s linear infinite;
+}
+@keyframes slide-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.completion-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #385548;
+}
+.completion-summary strong {
+  font-variant-numeric: tabular-nums;
+}
+.completion-best {
+  font-size: 9px;
+  font-weight: 750;
+  color: #526742;
+}
+.board-stage {
+  transition:
+    opacity 0.18s,
+    transform 0.18s;
+}
+.board-stage.level-leaving {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.985);
+}
+.board .celebrating-cat .cat-idle-body {
+  animation-play-state: running;
+}
+.page-hidden .board .celebrating-cat *,
+.page-hidden .slide-spinner {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .action-dock *,
+  .board-stage {
+    transition: none !important;
+  }
+  .slide-spinner,
+  .board .celebrating-cat * {
+    animation: none !important;
+  }
+}

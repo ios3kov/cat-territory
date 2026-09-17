@@ -98,41 +98,6 @@
   }
 }
 
-.score-result {
-  width: 100%;
-  margin: 14px 0;
-  text-align: left;
-}
-.score-result dl {
-  margin: 8px 0;
-}
-.score-result dl > div {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 4px 0;
-  font-size: 12px;
-}
-.score-result dd {
-  margin: 0;
-  font-variant-numeric: tabular-nums;
-}
-.score-total {
-  border-top: 1px solid #ded6cc;
-  margin-top: 5px;
-  padding-top: 9px !important;
-  font-weight: 800;
-}
-.score-explanation {
-  font-size: 11px;
-  line-height: 1.45;
-  color: #69625b;
-  margin: 8px 0;
-}
-.win-result-summary {
-  margin-bottom: 10px;
-  color: #69625b;
-}
 .modal {
   max-height: calc(100dvh - 32px);
   overflow-y: auto;
@@ -256,53 +221,6 @@
 .journal-mark small {
   color: #69625b;
 }
-@media (orientation: landscape) and (max-height: 620px) {
-  .win-modal {
-    width: min(100%, 620px);
-    display: grid;
-    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
-    grid-template-rows: repeat(4, auto) auto;
-    gap: 0 18px;
-    padding: 16px 20px;
-  }
-  .win-celebration {
-    grid-column: 1;
-    grid-row: 1;
-  }
-  .win-modal h2 {
-    grid-column: 1;
-    grid-row: 2;
-    font-size: 25px;
-  }
-  .personal-best-badge {
-    grid-column: 1;
-    grid-row: 3;
-    justify-self: center;
-  }
-  .win-modal > .win-result-summary {
-    grid-column: 1;
-    grid-row: 4;
-  }
-  .win-modal > .score-result {
-    grid-column: 2;
-    grid-row: 1/5;
-    margin: 0 0 10px;
-  }
-  .win-next-button {
-    grid-column: 1/-1;
-    grid-row: 5;
-    min-height: 48px;
-  }
-  .win-modal .score-result dl > div {
-    padding: 2px 0;
-  }
-  .win-modal .score-explanation {
-    font-size: 10px;
-  }
-  .win-modal > [role='alert'] {
-    grid-column: 1/-1;
-  }
-}
 /* Keep navigation separate from the achievement title, including narrow phones. */
 .achievements-all-view .nested-heading {
   padding: 46px 0 0;
@@ -362,14 +280,6 @@
 .board-attention .live-cat * {
   animation-play-state: paused;
 }
-.win-modal > .win-next-button {
-  margin-top: 12px;
-}
-.win-modal > .score-result {
-  margin-top: 18px;
-  border-top: 1px solid #ded8d0;
-  padding-top: 12px;
-}
 @media (orientation: landscape) and (max-height: 620px) {
   .game-card {
     grid-template-columns: minmax(0, min(88dvh, 45vw)) minmax(0, 350px);
@@ -383,17 +293,5 @@
   .context-panel-copy > span {
     font-size: 12px;
     line-height: 1.35;
-  }
-  .win-modal > .win-next-button {
-    grid-column: 1;
-    grid-row: 5;
-    margin-top: 10px;
-  }
-  .win-modal > .score-result {
-    grid-row: 1/6;
-    margin: 0;
-    padding: 0 0 0 16px;
-    border-top: 0;
-    border-left: 1px solid #ded8d0;
   }
 }

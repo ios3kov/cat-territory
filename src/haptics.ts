@@ -13,7 +13,8 @@ export type HapticCue =
   | 'win'
   | 'achievement'
   | 'secretAchievement'
-  | 'milestone';
+  | 'milestone'
+  | 'next';
 const PATTERNS: Record<HapticCue, number | number[]> = {
   mark: 4,
   paint: 4,
@@ -30,6 +31,7 @@ const PATTERNS: Record<HapticCue, number | number[]> = {
   achievement: [8, 20, 11],
   secretAchievement: [8, 16, 8, 24, 16],
   milestone: [10, 22, 14],
+  next: 8,
 };
 let lastCellPulseAt = 0;
 const CELL_PULSE_GAP_MS = 48;

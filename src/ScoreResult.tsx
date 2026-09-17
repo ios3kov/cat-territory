@@ -1,30 +1,19 @@
-import type { ScoreBreakdown } from './score';
-export function ScoreResult({ breakdown }: { breakdown: ScoreBreakdown }) {
-  const rows = [
-    ['Board', breakdown.board],
-    ['Speed', breakdown.speed],
-    ['Clean play', breakdown.clean],
-    ['No hint', breakdown.independence],
-    ['Total', breakdown.total],
-  ] as const;
+import type { CompletionSummary } from './useGameController';
+import { formatTime } from './game';
+
+export function ScoreResult({ summary }: { summary: CompletionSummary }) {
+  const { breakdown: score } = summary;
+  const description = `${summary.label}. Score ${summary.score}. Board ${score.board}, speed ${score.speed}, clean play ${score.clean}, no hint ${score.independence}. Time ${formatTime(summary.seconds)}. ${summary.mistakes} mistakes. ${summary.usedHint ? 'Hint used.' : 'No hint used.'}${summary.personalBest ? ' Personal best.' : ''}`;
   return (
-    <div className="score-result">
-      <p className="eyebrow">SCORE</p>
-      <dl>
-        {rows.map(([label, value]) => (
-          <div
-            key={label}
-            className={label === 'Total' ? 'score-total' : undefined}
-          >
-            <dt>{label}</dt>
-            <dd>{value.toLocaleString('en-US')}</dd>
-          </div>
-        ))}
-      </dl>
-      <p className="score-explanation">
-        Faster solves score more. Mistakes reduce the clean bonus. Hint lowers a
-        flawless bonus and removes the no-hint bonus.
-      </p>
-    </div>
+    <p
+      className="chapter-label completion-summary"
+      role="status"
+      aria-label={description}
+      title={description}
+    >
+      <span>{summary.label}.</span>
+      <strong>{summary.score.toLocaleString('en-US')} pts</strong>
+      {summary.personalBest && <span className="completion-best">Best</span>}
+    </p>
   );
 }
