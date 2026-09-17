@@ -135,9 +135,13 @@ async function ready(page: Page) {
     await navigator.serviceWorker.ready;
     if (!navigator.serviceWorker.controller)
       await new Promise<void>((r) =>
-        navigator.serviceWorker.addEventListener('controllerchange', () => r(), {
-          once: true,
-        }),
+        navigator.serviceWorker.addEventListener(
+          'controllerchange',
+          () => r(),
+          {
+            once: true,
+          },
+        ),
       );
   });
 }
