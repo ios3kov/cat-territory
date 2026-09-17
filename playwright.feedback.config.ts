@@ -3,7 +3,7 @@ import base from './playwright.config';
 
 export default defineConfig({
   ...base,
-  testMatch: /(?:audio-recovery|cat-motion|ux)\.spec\.ts/,
+  testMatch: /(?:audio-recovery|cat-motion|ux|starter-free)\.spec\.ts/,
   projects: [
     {
       name: 'webkit-portrait',

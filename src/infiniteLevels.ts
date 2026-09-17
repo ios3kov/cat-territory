@@ -297,17 +297,25 @@ function valid(level: CatalogLevel, size: number) {
   );
 }
 export function readGenerated(i: number) {
-  const raw = storageGet(`${PERSISTED_LEVEL_PREFIX}${i}`);
+  const key = `${PERSISTED_LEVEL_PREFIX}${i}`,
+    raw = storageGet(key);
   if (!raw) return null;
   try {
     const l = JSON.parse(raw) as CatalogLevel,
       size = generatedSize(i);
-    return l.id === `endless-v5-${i}-${size}` &&
-      l.source === 'generated' &&
-      l.size === size &&
-      valid(l, size)
-      ? l
-      : null;
+    if (
+      l.id !== `endless-v5-${i}-${size}` ||
+      l.source !== 'generated' ||
+      l.size !== size ||
+      !valid(l, size)
+    )
+      return null;
+    // Upgrade only the retired metadata, never the puzzle or saved moves.
+    if (l.starterCats.length) {
+      l.starterCats = [];
+      storageSet(key, JSON.stringify(l));
+    }
+    return l;
   } catch {
     return null;
   }
@@ -326,7 +334,6 @@ function candidate(
     id: string;
     name?: string;
     chapterName: string;
-    starter: boolean;
     special?: 'moon-run';
   },
 ): CatalogLevel | null {
@@ -355,7 +362,7 @@ function candidate(
     source: 'generated',
     chapter: 5,
     chapterName: meta.chapterName,
-    starterCats: meta.starter ? [solution[0]] : [],
+    starterCats: [],
     special: meta.special,
   };
 }
@@ -409,7 +416,6 @@ function select(
 function generate(i: number) {
   const size = generatedSize(i),
     special = isMoonRun(i),
-    previousSize = levelSizeAt(i - 1),
     seed = (i + 1) * 2654435761,
     phase = Math.max(0, (i - CURATED_LEVEL_COUNT) % 10),
     best = select(
@@ -418,7 +424,6 @@ function generate(i: number) {
       {
         id: `endless-v5-${i}-${size}`,
         chapterName: special ? 'Moon Run' : 'Endless',
-        starter: !special && previousSize !== size,
         special: special ? 'moon-run' : undefined,
       },
       special,

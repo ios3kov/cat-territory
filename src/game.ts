@@ -148,10 +148,7 @@ export function applySmartMarks(
   return next;
 }
 export function createInitialBoard(level: Level) {
-  let board = emptyBoard(level.size);
-  for (const catIndex of level.starterCats)
-    board = applySmartMarks(level, board, catIndex);
-  return rememberCatOrder(board);
+  return rememberCatOrder(emptyBoard(level.size));
 }
 export function boardsEqual(first: CellState[], second: CellState[]) {
   return (

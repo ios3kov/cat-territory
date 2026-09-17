@@ -57,51 +57,6 @@ test('malformed timestamps cannot poison a session', async ({ page }) => {
   });
   expect(result).toBeNull();
 });
-test('legacy in-progress boards are reset once when starter cats are retired', async ({
-  page,
-}) => {
-  await page.addInitScript(() => {
-    const seedKey = 'cat-territory-test-legacy-session-seeded';
-    if (!localStorage.getItem(seedKey)) {
-      localStorage.setItem(
-        'cat-territory-session-v3-v2-5-01',
-        JSON.stringify({
-          board: Array.from({ length: 25 }, (_, i) => (i === 2 ? 2 : 0)),
-          history: [],
-          seconds: 12,
-          started: true,
-          mistakes: 0,
-          usedHint: false,
-        }),
-      );
-      localStorage.setItem(seedKey, '1');
-    }
-    localStorage.setItem('cat-territory-gesture-coach-v3', 'done');
-  });
-  await page.goto('/');
-  await expect(page.locator('.cat-face')).toHaveCount(0);
-  expect(
-    await page.evaluate(() =>
-      localStorage.getItem('cat-territory-session-v3-v2-5-01'),
-    ),
-  ).toBeNull();
-  expect(
-    await page.evaluate(() =>
-      localStorage.getItem('cat-territory-starter-free-v1'),
-    ),
-  ).toBe('1');
-  await page.locator('[data-cell-index="0"]').click();
-  await expect(page.locator('[data-cell-index="0"] .mark-x')).toHaveCount(1);
-  await expect
-    .poll(() =>
-      page.evaluate(() =>
-        Boolean(localStorage.getItem('cat-territory-session-v3-v2-5-01')),
-      ),
-    )
-    .toBe(true);
-  await page.reload();
-  await expect(page.locator('[data-cell-index="0"] .mark-x')).toHaveCount(1);
-});
 test('journal labels describe the statistics actually counted', async ({
   page,
 }) => {
