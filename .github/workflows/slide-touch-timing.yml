@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: f832916e318db48ca23ed2ba092a7640dd4aa8e8
+          ref: fedb238689222573e336623eb37b6dc0cd667a5a
           persist-credentials: false
       - run: git rev-parse HEAD > slide-tested-head.txt
       - uses: actions/setup-node@v4
@@ -21,10 +21,10 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium webkit
       - name: Chromium desktop and mobile slide regressions
-        run: npm run test:e2e -- e2e/slide-next-level.spec.ts e2e/cat-motion.spec.ts --retries=0 --trace=retain-on-failure
+        run: npm run test:e2e -- e2e/slide-next-level.spec.ts e2e/slide-followthrough.spec.ts e2e/cat-motion.spec.ts --retries=0 --trace=retain-on-failure
       - name: WebKit portrait and landscape slide regressions
         if: success() || failure()
-        run: npm run test:feedback:webkit -- e2e/slide-next-level.spec.ts e2e/cat-motion.spec.ts --retries=0 --output=test-results-webkit --trace=retain-on-failure
+        run: npm run test:feedback:webkit -- e2e/slide-next-level.spec.ts e2e/slide-followthrough.spec.ts e2e/cat-motion.spec.ts --retries=0 --output=test-results-webkit --trace=retain-on-failure
       - uses: actions/upload-artifact@v4
         if: always()
         with:
