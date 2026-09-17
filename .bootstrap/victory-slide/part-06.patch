@@ -1,0 +1,255 @@
++    // Require a new gesture after the button-to-track morph, never the winning tap.
++    const timer = window.setTimeout(
++      () => setArmed(true),
++      matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 520,
++    );
++    return () => clearTimeout(timer);
++  }, [ready]);
++
++  const advance = async () => {
++    if (submitting.current) return;
++    submitting.current = true;
++    setProgress(1);
++    setPhase('loading');
++    haptic('next');
++    try {
++      await onNext();
++      if (mounted.current) {
++        setProgress(0);
++        setPhase('idle');
++      }
++    } catch {
++      if (mounted.current) {
++        setProgress(0);
++        setPhase('error');
++      }
++    } finally {
++      submitting.current = false;
++    }
++  };
++  const pointerDown = (event: PointerEvent<HTMLDivElement>) => {
++    if (
++      !armed ||
++      !ready ||
++      submitting.current ||
++      drag.current ||
++      !event.isPrimary ||
++      event.button !== 0 ||
++      travel <= 0
++    )
++      return;
++    event.preventDefault();
++    event.stopPropagation();
++    try {
++      event.currentTarget.setPointerCapture(event.pointerId);
++    } catch {
++      return;
++    }
++    drag.current = {
++      id: event.pointerId,
++      x: event.clientX,
++      y: event.clientY,
++      travel,
++      target: event.currentTarget,
++    };
++    event.currentTarget.focus({ preventScroll: true });
++    setProgress(0);
++    setPhase('dragging');
++  };
++  const pointerMove = (event: PointerEvent<HTMLDivElement>) => {
++    const current = drag.current;
++    if (!current || current.id !== event.pointerId) return;
++    if (
++      Math.abs(event.clientY - current.y) > 80 ||
++      (event.pointerType === 'mouse' && !(event.buttons & 1))
++    ) {
++      cancelDrag();
++      return;
++    }
++    setProgress(clamp((event.clientX - current.x) / current.travel));
++  };
++  const pointerUp = (event: PointerEvent<HTMLDivElement>) => {
++    const current = drag.current;
++    if (!current || current.id !== event.pointerId) return;
++    const completed =
++      (event.clientX - current.x) / current.travel >= THRESHOLD &&
++      Math.abs(event.clientY - current.y) <= 80;
++    cancelDrag();
++    if (completed) void advance();
++  };
++  const label =
++    phase === 'loading'
++      ? 'Preparing…'
++      : phase === 'error'
++        ? 'Could not load level'
++        : 'Next level';
++  const caption =
++    phase === 'loading'
++      ? 'Your next territory'
++      : phase === 'error'
++        ? 'Slide to retry'
++        : progress >= THRESHOLD
++          ? 'Release to continue'
++          : 'Slide to continue';
++  return (
++    <div
++      ref={track}
++      data-testid="next-level-slide"
++      data-state={phase}
++      className={`next-level-slide ${ready ? 'is-ready' : ''}`}
++      aria-busy={phase === 'loading'}
++      style={
++        {
++          '--slide-offset': `${progress * travel}px`,
++          '--slide-progress': progress,
++        } as CSSProperties
++      }
++    >
++      <div className="slide-track-fill" aria-hidden="true" />
++      <div className="slide-copy" aria-hidden="true">
++        <strong>{label}</strong>
++        <span>{caption}</span>
++      </div>
++      <ChevronRight
++        className="slide-destination"
++        size={21}
++        aria-hidden="true"
++      />
++      <div
++        ref={handle}
++        className="slide-handle"
++        role="slider"
++        tabIndex={0}
++        aria-label="Slide to next level"
++        aria-valuemin={0}
++        aria-valuemax={100}
++        aria-valuenow={Math.round(progress * 100)}
++        aria-valuetext={`${label}. ${caption}`}
++        aria-orientation="horizontal"
++        aria-disabled={!armed || phase === 'loading'}
++        onPointerDown={pointerDown}
++        onPointerMove={pointerMove}
++        onPointerUp={pointerUp}
++        onPointerCancel={(event) => {
++          if (drag.current?.id === event.pointerId) cancelDrag();
++        }}
++        onLostPointerCapture={(event) => {
++          if (drag.current?.id === event.pointerId) cancelDrag();
++        }}
++        onKeyDown={(event) => {
++          if (event.key === 'Escape') cancelDrag();
++        }}
++        onContextMenu={(event) => event.preventDefault()}
++      >
++        <span className="slide-handle-face" aria-hidden="true">
++          {phase === 'loading' ? (
++            <LoaderCircle className="slide-spinner" size={22} />
++          ) : (
++            <PawPrint className="slide-paw" size={23} />
++          )}
++        </span>
++      </div>
++      <span className="sr-only" role="status">
++        {phase === 'error'
++          ? 'Could not prepare the next territory. Slide again to retry.'
++          : phase === 'loading'
++            ? 'Preparing next level.'
++            : ''}
++      </span>
++    </div>
++  );
++}
+diff --git a/src/ScoreResult.tsx b/src/ScoreResult.tsx
+index 946e55f..518f5d3 100644
+--- a/src/ScoreResult.tsx
++++ b/src/ScoreResult.tsx
+@@ -1,30 +1,19 @@
+-import type { ScoreBreakdown } from './score';
+-export function ScoreResult({ breakdown }: { breakdown: ScoreBreakdown }) {
+-  const rows = [
+-    ['Board', breakdown.board],
+-    ['Speed', breakdown.speed],
+-    ['Clean play', breakdown.clean],
+-    ['No hint', breakdown.independence],
+-    ['Total', breakdown.total],
+-  ] as const;
++import type { CompletionSummary } from './useGameController';
++import { formatTime } from './game';
++
++export function ScoreResult({ summary }: { summary: CompletionSummary }) {
++  const { breakdown: score } = summary;
++  const description = `${summary.label}. Score ${summary.score}. Board ${score.board}, speed ${score.speed}, clean play ${score.clean}, no hint ${score.independence}. Time ${formatTime(summary.seconds)}. ${summary.mistakes} mistakes. ${summary.usedHint ? 'Hint used.' : 'No hint used.'}${summary.personalBest ? ' Personal best.' : ''}`;
+   return (
+-    <div className="score-result">
+-      <p className="eyebrow">SCORE</p>
+-      <dl>
+-        {rows.map(([label, value]) => (
+-          <div
+-            key={label}
+-            className={label === 'Total' ? 'score-total' : undefined}
+-          >
+-            <dt>{label}</dt>
+-            <dd>{value.toLocaleString('en-US')}</dd>
+-          </div>
+-        ))}
+-      </dl>
+-      <p className="score-explanation">
+-        Faster solves score more. Mistakes reduce the clean bonus. Hint lowers a
+-        flawless bonus and removes the no-hint bonus.
+-      </p>
+-    </div>
++    <p
++      className="chapter-label completion-summary"
++      role="status"
++      aria-label={description}
++      title={description}
++    >
++      <span>{summary.label}.</span>
++      <strong>{summary.score.toLocaleString('en-US')} pts</strong>
++      {summary.personalBest && <span className="completion-best">Best</span>}
++    </p>
+   );
+ }
+diff --git a/src/haptics.ts b/src/haptics.ts
+index 9f829f4..9f1ea8e 100644
+--- a/src/haptics.ts
++++ b/src/haptics.ts
+@@ -13,7 +13,8 @@ export type HapticCue =
+   | 'win'
+   | 'achievement'
+   | 'secretAchievement'
+-  | 'milestone';
++  | 'milestone'
++  | 'next';
+ const PATTERNS: Record<HapticCue, number | number[]> = {
+   mark: 4,
+   paint: 4,
+@@ -30,6 +31,7 @@ const PATTERNS: Record<HapticCue, number | number[]> = {
+   achievement: [8, 20, 11],
+   secretAchievement: [8, 16, 8, 24, 16],
+   milestone: [10, 22, 14],
++  next: 8,
+ };
+ let lastCellPulseAt = 0;
+ const CELL_PULSE_GAP_MS = 48;
+diff --git a/src/index.css b/src/index.css
+index 488539d..084c942 100644
+--- a/src/index.css
++++ b/src/index.css
+@@ -801,51 +801,6 @@ h1 {
+ .achievement-list-all {
+   overflow-y: auto;
+ }
+-.win-overlay {
+-  place-items: center;
+-}
+-.win-modal {
+-  width: min(100%, 390px);
+-  padding: 26px 22px 22px;
+-  text-align: center;
+-}
+-.win-modal h2 {
+-  margin: 4px 0 10px;
+-  font-size: 31px;
+-}
+-.win-celebration {
