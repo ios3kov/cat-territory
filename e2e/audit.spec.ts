@@ -114,7 +114,9 @@ test('saved statistics and invalid cats are validated', async ({ page }) => {
     ]);
     const level = game.getLevel(0),
       solution = new Set(
-        level.solution.map((col: number, row: number) => row * level.size + col),
+        level.solution.map(
+          (col: number, row: number) => row * level.size + col,
+        ),
       ),
       wrong = Array.from(
         { length: level.size * level.size },
