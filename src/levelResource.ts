@@ -13,6 +13,9 @@ type Resource = {
   promise?: Promise<void>;
 };
 const resources = new Map<string, Resource>();
+function withoutStarterCats(level: CatalogLevel): CatalogLevel {
+  return level.starterCats.length ? { ...level, starterCats: [] } : level;
+}
 function resource(key: string, request: { index: number }): Resource {
   for (const [old, r] of resources) {
     if (resources.size < 20) break;
@@ -20,8 +23,11 @@ function resource(key: string, request: { index: number }): Resource {
   }
   const cached = resources.get(key);
   if (cached) return cached;
-  const persisted = readGenerated(request.index);
-  const entry: Resource = { level: persisted ?? undefined };
+  const persisted = readGenerated(request.index),
+    normalizedPersisted = persisted ? withoutStarterCats(persisted) : null;
+  if (persisted && normalizedPersisted !== persisted)
+    rememberGenerated(request.index, normalizedPersisted);
+  const entry: Resource = { level: normalizedPersisted ?? undefined };
   resources.set(key, entry);
   // Cached fields are validated synchronously; expensive candidate search runs only in a worker.
   if (entry.level) return entry;
@@ -41,9 +47,10 @@ function resource(key: string, request: { index: number }): Resource {
     const finish = (level?: CatalogLevel, error?: string) => {
       clearTimeout(timeout);
       worker.terminate();
-      entry.level = level;
-      if (level) {
-        rememberGenerated(request.index, level);
+      const normalized = level ? withoutStarterCats(level) : undefined;
+      entry.level = normalized;
+      if (normalized) {
+        rememberGenerated(request.index, normalized);
       }
       entry.error = error ? new Error(error) : undefined;
       resolve();
@@ -70,7 +77,8 @@ function read(key: string, request: { index: number }) {
   throw r.promise;
 }
 export function getLevel(index: number): CatalogLevel {
-  if (index < CURATED_LEVEL_COUNT) return getCuratedLevel(index);
+  if (index < CURATED_LEVEL_COUNT)
+    return withoutStarterCats(getCuratedLevel(index));
   return read(`level-${index}`, { index });
 }
 export async function prepareLevel(index: number) {
