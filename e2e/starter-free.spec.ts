@@ -9,7 +9,8 @@ async function activateCat(page: Page, index: number, isMobile: boolean) {
   if (isMobile) {
     await cell.tap();
     await page.waitForTimeout(100);
-    await cell.tap();
+    // A real second tap occurs during the bounce, without waiting for stability.
+    await cell.tap({ force: true });
   } else await cell.click({ button: 'right' });
   await page.waitForTimeout(450);
 }
