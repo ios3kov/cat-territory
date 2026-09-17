@@ -163,7 +163,18 @@ test('saved generated games retain moves and Undo; restart is empty', async ({
   ).toBeVisible();
   await page.getByRole('button', { name: 'Undo', exact: true }).click();
   await expect(page.locator('.cat-face')).toHaveCount(1);
-  await activateCat(page, firstCat, isMobile);
+  const firstCell = page.locator(`[data-cell-index="${firstCat}"]`);
+  if (isMobile) {
+    await firstCell.scrollIntoViewIfNeeded();
+    const bounds = (await firstCell.boundingBox())!;
+    const x = bounds.x + bounds.width / 2,
+      y = bounds.y + bounds.height / 2;
+    await page.touchscreen.tap(x, y);
+    await page.waitForTimeout(100);
+    await page.touchscreen.tap(x, y);
+  } else await firstCell.click({ button: 'right' });
+  await expect(firstCell.locator('.cat-face')).toHaveCount(0);
+  await page.waitForTimeout(450);
   await expect(page.locator('.cat-face')).toHaveCount(0);
   await page.getByRole('button', { name: 'Undo', exact: true }).click();
   await expect(
