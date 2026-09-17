@@ -1,11 +1,11 @@
 import { test, expect, type Page } from '@playwright/test';
-import { buildLevelCatalog } from '../src/levelCatalog';
 import { getLevel } from '../src/infiniteLevels';
 import { slideToNext } from './helpers/slide';
 
 const slider = (page: Page) =>
   page.getByRole('slider', { name: 'Slide to next level' });
 const track = (page: Page) => page.getByTestId('next-level-slide');
+
 async function start(page: Page, index = 0, almostWon = false) {
   const level = getLevel(index);
   const cats = level.solution.map((col, row) => row * level.size + col);
@@ -18,11 +18,10 @@ async function start(page: Page, index = 0, almostWon = false) {
       localStorage.setItem('cat-territory-progress-migrated-v3', '1');
       localStorage.setItem('cat-territory-current-level-v3', String(index));
       localStorage.setItem('cat-territory-gesture-coach-v3', 'done');
-      if (level.source === 'generated')
-        localStorage.setItem(
-          'cat-territory-generated-v5-' + index,
-          JSON.stringify(level),
-        );
+      localStorage.setItem(
+        'cat-territory-generated-v5-' + index,
+        JSON.stringify(level),
+      );
       if (almostWon)
         localStorage.setItem(
           'cat-territory-session-v3-' + level.id,
@@ -42,11 +41,10 @@ async function start(page: Page, index = 0, almostWon = false) {
   await expect(page.getByRole('grid')).not.toHaveClass(/board-assembling/);
   return cats;
 }
+
 async function placeCat(page: Page, index: number, touch: boolean) {
   const cell = page.locator(`[data-cell-index="${index}"]`);
   if (touch) {
-    // Locator.tap includes browser action waits. A pair of native coordinate
-    // taps avoids spending the game's 240 ms window waiting for tile bounce.
     await cell.scrollIntoViewIfNeeded();
     const bounds = (await cell.boundingBox())!;
     const x = bounds.x + bounds.width / 2,
@@ -58,6 +56,7 @@ async function placeCat(page: Page, index: number, touch: boolean) {
   await expect(cell.locator('.cat-face')).toHaveCount(1);
   await page.waitForTimeout(420);
 }
+
 async function win(page: Page, touch: boolean, index = 0) {
   const cells = await start(page, index, true);
   await placeCat(page, cells.at(-1)!, touch);
@@ -246,11 +245,7 @@ test('slow generation keeps the solved board; failure retries in the slider with
   page,
   isMobile,
 }) => {
-  const template = {
-    ...buildLevelCatalog()[16],
-    id: 'endless-v5-24-8',
-    source: 'generated',
-  };
+  const template = getLevel(24);
   await page.addInitScript(() => {
     (window as any).__workerCalls = 0;
     class TestWorker {
