@@ -194,6 +194,7 @@
   transform: translateY(-8px) scale(0.985);
 }
 .board .celebrating-cat .cat-idle-body {
+  animation: cat-victory 2.4s ease-in-out infinite;
   animation-play-state: running;
 }
 .page-hidden .board .celebrating-cat *,
