@@ -1,7 +1,20 @@
 import { expect, test } from '@playwright/test';
+import { levelData } from './helpers/generatedLevel';
+
+const levelOne = levelData(0);
+
+async function seedGeneratedLevel(page: import('@playwright/test').Page) {
+  await page.addInitScript(
+    ({ level, cacheKey }) =>
+      localStorage.setItem(cacheKey, JSON.stringify(level)),
+    { level: levelOne.level, cacheKey: levelOne.cacheKey },
+  );
+}
+
 test('two-step introduction teaches marks and cats then clears itself', async ({
   page,
 }, testInfo) => {
+  await seedGeneratedLevel(page);
   await page.goto('/');
   await expect(
     page.getByRole('region', { name: '1 of 2 · Mark a tile' }),
@@ -26,13 +39,20 @@ test('two-step introduction teaches marks and cats then clears itself', async ({
   await page.reload();
   await expect(page.locator('.gesture-coach')).toHaveCount(0);
 });
+
 test('introduction can be skipped and hints show clue and move without changing board', async ({
   page,
 }, testInfo) => {
+  await seedGeneratedLevel(page);
   await page.goto('/');
   await page.getByRole('button', { name: 'Skip introduction' }).click();
-  await page.locator('[data-cell-index="2"]').click({ button: 'right' });
-  await expect(page.locator('[data-cell-index="2"] .cat-face')).toHaveCount(1);
+  const firstCat = levelOne.solutionCells[0];
+  await page
+    .locator(`[data-cell-index="${firstCat}"]`)
+    .click({ button: 'right' });
+  await expect(
+    page.locator(`[data-cell-index="${firstCat}"] .cat-face`),
+  ).toHaveCount(1);
   await page.waitForTimeout(450);
   const before = await page
     .locator('[role=gridcell]')
