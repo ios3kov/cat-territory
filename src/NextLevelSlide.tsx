@@ -176,6 +176,8 @@ export function NextLevelSlide({ ready, onNext }: Props) {
       data-testid="next-level-slide"
       data-state={phase}
       className={`next-level-slide ${ready ? 'is-ready' : ''}`}
+      role="group"
+      aria-label="Next level"
       aria-busy={phase === 'loading'}
       style={
         {
@@ -197,15 +199,9 @@ export function NextLevelSlide({ ready, onNext }: Props) {
       <div
         ref={handle}
         className="slide-handle"
-        role="slider"
-        tabIndex={0}
-        aria-label="Slide to next level"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={Math.round(progress * 100)}
-        aria-valuetext={`${label}. ${caption}`}
-        aria-orientation="horizontal"
-        aria-disabled={!armed || phase === 'loading'}
+        aria-hidden="true"
+        data-progress={Math.round(progress * 100)}
+        data-disabled={!armed || phase === 'loading'}
         onPointerDown={pointerDown}
         onPointerMove={pointerMove}
         onPointerUp={pointerUp}
@@ -214,9 +210,6 @@ export function NextLevelSlide({ ready, onNext }: Props) {
         }}
         onLostPointerCapture={(event) => {
           if (drag.current?.id === event.pointerId) cancelDrag();
-        }}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') cancelDrag();
         }}
         onContextMenu={(event) => event.preventDefault()}
       >
@@ -228,6 +221,14 @@ export function NextLevelSlide({ ready, onNext }: Props) {
           )}
         </span>
       </div>
+      <button
+        type="button"
+        className="slide-assistive-action"
+        disabled={!armed || !ready || phase === 'loading'}
+        onClick={() => void advance()}
+      >
+        {phase === 'error' ? 'Retry next level' : 'Continue to next level'}
+      </button>
       <span className="sr-only" role="status">
         {phase === 'error'
           ? 'Could not prepare the next territory. Slide again to retry.'
