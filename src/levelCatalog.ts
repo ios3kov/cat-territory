@@ -11,6 +11,7 @@ export type CatalogLevel = {
   source: 'curated' | 'generated';
   chapter: number;
   chapterName: string;
+  // Retained for legacy cache validation; new levels never contain presets.
   starterCats: number[];
   special?: 'moon-run';
 };
@@ -386,7 +387,7 @@ const chapterBySize: Record<number, { chapter: number; name: string }> = {
   7: { chapter: 3, name: 'Long Hallways' },
   8: { chapter: 4, name: 'Night Shift' },
 };
-function validateLevel(level: RawLevel, index: number): CatalogLevel {
+function validateLevel(level: RawLevel): CatalogLevel {
   const { size } = level;
   if (
     size < 5 ||
@@ -396,8 +397,7 @@ function validateLevel(level: RawLevel, index: number): CatalogLevel {
     level.solution.length !== size
   )
     throw new Error(`Invalid CAT TERRITORY level shape: ${level.name}.`);
-  const chapter = chapterBySize[size],
-    chapterStart = index === 0 || rawLevels[index - 1].size !== size;
+  const chapter = chapterBySize[size];
   return {
     ...level,
     difficulty: 'Easy' as Difficulty,
@@ -406,7 +406,7 @@ function validateLevel(level: RawLevel, index: number): CatalogLevel {
     source: 'curated',
     chapter: chapter.chapter,
     chapterName: chapter.name,
-    starterCats: chapterStart ? [level.solution[0]] : [],
+    starterCats: [],
   };
 }
 export function buildLevelCatalog() {

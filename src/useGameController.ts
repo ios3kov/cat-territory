@@ -47,7 +47,7 @@ function createInitialGameState(): InitialGameState {
     session: loadLevelSession(level.id, level.size, level),
   };
 }
-export function useGameController() {
+export function useGameController(autoMarksEnabled: boolean) {
   const initialRef = useRef<InitialGameState | null>(null);
   if (!initialRef.current) initialRef.current = createInitialGameState();
   const initial = initialRef.current,
@@ -172,6 +172,7 @@ export function useGameController() {
     );
   };
   const gestures = useBoardGestures({
+    autoMarksEnabled,
     board,
     level,
     setBoard,

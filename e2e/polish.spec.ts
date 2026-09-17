@@ -275,5 +275,5 @@ test('double tap cat and all auto marks undo together; wrong cats do not fill pa
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(page.locator('.mark-x')).toHaveCount(before);
   await page.locator('[data-cell-index="0"]').click({ button: 'right' });
-  await expect(page.locator('.paw-progress-icon.filled')).toHaveCount(1);
+  await expect(page.locator('.paw-progress-icon.filled')).toHaveCount(0);
 });

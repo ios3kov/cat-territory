@@ -49,7 +49,7 @@ test('idle cats have distinct visible motion and pause in hidden tabs', async ({
     localStorage.setItem('cat-territory-gesture-coach-v3', 'done'),
   );
   await page.goto('/');
-  for (const i of [5, 16]) {
+  for (const i of [2, 5, 16]) {
     await page.locator(`[data-cell-index="${i}"]`).click({ button: 'right' });
     await page.waitForTimeout(450);
   }
@@ -92,7 +92,7 @@ test('winning cat animates in the result and respects reduced motion', async ({
     localStorage.setItem('cat-territory-gesture-coach-v3', 'done'),
   );
   await page.goto('/');
-  for (const i of [5, 14, 16, 23]) {
+  for (const i of [2, 5, 14, 16, 23]) {
     await page.locator(`[data-cell-index="${i}"]`).click({ button: 'right' });
     await page.waitForTimeout(450);
   }

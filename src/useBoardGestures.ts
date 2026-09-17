@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import { readAutoMarksEnabled } from './autoMarks';
 import {
   DOUBLE_TAP_MS,
   DRAG_THRESHOLD_PX,
@@ -31,6 +30,7 @@ type Options = {
   setBoard: Dispatch<SetStateAction<CellState[]>>;
   setHistory: Dispatch<SetStateAction<CellState[][]>>;
   disabled: boolean;
+  autoMarksEnabled: boolean;
   fixedCells: Set<number>;
   onFirstInteraction?: () => void;
   onBoardInteraction?: () => void;
@@ -45,6 +45,7 @@ export function useBoardGestures({
   setBoard,
   setHistory,
   disabled,
+  autoMarksEnabled,
   fixedCells,
   onFirstInteraction,
   onBoardInteraction,
@@ -96,42 +97,27 @@ export function useBoardGestures({
   const clearPendingTap = () => {
     lastTap.current = null;
   };
-  const placeCorrectCat = (
-    idx: number,
-    current: CellState[],
-    saveHistory: boolean,
+  // Cat placement and explicit backfill share the same timer/feedback owner.
+  const animateSmartMarks = (
+    firstFrame: CellState[],
+    finalBoard: CellState[],
+    catIndices: number[],
   ) => {
     clearSmartMarkTimers();
-    const firstFrame = [...current] as CellState[];
-    firstFrame[idx] = 2;
-    const finalBoard = readAutoMarksEnabled()
-      ? applySmartMarks(level, current, idx)
-      : firstFrame;
-    const catRow = Math.floor(idx / level.size),
-      catCol = idx % level.size;
+    const distance = (cell: number) =>
+      Math.min(
+        ...catIndices.map((cat) =>
+          Math.hypot(
+            Math.floor(cell / level.size) - Math.floor(cat / level.size),
+            (cell % level.size) - (cat % level.size),
+          ),
+        ),
+      );
     const smartMarks = finalBoard
       .flatMap((value, cell) =>
         value === 1 && firstFrame[cell] === 0 ? [cell] : [],
       )
-      .sort((a, b) => {
-        const ar = Math.floor(a / level.size),
-          ac = a % level.size,
-          br = Math.floor(b / level.size),
-          bc = b % level.size;
-        return (
-          Math.hypot(ar - catRow, ac - catCol) -
-            Math.hypot(br - catRow, bc - catCol) || a - b
-        );
-      });
-    if (saveHistory)
-      setHistory((history) => [
-        ...history.slice(-(HISTORY_LIMIT - 1)),
-        current,
-      ]);
-    boardRef.current = firstFrame;
-    setBoard(firstFrame);
-    onCorrectCat?.(idx);
-    haptic('cat');
+      .sort((a, b) => distance(a) - distance(b) || a - b);
     if (
       !smartMarks.length ||
       matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -144,10 +130,10 @@ export function useBoardGestures({
     smartFinalRef.current = finalBoard;
     const stepMs = Math.min(34, 360 / smartMarks.length);
     smartMarks.forEach((cell, order) => {
-      const timer = setTimeout(
+      const timer = window.setTimeout(
         () => {
           const frame = [...boardRef.current] as CellState[];
-          if (frame[idx] !== 2) {
+          if (catIndices.some((cat) => frame[cat] !== 2)) {
             clearSmartMarkTimers();
             return;
           }
@@ -167,6 +153,27 @@ export function useBoardGestures({
       );
       smartMarkTimersRef.current.push(timer);
     });
+  };
+  const placeCorrectCat = (
+    idx: number,
+    current: CellState[],
+    saveHistory: boolean,
+  ) => {
+    const firstFrame = [...current] as CellState[];
+    firstFrame[idx] = 2;
+    const finalBoard = autoMarksEnabled
+      ? applySmartMarks(level, current, idx)
+      : firstFrame;
+    if (saveHistory)
+      setHistory((history) => [
+        ...history.slice(-(HISTORY_LIMIT - 1)),
+        current,
+      ]);
+    boardRef.current = firstFrame;
+    setBoard(firstFrame);
+    onCorrectCat?.(idx);
+    haptic('cat');
+    animateSmartMarks(firstFrame, finalBoard, [idx]);
   };
   const handleTap = (idx: number, pointerType = 'mouse') => {
     if (disabled || feedbackLocked.current || fixedCells.has(idx)) return;
@@ -374,6 +381,26 @@ export function useBoardGestures({
       setBoard(final);
     }
   };
+  const fillExistingSmartMarks = () => {
+    if (disabled) return;
+    clearPendingTap();
+    // Finish an existing transaction before starting another one. If it already
+    // covers every cat, leave its wave running and do not add an Undo entry.
+    const current = smartFinalRef.current ?? boardRef.current;
+    const cats = current.flatMap((value, idx) =>
+      value === 2 && isSolutionCell(idx) ? [idx] : [],
+    );
+    const finalBoard = cats.reduce(
+      (next, idx) => applySmartMarks(level, next, idx),
+      current,
+    );
+    if (!finalBoard.some((value, idx) => value !== current[idx])) return;
+    resetInteraction();
+    setHistory((history) => [...history.slice(-(HISTORY_LIMIT - 1)), current]);
+    onBoardInteraction?.();
+    onFirstInteraction?.();
+    animateSmartMarks(current, finalBoard, cats);
+  };
   const pointerCancel = () => {
     const drag = dragRef.current;
     if (drag?.historySaved) {
@@ -396,5 +423,6 @@ export function useBoardGestures({
     pointerCancel,
     finishMouseDragOnLeave,
     resetInteraction,
+    fillExistingSmartMarks,
   };
 }

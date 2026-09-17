@@ -39,11 +39,12 @@ function readCoachStep(): CoachStep {
   return v ? 'done' : 'tap';
 }
 function App() {
-  const game = useGameController();
+  const [autoMarksEnabled, setAutoMarksEnabled] =
+    useState(readAutoMarksEnabled);
+  const game = useGameController(autoMarksEnabled);
   const [showRules, setShowRules] = useState(false),
     [showAchievements, setShowAchievements] = useState(false),
     [soundEnabled, setSoundEnabledState] = useState(readSoundEnabled),
-    [autoMarksEnabled, setAutoMarksEnabled] = useState(readAutoMarksEnabled),
     [rankPulse, setRankPulse] = useState(false),
     [coachStep, setCoachStep] = useState<CoachStep>(readCoachStep);
   const progression = getProgressionMeta(game.levelIndex),
@@ -147,6 +148,7 @@ function App() {
     const next = !autoMarksEnabled;
     writeAutoMarksEnabled(next);
     setAutoMarksEnabled(next);
+    if (next) game.gestures.fillExistingSmartMarks();
     playSound('ui');
   };
   const open = (setter: (v: boolean) => void) => {
