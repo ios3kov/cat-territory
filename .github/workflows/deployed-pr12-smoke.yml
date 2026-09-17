@@ -1,0 +1,52 @@
+name: deployed-pr12-smoke
+on:
+  push:
+    branches: [verify/deploy-pr12-ea4ecb16]
+permissions:
+  contents: read
+jobs:
+  live-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ea4ecb16a55db440ac16f41dc448cb83a8b3bfe8
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Test actual deployed game in isolated browser contexts
+        run: |
+          cat > playwright.production-smoke.config.ts <<'CONFIG'
+          import { defineConfig, devices } from '@playwright/test';
+          export default defineConfig({
+            testDir: './e2e',
+            testMatch: /auto-x-backfill\.spec\.ts/,
+            outputDir: 'production-smoke-results',
+            workers: 1,
+            retries: 0,
+            timeout: 45000,
+            reporter: 'list',
+            use: {
+              baseURL: 'https://cat-territory.os3kov.workers.dev/',
+              trace: 'retain-on-failure',
+              screenshot: 'only-on-failure',
+            },
+            projects: [
+              { name: 'production-desktop', use: { ...devices['Desktop Chrome'], browserName: 'chromium' } },
+              { name: 'production-mobile', use: { ...devices['iPhone 13'], browserName: 'chromium' } },
+              { name: 'production-landscape', use: { ...devices['iPhone 13 landscape'], browserName: 'chromium' } },
+            ],
+          });
+          CONFIG
+          npx playwright test --config=playwright.production-smoke.config.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deployed-pr12-smoke-results
+          path: production-smoke-results/
+          retention-days: 3
