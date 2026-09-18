@@ -81,7 +81,6 @@ test('introduction can be skipped and hints show clue and move without changing 
   );
 });
 
-
 test('Hint is visually neutral until the idle timer actually expires', async ({
   page,
 }) => {
