@@ -157,7 +157,9 @@ export function NextLevelSlide({ ready, onNext, onProgress }: Props) {
     setPhase('confirmed');
     haptic('next');
     try {
-      await new Promise((resolve) => window.setTimeout(resolve, CONFIRM_HOLD_MS));
+      await new Promise((resolve) =>
+        window.setTimeout(resolve, CONFIRM_HOLD_MS),
+      );
       if (!mounted.current) return;
       setPhase('loading');
       await onNext();
