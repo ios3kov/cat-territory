@@ -181,7 +181,12 @@ function App() {
       level: nextLevel,
       board: createInitialBoard(nextLevel),
     };
-  }, [game.won, game.completionReady, game.levelIndex, levelTransitionProgress]);
+  }, [
+    game.won,
+    game.completionReady,
+    game.levelIndex,
+    levelTransitionProgress,
+  ]);
   const noop = () => {};
   return (
     <main className="app-shell">
@@ -269,34 +274,34 @@ function App() {
         >
           <div className="board-transition-layer board-transition-old-layer">
             <GameBoard
-            board={game.board}
-            level={game.level}
-            levelIndex={game.levelIndex}
-            mistakeCell={game.mistakeCell}
-            correctCell={game.correctCell}
-            hintCells={hintCells}
-            hintExcluded={
+              board={game.board}
+              level={game.level}
+              levelIndex={game.levelIndex}
+              mistakeCell={game.mistakeCell}
+              correctCell={game.correctCell}
+              hintCells={hintCells}
+              hintExcluded={
               game.hintRevealed ? game.hintInfo?.eliminate : undefined
             }
-            hintTarget={
+              hintTarget={
               game.hintInfo && game.hintRevealed
                 ? game.hintInfo.cell
                 : undefined
             }
-            cellFeedback={game.cellFeedback}
-            coachCell={coachCell === -1 ? undefined : coachCell}
-            coachLabel={coachLabel}
-            celebrateCats={game.won}
-            transitionProgress={levelTransitionProgress}
-            transitionRole={levelTransitionProgress > 0 ? 'old' : undefined}
-            onToggleCat={game.gestures.toggleCat}
-            onKeyboardMark={game.gestures.keyboardMark}
-            onPointerDown={game.gestures.pointerDown}
-            onPointerMove={game.gestures.pointerMove}
-            onPointerEnd={game.gestures.pointerEnd}
-            onPointerCancel={game.gestures.pointerCancel}
-            onMouseLeave={game.gestures.finishMouseDragOnLeave}
-            />
+              cellFeedback={game.cellFeedback}
+              coachCell={coachCell === -1 ? undefined : coachCell}
+              coachLabel={coachLabel}
+              celebrateCats={game.won}
+              transitionProgress={levelTransitionProgress}
+              transitionRole={levelTransitionProgress > 0 ? 'old' : undefined}
+              onToggleCat={game.gestures.toggleCat}
+              onKeyboardMark={game.gestures.keyboardMark}
+              onPointerDown={game.gestures.pointerDown}
+              onPointerMove={game.gestures.pointerMove}
+              onPointerEnd={game.gestures.pointerEnd}
+              onPointerCancel={game.gestures.pointerCancel}
+              onMouseLeave={game.gestures.finishMouseDragOnLeave}
+              />
           </div>
           {transitionPreview && levelTransitionProgress > 0 && (
             <div
