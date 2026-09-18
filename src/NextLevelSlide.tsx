@@ -106,22 +106,24 @@ export function NextLevelSlide({ ready, onNext, onProgress }: Props) {
         ),
       );
     };
+    const blur = () => cancelDrag(true);
+    const resize = () => cancelDrag(false);
     const hide = () => {
       if (document.visibilityState === 'hidden') cancelDrag(false);
     };
     const observer = new ResizeObserver(measure);
     if (track.current) observer.observe(track.current);
     measure();
-    window.addEventListener('blur', cancelDrag);
-    window.addEventListener('resize', cancelDrag);
+    window.addEventListener('blur', blur);
+    window.addEventListener('resize', resize);
     document.addEventListener('visibilitychange', hide);
     return () => {
       mounted.current = false;
       drag.current = null;
       stopReturn();
       observer.disconnect();
-      window.removeEventListener('blur', cancelDrag);
-      window.removeEventListener('resize', cancelDrag);
+      window.removeEventListener('blur', blur);
+      window.removeEventListener('resize', resize);
       document.removeEventListener('visibilitychange', hide);
     };
   }, [cancelDrag, stopReturn]);
