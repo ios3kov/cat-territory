@@ -180,7 +180,11 @@ export function useGameController(autoMarksEnabled: boolean) {
     setHistory,
     disabled: won || restartingFromMistakes || mistakeCell !== null,
     fixedCells,
-    onBoardInteraction: dismissHint,
+    onBoardInteraction: () => {
+      dismissHint();
+      setIdleHelpVisible(false);
+      clearTimer(idleHelpTimer);
+    },
     onCellChange: (idx, mode, source) => {
       const kind =
         source === 'swipe'
@@ -264,13 +268,20 @@ export function useGameController(autoMarksEnabled: boolean) {
   useEffect(() => {
     setIdleHelpVisible(false);
     clearTimer(idleHelpTimer);
-    if (timerStarted && !won && !restartingFromMistakes)
+    if (timerStarted && !won && !restartingFromMistakes && !hintInfo)
       idleHelpTimer.current = window.setTimeout(
         () => setIdleHelpVisible(true),
         45000,
       );
     return () => clearTimer(idleHelpTimer);
-  }, [board, levelIndex, timerStarted, won, restartingFromMistakes]);
+  }, [
+    board,
+    hintInfo,
+    levelIndex,
+    timerStarted,
+    won,
+    restartingFromMistakes,
+  ]);
   useEffect(() => {
     if (!solved || won) return;
     setWon(true);
