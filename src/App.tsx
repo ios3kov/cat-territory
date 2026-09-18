@@ -226,8 +226,8 @@ function App() {
   }, [game.levelIndex, game.nextLevel, transitionPreviewReady]);
   useEffect(() => {
     if (handoffLevelIndex !== game.levelIndex) return;
-    const frame = requestAnimationFrame(() => setHandoffLevelIndex(null));
-    return () => cancelAnimationFrame(frame);
+    const timer = window.setTimeout(() => setHandoffLevelIndex(null), 220);
+    return () => window.clearTimeout(timer);
   }, [game.levelIndex, handoffLevelIndex]);
   const noop = () => {};
   return (
@@ -432,13 +432,14 @@ function App() {
             </ContextPanel>
           ) : (
             <div
-              key={game.level.id}
-              className={`action-dock ${game.won ? 'is-won' : ''} ${game.completionReady ? 'is-complete' : ''}`}
+              className={`action-dock ${game.won ? 'is-won' : ''} ${game.completionReady ? 'is-complete' : ''} ${handoffLevelIndex === game.levelIndex ? 'is-handoff' : ''}`}
             >
               <div
                 className="action-row"
-                inert={game.won}
-                aria-hidden={game.won || undefined}
+                inert={game.won || handoffLevelIndex === game.levelIndex}
+                aria-hidden={
+                  game.won || handoffLevelIndex === game.levelIndex || undefined
+                }
               >
                 <button
                   className="undo-action"
@@ -493,9 +494,9 @@ function App() {
                   <span>{game.restartArmed ? 'Restart?' : 'Restart'}</span>
                 </button>
               </div>
-              {game.won && (
+              {(game.won || handoffLevelIndex === game.levelIndex) && (
                 <NextLevelSlide
-                  ready={game.completionReady}
+                  ready={game.won && game.completionReady}
                   onNext={advanceLevel}
                   onProgress={setBoardTransitionProgress}
                 />

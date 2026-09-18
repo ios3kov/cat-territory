@@ -268,6 +268,118 @@ test('releasing below the threshold animates the slider and board back to zero',
   );
 });
 
+test('completed drag holds at the endpoint before the dock morphs back', async ({
+  page,
+  isMobile,
+}) => {
+  await win(page, isMobile, 0, true);
+  const bounds = (await track(page).boundingBox())!;
+  const thumb = (await slider(page).boundingBox())!;
+  const x = thumb.x + thumb.width / 2,
+    y = thumb.y + thumb.height / 2,
+    travel = bounds.width - thumb.width;
+
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + travel * 0.9, y, { steps: 12 });
+  await expect(slider(page)).toHaveAttribute('data-progress', '90');
+  await expect(page.getByRole('grid')).toHaveAttribute(
+    'aria-label',
+    /Puzzle level 1,/,
+  );
+
+  await page.evaluate(() => {
+    const slide = document.querySelector<HTMLElement>(
+      '[data-testid="next-level-slide"]',
+    )!;
+    const board = document.querySelector<HTMLElement>('.board-stage')!;
+    const timeline: Array<{
+      state: string | null;
+      time: number;
+      progress: number;
+    }> = [];
+    const samples: Array<{
+      state: string | null;
+      slider: number;
+      board: number;
+    }> = [];
+    const snapshot = () => ({
+      state: slide.dataset.state ?? null,
+      time: performance.now(),
+      progress: Number(
+        getComputedStyle(slide).getPropertyValue('--slide-progress'),
+      ),
+    });
+    timeline.push(snapshot());
+    const observer = new MutationObserver(() => timeline.push(snapshot()));
+    observer.observe(slide, {
+      attributes: true,
+      attributeFilter: ['data-state'],
+    });
+    const sample = () => {
+      if (!slide.isConnected) return;
+      samples.push({
+        state: slide.dataset.state ?? null,
+        slider: Number(
+          getComputedStyle(slide).getPropertyValue('--slide-progress'),
+        ),
+        board: Number(
+          getComputedStyle(board).getPropertyValue(
+            '--level-transition-progress',
+          ),
+        ),
+      });
+      requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+    (window as any).__slideTimeline = timeline;
+    (window as any).__slideSamples = samples;
+    (window as any).__slideObserver = observer;
+  });
+
+  await page.mouse.up();
+  await expect(page.getByRole('grid')).toHaveAttribute(
+    'aria-label',
+    /Puzzle level 2,/,
+  );
+  await expect(track(page)).toHaveCount(0);
+  await expect(page.locator('.action-dock')).not.toHaveClass(/is-handoff/);
+  await expect(page.locator('.action-row')).toBeVisible();
+
+  const recorded = await page.evaluate(() => {
+    (window as any).__slideObserver?.disconnect();
+    return {
+      timeline: (window as any).__slideTimeline as Array<{
+        state: string | null;
+        time: number;
+        progress: number;
+      }>,
+      samples: (window as any).__slideSamples as Array<{
+        state: string | null;
+        slider: number;
+        board: number;
+      }>,
+    };
+  });
+  const confirmed = recorded.timeline.find(
+    (item) => item.state === 'confirmed',
+  );
+  const handoff = recorded.timeline.find((item) => item.state === 'handoff');
+  expect(recorded.timeline.some((item) => item.state === 'settling')).toBe(
+    true,
+  );
+  expect(confirmed?.progress).toBe(1);
+  expect(handoff).toBeTruthy();
+  expect(handoff!.time - confirmed!.time).toBeGreaterThanOrEqual(120);
+
+  const settlingSamples = recorded.samples.filter(
+    (sample) => sample.state === 'settling',
+  );
+  expect(settlingSamples.length).toBeGreaterThan(0);
+  for (const sample of settlingSamples)
+    expect(Math.abs(sample.slider - sample.board)).toBeLessThan(0.000001);
+});
+
 test('tap, edge clicks, short drags, backtracking and extra keys cannot advance', async ({
   page,
   isMobile,
@@ -453,6 +565,7 @@ test('slow generation keeps the solved board; failure retries in the slider with
   await expect(slider(page)).toHaveAttribute('data-disabled', 'false');
   await page.waitForTimeout(350);
   await slideToNext(page);
+  await expect(track(page)).toHaveAttribute('data-state', 'loading');
   expect(await page.evaluate(() => (window as any).__workerCalls)).toBe(2);
   await page.evaluate(
     (level) => (window as any).__worker.onmessage({ data: { level } }),
