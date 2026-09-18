@@ -1,6 +1,6 @@
 import {
   memo,
-  useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -23,6 +23,7 @@ type Props = {
   coachCell?: number;
   coachLabel?: string;
   celebrateCats?: boolean;
+  skipAssembly?: boolean;
   transitionRole?: 'old' | 'new';
   onToggleCat: (idx: number) => void;
   onKeyboardMark: (idx: number) => void;
@@ -90,6 +91,7 @@ function GameBoardView({
   coachCell,
   coachLabel,
   celebrateCats = false,
+  skipAssembly = false,
   transitionRole,
   onToggleCat,
   onKeyboardMark,
@@ -133,12 +135,18 @@ function GameBoardView({
     return order;
   }, [board, celebrateCats]);
   const [assembling, setAssembling] = useState(true);
-  useEffect(() => {
+  const skipAssemblyRef = useRef(skipAssembly);
+  skipAssemblyRef.current = skipAssembly;
+  useLayoutEffect(() => {
     setFocusIndex(
       Array.from({ length: size * size }, (_, i) => i).find(
         (i) => !starterCats.has(i),
       ) ?? 0,
     );
+    if (skipAssemblyRef.current) {
+      setAssembling(false);
+      return;
+    }
     setAssembling(true);
     const timer = window.setTimeout(() => setAssembling(false), 800);
     return () => clearTimeout(timer);
