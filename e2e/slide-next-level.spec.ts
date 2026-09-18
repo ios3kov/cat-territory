@@ -293,11 +293,14 @@ test('completed drag holds at the endpoint before the dock morphs back', async (
   await page.waitForTimeout(30);
   const settlingProgress =
     Number(await slider(page).getAttribute('data-progress')) / 100;
-  const boardProgress = Number(
-    await page.locator('.board-stage').evaluate((element) =>
-      getComputedStyle(element).getPropertyValue('--level-transition-progress'),
-    ),
-  );
+  const boardProgress = await page
+    .locator('.board-stage')
+    .evaluate((element) => {
+      const value = getComputedStyle(element).getPropertyValue(
+        '--level-transition-progress',
+      );
+      return Number(value);
+    });
   expect(Math.abs(boardProgress - settlingProgress)).toBeLessThan(0.015);
   await expect(track(page)).toHaveAttribute('data-state', 'confirmed');
   await expect(slider(page)).toHaveAttribute('data-progress', '100');
