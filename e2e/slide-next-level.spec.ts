@@ -137,14 +137,21 @@ test('keyboard and assistive users can continue without changing the drag contra
   );
 });
 
-test('slider scrubs old and new boards with a gap and exact 80/100 endpoints', async ({
+test('slider keeps both boards aligned and scrubs a diagonal gap at 0–80 / 20–100', async ({
   page,
   isMobile,
 }) => {
   await win(page, isMobile, 0, true);
-  const oldCells = page.locator('.board-transition-old-layer .cell');
-  const newCells = page.locator('.board-transition-new-layer .cell');
+  const oldLayer = page.locator('.board-transition-old-layer');
+  const newLayer = page.locator('.board-transition-new-layer');
+  const oldCells = oldLayer.locator('.cell');
+  const newCells = newLayer.locator('.cell');
   await expect(newCells.first()).toHaveCount(1);
+
+  const oldBoard = (await oldLayer.locator('.board-wrap').boundingBox())!;
+  const newBoard = (await newLayer.locator('.board-wrap').boundingBox())!;
+  for (const dimension of ['x', 'y', 'width', 'height'] as const)
+    expect(newBoard[dimension]).toBeCloseTo(oldBoard[dimension], 0);
 
   const trackBounds = (await track(page).boundingBox())!;
   const thumbBounds = (await slider(page).boundingBox())!;
@@ -155,10 +162,10 @@ test('slider scrubs old and new boards with a gap and exact 80/100 endpoints', a
   const moveTo = async (fraction: number) => {
     await page.mouse.move(startX, y);
     await page.mouse.down();
-    await page.mouse.move(startX + travel * fraction, y, { steps: 12 });
+    await page.mouse.move(startX + travel * fraction, y, { steps: 16 });
   };
   const reset = async () => {
-    await page.mouse.move(startX, y, { steps: 8 });
+    await page.mouse.move(startX, y, { steps: 10 });
     await page.mouse.up();
     await expect(slider(page)).toHaveAttribute('data-progress', '0');
     await page.waitForTimeout(350);
@@ -182,11 +189,13 @@ test('slider scrubs old and new boards with a gap and exact 80/100 endpoints', a
     cells.map((cell) => Number(getComputedStyle(cell).opacity)),
   );
   const size = Math.sqrt(oldOpacity.length);
-  for (let column = 0; column < size; column++) {
-    const oldVisible = oldOpacity[column] > 0.05;
-    const newVisible = newOpacity[column] > 0.05;
-    expect(oldVisible && newVisible).toBe(false);
-  }
+  for (let row = 0; row < size; row++)
+    for (let column = 0; column < size; column++) {
+      const index = row * size + column;
+      expect(oldOpacity[index] > 0.05 && newOpacity[index] > 0.05).toBe(false);
+    }
+  expect(oldOpacity[1]).toBeLessThan(oldOpacity[size - 1]);
+  expect(oldOpacity[size]).toBeLessThan(oldOpacity[(size - 1) * size]);
   await reset();
 
   await moveTo(0.8);
