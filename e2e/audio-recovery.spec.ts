@@ -252,7 +252,7 @@ test('first touch release retries audio blocked at touch start without waiting f
   ).toBeGreaterThan(before);
 });
 
-test('cold touch creates audio only on release and preserves the first cue during slow startup', async ({
+test('cold touch starts audio on press and preserves the first cue during slow startup', async ({
   page,
 }) => {
   await page.evaluate(() => {
@@ -260,15 +260,11 @@ test('cold touch creates audio only on release and preserves the first cue durin
     document.dispatchEvent(
       new PointerEvent('pointerdown', { pointerType: 'touch' }),
     );
-    document.dispatchEvent(new Event('touchstart'));
   });
   expect(await page.evaluate(() => window.audioRecovery.contexts.length)).toBe(
-    0,
+    1,
   );
   await page.evaluate(async () => {
-    document.dispatchEvent(
-      new PointerEvent('pointerup', { pointerType: 'touch' }),
-    );
     const audio = await import('/src/audio.ts');
     audio.playSound('mark');
   });

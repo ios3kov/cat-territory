@@ -14,6 +14,7 @@ let installed = false;
 let outputReady = false;
 let pendingCue: PendingCue | null = null;
 let resuming: Promise<void> | null = null;
+let resumingFromGesture = false;
 
 export const readSoundEnabled = () => enabled;
 const visible = () => document.visibilityState !== 'hidden';
@@ -34,6 +35,7 @@ function ensureOutput(allowCreation = false) {
     output = null;
     outputReady = false;
     resuming = null;
+    resumingFromGesture = false;
     pendingCue = null;
   }
   if (!output && allowCreation) {
@@ -100,8 +102,9 @@ export async function unlockAudio(fromGesture = false) {
     flushCue(current);
     return;
   }
-  // A fresh gesture must be allowed to retry a resume pending since tab activation.
-  if (resuming && !fromGesture) return resuming;
+  // A real gesture may replace an older non-gesture resume attempt, but the
+  // pointerdown/pointerup/touchend events from one tap must share one resume.
+  if (resuming && (!fromGesture || resumingFromGesture)) return resuming;
   prime(current.context);
   const attempt = current.context
     .resume()
@@ -114,9 +117,11 @@ export async function unlockAudio(fromGesture = false) {
       // Autoplay policy or an OS interruption can require another user gesture.
     });
   resuming = attempt;
+  resumingFromGesture = fromGesture;
   await attempt;
   if (resuming === attempt) {
     resuming = null;
+    resumingFromGesture = false;
     // A game event can arrive between the resume callback and this continuation.
     // Flush that cue now rather than waiting for an unrelated later gesture.
     flushCue(current);
@@ -153,15 +158,12 @@ export function installAudioUnlock() {
     if (enabled) void unlockAudio(true);
   };
   // Keep these listeners: iOS can interrupt an already-unlocked context later.
-  document.addEventListener(
-    'pointerdown',
-    (event) => {
-      if (event.pointerType === 'mouse') unlock();
-    },
-    true,
-  );
-  // Do not construct a cold context at touchstart: touch activation arrives
-  // on release. A first swipe can queue its latest cue until that release.
+  // Start the audio session at the earliest real gesture. On iOS/WebKit a
+  // cold AudioContext may need the whole tap duration before it can emit the
+  // first game cue, so waiting until release can make tap #1 silent.
+  document.addEventListener('pointerdown', unlock, true);
+  // Keep release listeners as retries for browsers/OS states that reject the
+  // first resume attempt or interrupt an already-created context.
   document.addEventListener('pointerup', unlock, true);
   document.addEventListener('touchend', unlock, {
     capture: true,

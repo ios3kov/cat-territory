@@ -475,14 +475,16 @@ h1 {
   background: #f7f4f0 !important;
 }
 .hint-action {
-  color: #4d5b9a;
-  background: #f1f2f8 !important;
+  color: #746d66;
+  background: #f7f4f0 !important;
 }
 .restart-armed {
   color: #9b3531 !important;
   background: #f5dfdc !important;
 }
 .hint-attention {
+  color: #4d5b9a;
+  background: #f1f2f8 !important;
   animation: hint-pulse 1.8s ease-in-out infinite;
 }
 .context-panel {
