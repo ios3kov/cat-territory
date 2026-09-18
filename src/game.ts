@@ -3,6 +3,7 @@ import type { CatalogLevel } from './levelCatalog';
 export {
   CURATED_LEVEL_COUNT,
   getLevel,
+  peekLevel,
   levelSizeAt,
   prewarmLevel,
   prepareLevel,
