@@ -29,9 +29,11 @@ test.beforeEach(async ({ page }) => {
 
 test('first board interaction emits haptic feedback when vibration is supported', async ({
   page,
+  isMobile,
 }) => {
   const cell = page.locator('[data-cell-index="9"]');
-  await cell.click();
+  if (isMobile) await cell.tap();
+  else await cell.click();
   await expect(cell.locator('.mark-x')).toHaveCount(1);
   expect(await page.evaluate(() => window.hapticCalls.length)).toBeGreaterThan(
     0,
