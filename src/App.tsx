@@ -21,6 +21,7 @@ import { GameBoard } from './GameBoard';
 import { haptic } from './haptics';
 import { MistakeIndicator } from './MistakeIndicator';
 import { getProgressionMeta } from './progression';
+import { createInitialBoard, getLevel } from './game';
 import { storageGet, storageSet } from './storage';
 import { useGameController } from './useGameController';
 const RulesDialog = lazy(() =>
@@ -44,6 +45,7 @@ function App() {
     [showAchievements, setShowAchievements] = useState(false),
     [soundEnabled, setSoundEnabledState] = useState(readSoundEnabled),
     [rankPulse, setRankPulse] = useState(false),
+    [levelTransitionProgress, setLevelTransitionProgress] = useState(0),
     [coachStep, setCoachStep] = useState<CoachStep>(readCoachStep);
   const progression = getProgressionMeta(game.levelIndex),
     previousProgression = useRef({
@@ -171,6 +173,15 @@ function App() {
         ? 'Mark X'
         : 'Check this';
   const achievementNotice = game.achievementToast;
+  const transitionPreview = useMemo(() => {
+    if (!game.won || !game.completionReady) return null;
+    const nextLevel = getLevel(game.levelIndex + 1);
+    return {
+      level: nextLevel,
+      board: createInitialBoard(nextLevel),
+    };
+  }, [game.won, game.completionReady, game.levelIndex]);
+  const noop = () => {};
   return (
     <main className="app-shell">
       <section
@@ -253,8 +264,9 @@ function App() {
           <MistakeIndicator count={game.mistakes} />
         </div>
         <div
-          className={`board-stage ${game.levelLeaving ? 'level-leaving' : ''}`}
+          className={`board-stage ${levelTransitionProgress > 0 ? 'is-scrubbing' : ''}`}
         >
+          <div className="board-transition-layer board-transition-old-layer">
           <GameBoard
             board={game.board}
             level={game.level}
@@ -274,6 +286,8 @@ function App() {
             coachCell={coachCell === -1 ? undefined : coachCell}
             coachLabel={coachLabel}
             celebrateCats={game.won}
+            transitionProgress={levelTransitionProgress}
+            transitionRole={levelTransitionProgress > 0 ? 'old' : undefined}
             onToggleCat={game.gestures.toggleCat}
             onKeyboardMark={game.gestures.keyboardMark}
             onPointerDown={game.gestures.pointerDown}
@@ -282,6 +296,25 @@ function App() {
             onPointerCancel={game.gestures.pointerCancel}
             onMouseLeave={game.gestures.finishMouseDragOnLeave}
           />
+          </div>
+          {transitionPreview && levelTransitionProgress > 0 && (
+            <div className="board-transition-layer board-transition-new-layer" aria-hidden="true">
+              <GameBoard
+                board={transitionPreview.board}
+                level={transitionPreview.level}
+                levelIndex={game.levelIndex + 1}
+                transitionProgress={levelTransitionProgress}
+                transitionRole="new"
+                onToggleCat={noop}
+                onKeyboardMark={noop}
+                onPointerDown={noop}
+                onPointerMove={noop}
+                onPointerEnd={noop}
+                onPointerCancel={noop}
+                onMouseLeave={noop}
+              />
+            </div>
+          )}
         </div>
         <div className="context-slot">
           {!game.won && game.mistakeNotice ? (
@@ -409,6 +442,7 @@ function App() {
                 <NextLevelSlide
                   ready={game.completionReady}
                   onNext={game.nextLevel}
+                  onProgress={setLevelTransitionProgress}
                 />
               )}
             </div>
