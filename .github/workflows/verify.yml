@@ -24,7 +24,11 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run format:check
+      - name: Debug audit format
+        run: |
+          npm run format
+          git diff -- e2e/audit.spec.ts
+          git diff --exit-code
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run build
