@@ -17,33 +17,33 @@ async function start(page: Page) {
   await expect(page.getByRole('grid')).toBeVisible();
 }
 
-test('next level starts preparing in the background while the current level is being played', async ({
-  page,
-}) => {
-  await page.addInitScript(() => {
-    const OriginalWorker = window.Worker;
-    (window as any).prewarmIndices = [];
-    window.Worker = class extends OriginalWorker {
-      postMessage(message: any, options?: any) {
-        if (Number.isInteger(message?.index))
-          (window as any).prewarmIndices.push(message.index);
-        return super.postMessage(message, options);
-      }
-    };
-  });
-  await start(page);
-  await expect
-    .poll(
-      () => page.evaluate(() => (window as any).prewarmIndices as number[]),
-      { timeout: 3000 },
-    )
-    .toContain(1);
-  await expect(page.getByRole('grid')).toHaveAttribute(
-    'aria-label',
-    /Puzzle level 1,/,
-  );
-});
-
+test(
+  'next level starts preparing in the background while the current level is being played',
+  async ({ page }) => {
+    await page.addInitScript(() => {
+      const OriginalWorker = window.Worker;
+      (window as any).prewarmIndices = [];
+      window.Worker = class extends OriginalWorker {
+        postMessage(message: any, options?: any) {
+          if (Number.isInteger(message?.index))
+            (window as any).prewarmIndices.push(message.index);
+          return super.postMessage(message, options);
+        }
+      };
+    });
+    await start(page);
+    await expect
+      .poll(
+        () => page.evaluate(() => (window as any).prewarmIndices as number[]),
+        { timeout: 3000 },
+      )
+      .toContain(1);
+    await expect(page.getByRole('grid')).toHaveAttribute(
+      'aria-label',
+      /Puzzle level 1,/,
+    );
+  },
+);
 
 test('hint on an untouched board is persisted and restartable', async ({
   page,
