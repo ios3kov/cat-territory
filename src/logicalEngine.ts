@@ -275,7 +275,9 @@ function userHint(c: C, board: BoardCell[]): LogicalHint | null {
   if (!visible) return null;
   for (let step = 0; step < c.count * 20; step++) {
     const next =
-      single(c, visible) ?? intersection(c, visible) ?? contradiction(c, visible);
+      single(c, visible) ??
+      intersection(c, visible) ??
+      contradiction(c, visible);
     if (!next) return null;
     if (next.kind === 'place') {
       if (board[next.cell] === 1)
