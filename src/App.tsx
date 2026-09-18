@@ -298,7 +298,7 @@ function App() {
           />
           </div>
           {transitionPreview && levelTransitionProgress > 0 && (
-            <div className="board-transition-layer board-transition-new-layer" aria-hidden="true">
+            <div className="board-transition-layer board-transition-new-layer" aria-hidden="true" inert>
               <GameBoard
                 board={transitionPreview.board}
                 level={transitionPreview.level}
