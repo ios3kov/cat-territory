@@ -184,6 +184,11 @@ export function useGameController(autoMarksEnabled: boolean) {
       dismissHint();
       setIdleHelpVisible(false);
       clearTimer(idleHelpTimer);
+      if (timerStarted && !won && !restartingFromMistakes)
+        idleHelpTimer.current = window.setTimeout(
+          () => setIdleHelpVisible(true),
+          45000,
+        );
     },
     onCellChange: (idx, mode, source) => {
       const kind =
