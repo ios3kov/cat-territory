@@ -270,6 +270,43 @@ function apply(c: C, s: State, h: LogicalHint) {
   } else if (h.kind === 'eliminate')
     for (const x of h.eliminate ?? [h.cell]) s.candidates.delete(x);
 }
+function userHint(c: C, board: BoardCell[]): LogicalHint | null {
+  const visible = state(c, board, false);
+  if (!visible) return null;
+  for (let step = 0; step < c.count * 20; step++) {
+    const next =
+      single(c, visible) ?? intersection(c, visible) ?? contradiction(c, visible);
+    if (!next) return null;
+    if (next.kind === 'place') {
+      if (board[next.cell] === 1)
+        return {
+          kind: 'repair',
+          cell: next.cell,
+          highlight: [next.cell],
+          focus: next.focus,
+          prompt: 'This X conflicts with a forced cat.',
+          reason: `${next.reason} Remove the X here before continuing.`,
+          technique: 'repair',
+        };
+      if (board[next.cell] !== 2) return next;
+      apply(c, visible, next);
+      continue;
+    }
+    const targets = (next.eliminate ?? [next.cell]).filter(
+      (cell) => !visible.cats.has(cell),
+    );
+    const remaining = targets.filter((cell) => board[cell] !== 1);
+    if (remaining.length)
+      return {
+        ...next,
+        cell: remaining[0],
+        eliminate: remaining,
+        highlight: [...(next.focus ?? []), ...remaining],
+      };
+    apply(c, visible, next);
+  }
+  return null;
+}
 function boardSolvable(c: C, b: BoardCell[]) {
   const s = state(c, b);
   return Boolean(s && solvable(c, s));
