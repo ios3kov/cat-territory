@@ -234,7 +234,7 @@ test('releasing below the threshold animates the slider and board back to zero',
   isMobile,
 }) => {
   await win(page, isMobile, 0, true);
-  const oldCell = page.locator('.board-transition-old-layer .cell').first();
+  const oldCells = page.locator('.board-transition-old-layer .cell');
   const bounds = (await track(page).boundingBox())!;
   const thumb = (await slider(page).boundingBox())!;
   const x = thumb.x + thumb.width / 2,
@@ -243,19 +243,23 @@ test('releasing below the threshold animates the slider and board back to zero',
   await page.mouse.move(x, y);
   await page.mouse.down();
   await page.mouse.move(x + travel * 0.6, y, { steps: 12 });
-  const draggedOpacity = Number(
-    await oldCell.evaluate((el) => getComputedStyle(el).opacity),
-  );
+  const draggedVisible = (
+    await oldCells.evaluateAll((cells) =>
+      cells.map((el) => Number(getComputedStyle(el).opacity)),
+    )
+  ).reduce((sum, opacity) => sum + opacity, 0);
   await page.mouse.up();
   await expect(track(page)).toHaveAttribute('data-state', 'returning');
   await page.waitForTimeout(70);
   const midProgress = Number(await slider(page).getAttribute('data-progress'));
   expect(midProgress).toBeGreaterThan(0);
   expect(midProgress).toBeLessThan(60);
-  const midOpacity = Number(
-    await oldCell.evaluate((el) => getComputedStyle(el).opacity),
-  );
-  expect(midOpacity).toBeGreaterThan(draggedOpacity);
+  const midVisible = (
+    await oldCells.evaluateAll((cells) =>
+      cells.map((el) => Number(getComputedStyle(el).opacity)),
+    )
+  ).reduce((sum, opacity) => sum + opacity, 0);
+  expect(midVisible).toBeGreaterThan(draggedVisible);
   await expect(slider(page)).toHaveAttribute('data-progress', '0');
   await expect(track(page)).toHaveAttribute('data-state', 'idle');
   await expect(page.getByRole('grid')).toHaveAttribute(
