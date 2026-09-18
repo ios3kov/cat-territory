@@ -108,6 +108,7 @@ test('victory stays on the board and four actions morph without changing the doc
     'aria-label',
     /Puzzle level 2,/,
   );
+  await expect(page.getByRole('grid')).not.toHaveClass(/board-assembling/);
   await expect(slider(page)).toHaveCount(0);
   await expect(page.locator('.action-row button')).toHaveCount(4);
   await expect(
@@ -137,7 +138,7 @@ test('keyboard and assistive users can continue without changing the drag contra
   );
 });
 
-test('slider keeps both boards aligned and scrubs a diagonal gap at 0–80 / 20–100', async ({
+test('slider keeps both boards aligned with an 8% scrub gap and no post-slide redraw', async ({
   page,
   isMobile,
 }) => {
@@ -175,10 +176,14 @@ test('slider keeps both boards aligned and scrubs a diagonal gap at 0–80 / 20�
       await locator.evaluate((element) => getComputedStyle(element).opacity),
     );
 
+  await moveTo(0.08);
+  expect(await opacity(newCells.first())).toBeLessThan(0.05);
+  await reset();
+
   await moveTo(0.2);
   expect(await opacity(oldCells.first())).toBeLessThan(0.05);
   expect(await opacity(oldCells.last())).toBeGreaterThan(0.95);
-  expect(await opacity(newCells.first())).toBeLessThan(0.05);
+  expect(await opacity(newCells.first())).toBeGreaterThan(0.05);
   await reset();
 
   await moveTo(0.5);
