@@ -222,11 +222,6 @@
   inset: 0;
   pointer-events: none;
 }
-.board-stage.is-scrubbing .board-transition-old-layer,
-.board-stage.is-scrubbing .board-transition-new-layer {
-  position: absolute;
-  inset: 0;
-}
 .cell.board-transition-old,
 .cell.board-transition-new {
   will-change: transform, opacity;
@@ -236,7 +231,7 @@
   opacity: clamp(
     0,
     calc(
-      (var(--transition-cell) - (var(--transition-progress) * 1.25)) * 14 + 1
+      (var(--transition-cell) - (var(--level-transition-progress, 0) * 1.25)) * 14 + 0.5
     ),
     1
   );
@@ -244,7 +239,7 @@
     clamp(
       0.72,
       calc(
-        (var(--transition-cell) - (var(--transition-progress) * 1.25)) * 3 + 1
+        (var(--transition-cell) - (var(--level-transition-progress, 0) * 1.25)) * 3 + 0.85
       ),
       1
     )
@@ -254,8 +249,8 @@
   opacity: clamp(
     0,
     calc(
-      (((var(--transition-progress) - 0.2) * 1.25) - var(--transition-cell)) *
-        14 + 1
+      (((var(--level-transition-progress, 0) - 0.2) * 1.25) - var(--transition-cell)) *
+        14 + 0.5
     ),
     1
   );
@@ -263,8 +258,8 @@
     clamp(
       0.72,
       calc(
-        (((var(--transition-progress) - 0.2) * 1.25) - var(--transition-cell)) *
-          3 + 1
+        (((var(--level-transition-progress, 0) - 0.2) * 1.25) - var(--transition-cell)) *
+          3 + 0.85
       ),
       1
     )
