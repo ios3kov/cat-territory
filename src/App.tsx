@@ -209,14 +209,14 @@ function App() {
   );
   const advanceLevel = useCallback(async () => {
     const target = game.levelIndex + 1;
-    setHandoffLevelIndex(target);
+    setHandoffLevelIndex(transitionPreviewReady ? target : null);
     try {
       await game.nextLevel();
     } catch (error) {
       setHandoffLevelIndex(null);
       throw error;
     }
-  }, [game.levelIndex, game.nextLevel]);
+  }, [game.levelIndex, game.nextLevel, transitionPreviewReady]);
   useEffect(() => {
     if (handoffLevelIndex !== game.levelIndex) return;
     const frame = requestAnimationFrame(() => setHandoffLevelIndex(null));
