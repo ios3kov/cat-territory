@@ -200,7 +200,10 @@ function App() {
   const boardStageRef = useRef<HTMLDivElement>(null);
   const transitionPreviewReady = Boolean(transitionPreview);
   useLayoutEffect(() => {
-    boardStageRef.current?.style.setProperty('--level-transition-progress', '0');
+    boardStageRef.current?.style.setProperty(
+      '--level-transition-progress',
+      '0',
+    );
   }, [game.levelIndex]);
   const setBoardTransitionProgress = useCallback(
     (progress: number) => {
