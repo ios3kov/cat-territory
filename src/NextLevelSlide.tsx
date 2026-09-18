@@ -158,8 +158,7 @@ export function NextLevelSlide({ ready, onNext, onProgress }: Props) {
       cancelDrag(false);
       const nextTravel = Math.max(
         0,
-        (track.current?.clientWidth ?? 0) -
-          (handle.current?.offsetWidth ?? 0),
+        (track.current?.clientWidth ?? 0) - (handle.current?.offsetWidth ?? 0),
       );
       travelRef.current = nextTravel;
       setTravel(nextTravel);
