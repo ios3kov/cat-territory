@@ -40,11 +40,18 @@ test('first board interaction emits haptic feedback when vibration is supported'
 
 test('cat placement, hint and undo keep their haptic wiring', async ({
   page,
+  isMobile,
 }) => {
   const { solutionCells } = levelData(0);
-  await page
-    .locator(`[data-cell-index="${solutionCells[0]}"]`)
-    .click({ button: 'right' });
+  const catCell = page.locator(`[data-cell-index="${solutionCells[0]}"]`);
+  if (isMobile) {
+    const bounds = (await catCell.boundingBox())!;
+    const x = bounds.x + bounds.width / 2,
+      y = bounds.y + bounds.height / 2;
+    await page.touchscreen.tap(x, y);
+    await page.waitForTimeout(100);
+    await page.touchscreen.tap(x, y);
+  } else await catCell.click({ button: 'right' });
   await page.waitForTimeout(50);
   await page.getByRole('button', { name: 'Hint', exact: true }).click();
   await page.getByRole('button', { name: 'Close hint' }).click();
