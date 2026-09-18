@@ -281,13 +281,13 @@ function App() {
               correctCell={game.correctCell}
               hintCells={hintCells}
               hintExcluded={
-              game.hintRevealed ? game.hintInfo?.eliminate : undefined
-            }
+                game.hintRevealed ? game.hintInfo?.eliminate : undefined
+              }
               hintTarget={
-              game.hintInfo && game.hintRevealed
-                ? game.hintInfo.cell
-                : undefined
-            }
+                game.hintInfo && game.hintRevealed
+                  ? game.hintInfo.cell
+                  : undefined
+              }
               cellFeedback={game.cellFeedback}
               coachCell={coachCell === -1 ? undefined : coachCell}
               coachLabel={coachLabel}
@@ -301,7 +301,7 @@ function App() {
               onPointerEnd={game.gestures.pointerEnd}
               onPointerCancel={game.gestures.pointerCancel}
               onMouseLeave={game.gestures.finishMouseDragOnLeave}
-              />
+            />
           </div>
           {transitionPreview && levelTransitionProgress > 0 && (
             <div
