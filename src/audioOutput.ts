@@ -14,6 +14,7 @@ let installed = false;
 let outputReady = false;
 let pendingCue: PendingCue | null = null;
 let resuming: Promise<void> | null = null;
+let resumingFromGesture = false;
 
 export const readSoundEnabled = () => enabled;
 const visible = () => document.visibilityState !== 'hidden';
@@ -34,6 +35,7 @@ function ensureOutput(allowCreation = false) {
     output = null;
     outputReady = false;
     resuming = null;
+    resumingFromGesture = false;
     pendingCue = null;
   }
   if (!output && allowCreation) {
@@ -100,8 +102,9 @@ export async function unlockAudio(fromGesture = false) {
     flushCue(current);
     return;
   }
-  // A fresh gesture must be allowed to retry a resume pending since tab activation.
-  if (resuming && !fromGesture) return resuming;
+  // A real gesture may replace an older non-gesture resume attempt, but the
+  // pointerdown/pointerup/touchend events from one tap must share one resume.
+  if (resuming && (!fromGesture || resumingFromGesture)) return resuming;
   prime(current.context);
   const attempt = current.context
     .resume()
@@ -114,9 +117,11 @@ export async function unlockAudio(fromGesture = false) {
       // Autoplay policy or an OS interruption can require another user gesture.
     });
   resuming = attempt;
+  resumingFromGesture = fromGesture;
   await attempt;
   if (resuming === attempt) {
     resuming = null;
+    resumingFromGesture = false;
     // A game event can arrive between the resume callback and this continuation.
     // Flush that cue now rather than waiting for an unrelated later gesture.
     flushCue(current);
