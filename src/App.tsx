@@ -17,6 +17,7 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -198,6 +199,9 @@ function App() {
   ]);
   const boardStageRef = useRef<HTMLDivElement>(null);
   const transitionPreviewReady = Boolean(transitionPreview);
+  useLayoutEffect(() => {
+    boardStageRef.current?.style.setProperty('--level-transition-progress', '0');
+  }, [game.levelIndex]);
   const setBoardTransitionProgress = useCallback(
     (progress: number) => {
       boardStageRef.current?.style.setProperty(
