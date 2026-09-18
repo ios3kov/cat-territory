@@ -24,7 +24,11 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run format:check
+      - name: Debug format diff
+        run: |
+          npm run format
+          git diff -- src/useGameController.ts e2e/haptics.spec.ts e2e/logic.spec.ts
+          git diff --exit-code
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run build
