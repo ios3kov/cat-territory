@@ -71,6 +71,7 @@ export function useGameController(autoMarksEnabled: boolean) {
     [restartingFromMistakes, setRestartingFromMistakes] = useState(false),
     [won, setWon] = useState(false),
     [completionReady, setCompletionReady] = useState(false),
+    [nextLevelPreviewRevision, setNextLevelPreviewRevision] = useState(0),
     [idleHelpVisible, setIdleHelpVisible] = useState(false),
     [achievementQueue, setAchievementQueue] = useState<Achievement[]>([]),
     [achievementCount, setAchievementCount] = useState(
@@ -317,6 +318,18 @@ export function useGameController(autoMarksEnabled: boolean) {
     won,
   ]);
   useEffect(() => {
+    if (!won) return;
+    let active = true;
+    void prepareLevel(levelIndex + 1)
+      .then(() => {
+        if (active) setNextLevelPreviewRevision((revision) => revision + 1);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [levelIndex, won]);
+  useEffect(() => {
     const current = achievementQueue[0];
     if (!current) return;
     playSound(current.secret ? 'secretAchievement' : 'achievement');
@@ -450,6 +463,7 @@ export function useGameController(autoMarksEnabled: boolean) {
     restartingFromMistakes,
     won,
     completionReady,
+    nextLevelPreviewRevision,
     restartArmed,
     conflicts,
     catCount,
