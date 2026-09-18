@@ -212,6 +212,9 @@
   color: #526742;
 }
 .board-stage {
+  --p: var(--level-transition-progress, 0);
+  --old-front: calc(var(--p) * 1.25);
+  --new-front: calc((var(--p) - 0.2) * 1.25);
   position: relative;
 }
 .board-transition-layer {
@@ -230,21 +233,13 @@
 .cell.board-transition-old {
   opacity: clamp(
     0,
-    calc(
-      (var(--transition-cell) - (var(--level-transition-progress, 0) * 1.25)) *
-        14 +
-        0.5
-    ),
+    calc((var(--transition-cell) - var(--old-front)) * 14 + 0.5),
     1
   );
   transform: scale(
     clamp(
       0.72,
-      calc(
-        (var(--transition-cell) - (var(--level-transition-progress, 0) * 1.25)) *
-          3 +
-          0.85
-      ),
+      calc((var(--transition-cell) - var(--old-front)) * 3 + 0.85),
       1
     )
   );
@@ -252,27 +247,13 @@
 .cell.board-transition-new {
   opacity: clamp(
     0,
-    calc(
-      (
-          ((var(--level-transition-progress, 0) - 0.2) * 1.25) -
-            var(--transition-cell)
-        ) *
-        14 +
-        0.5
-    ),
+    calc((var(--new-front) - var(--transition-cell)) * 14 + 0.5),
     1
   );
   transform: scale(
     clamp(
       0.72,
-      calc(
-        (
-            ((var(--level-transition-progress, 0) - 0.2) * 1.25) -
-              var(--transition-cell)
-          ) *
-          3 +
-          0.85
-      ),
+      calc((var(--new-front) - var(--transition-cell)) * 3 + 0.85),
       1
     )
   );
