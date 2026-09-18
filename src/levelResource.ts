@@ -76,7 +76,9 @@ export function getLevel(index: number): CatalogLevel {
 }
 
 export function peekLevel(index: number): CatalogLevel | undefined {
-  return resources.get(`level-${index}`)?.level ?? readGenerated(index) ?? undefined;
+  return (
+    resources.get(`level-${index}`)?.level ?? readGenerated(index) ?? undefined
+  );
 }
 
 export async function prepareLevel(index: number) {
