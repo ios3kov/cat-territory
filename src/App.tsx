@@ -268,7 +268,7 @@ function App() {
           className={`board-stage ${levelTransitionProgress > 0 ? 'is-scrubbing' : ''}`}
         >
           <div className="board-transition-layer board-transition-old-layer">
-          <GameBoard
+            <GameBoard
             board={game.board}
             level={game.level}
             levelIndex={game.levelIndex}
@@ -296,10 +296,14 @@ function App() {
             onPointerEnd={game.gestures.pointerEnd}
             onPointerCancel={game.gestures.pointerCancel}
             onMouseLeave={game.gestures.finishMouseDragOnLeave}
-          />
+            />
           </div>
           {transitionPreview && levelTransitionProgress > 0 && (
-            <div className="board-transition-layer board-transition-new-layer" aria-hidden="true" inert>
+            <div
+              className="board-transition-layer board-transition-new-layer"
+              aria-hidden="true"
+              inert
+            >
               <GameBoard
                 board={transitionPreview.board}
                 level={transitionPreview.level}
