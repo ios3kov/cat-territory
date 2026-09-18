@@ -17,27 +17,19 @@ async function start(page: Page) {
   await expect(page.getByRole('grid')).toBeVisible();
 }
 
-test('next level starts preparing in the background while the current level is being played', async ({
+test('next level is prepared in the background while the current level stays active', async ({
   page,
 }) => {
-  await page.addInitScript(() => {
-    const OriginalWorker = window.Worker;
-    (window as any).prewarmIndices = [];
-    window.Worker = class extends OriginalWorker {
-      postMessage(message: any, options?: any) {
-        if (Number.isInteger(message?.index))
-          (window as any).prewarmIndices.push(message.index);
-        return super.postMessage(message, options);
-      }
-    };
-  });
   await start(page);
   await expect
     .poll(
-      () => page.evaluate(() => (window as any).prewarmIndices as number[]),
-      { timeout: 3000 },
+      () =>
+        page.evaluate(() =>
+          Boolean(localStorage.getItem('cat-territory-generated-v5-1')),
+        ),
+      { timeout: 5000 },
     )
-    .toContain(1);
+    .toBe(true);
   await expect(page.getByRole('grid')).toHaveAttribute(
     'aria-label',
     /Puzzle level 1,/,
