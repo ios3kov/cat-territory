@@ -80,3 +80,25 @@ test('introduction can be skipped and hints show clue and move without changing 
     'running',
   );
 });
+
+
+test('Hint is visually neutral until the idle timer actually expires', async ({
+  page,
+}) => {
+  await page.clock.install();
+  await seedGeneratedLevel(page);
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Skip introduction' }).click();
+  const hint = page.getByRole('button', { name: 'Hint', exact: true });
+  await expect(hint).not.toHaveClass(/hint-attention/);
+  await page.locator('[data-cell-index="9"]').click();
+  await expect(hint).not.toHaveClass(/hint-attention/);
+  await page.clock.fastForward(45001);
+  await expect(hint).toHaveClass(/hint-attention/);
+  await hint.click();
+  await expect(hint).toHaveCount(0);
+  await page.clock.fastForward(60000);
+  await page.getByRole('button', { name: 'Close hint' }).click();
+  const restored = page.getByRole('button', { name: 'Hint', exact: true });
+  await expect(restored).not.toHaveClass(/hint-attention/);
+});
