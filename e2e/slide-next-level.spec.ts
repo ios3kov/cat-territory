@@ -293,7 +293,11 @@ test('completed drag holds at the endpoint before the dock morphs back', async (
       '[data-testid="next-level-slide"]',
     )!;
     const board = document.querySelector<HTMLElement>('.board-stage')!;
-    const timeline: Array<{ state: string | null; time: number; progress: number }> = [];
+    const timeline: Array<{
+      state: string | null;
+      time: number;
+      progress: number;
+    }> = [];
     const samples: Array<{
       state: string | null;
       slider: number;
@@ -320,7 +324,9 @@ test('completed drag holds at the endpoint before the dock morphs back', async (
           getComputedStyle(slide).getPropertyValue('--slide-progress'),
         ),
         board: Number(
-          getComputedStyle(board).getPropertyValue('--level-transition-progress'),
+          getComputedStyle(board).getPropertyValue(
+            '--level-transition-progress',
+          ),
         ),
       });
       requestAnimationFrame(sample);
@@ -355,13 +361,19 @@ test('completed drag holds at the endpoint before the dock morphs back', async (
       }>,
     };
   });
-  const confirmed = recorded.timeline.find((item) => item.state === 'confirmed');
+  const confirmed = recorded.timeline.find(
+    (item) => item.state === 'confirmed',
+  );
   const loading = recorded.timeline.find((item) => item.state === 'loading');
-  expect(recorded.timeline.some((item) => item.state === 'settling')).toBe(true);
+  expect(recorded.timeline.some((item) => item.state === 'settling')).toBe(
+    true,
+  );
   expect(confirmed?.progress).toBe(1);
   expect(loading).toBeTruthy();
   expect(loading!.time - confirmed!.time).toBeGreaterThanOrEqual(120);
-  expect(recorded.timeline.some((item) => item.state === 'handoff')).toBe(true);
+  expect(recorded.timeline.some((item) => item.state === 'handoff')).toBe(
+    true,
+  );
 
   const settlingSamples = recorded.samples.filter(
     (sample) => sample.state === 'settling',
