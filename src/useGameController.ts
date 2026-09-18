@@ -279,14 +279,7 @@ export function useGameController(autoMarksEnabled: boolean) {
         45000,
       );
     return () => clearTimer(idleHelpTimer);
-  }, [
-    board,
-    hintInfo,
-    levelIndex,
-    timerStarted,
-    won,
-    restartingFromMistakes,
-  ]);
+  }, [board, hintInfo, levelIndex, timerStarted, won, restartingFromMistakes]);
   useEffect(() => {
     if (!solved || won) return;
     setWon(true);
