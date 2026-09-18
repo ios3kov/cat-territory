@@ -229,6 +229,45 @@ test('slider keeps both boards aligned with an 8% scrub gap and no post-slide re
   await reset();
 });
 
+test('releasing below the threshold animates the slider and board back to zero', async ({
+  page,
+  isMobile,
+}) => {
+  await win(page, isMobile, 0, true);
+  const oldCells = page.locator('.board-transition-old-layer .cell');
+  const bounds = (await track(page).boundingBox())!;
+  const thumb = (await slider(page).boundingBox())!;
+  const x = thumb.x + thumb.width / 2,
+    y = thumb.y + thumb.height / 2,
+    travel = bounds.width - thumb.width;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + travel * 0.6, y, { steps: 12 });
+  const draggedVisible = (
+    await oldCells.evaluateAll((cells) =>
+      cells.map((el) => Number(getComputedStyle(el).opacity)),
+    )
+  ).reduce((sum, opacity) => sum + opacity, 0);
+  await page.mouse.up();
+  await expect(track(page)).toHaveAttribute('data-state', 'returning');
+  await page.waitForTimeout(70);
+  const midProgress = Number(await slider(page).getAttribute('data-progress'));
+  expect(midProgress).toBeGreaterThan(0);
+  expect(midProgress).toBeLessThan(60);
+  const midVisible = (
+    await oldCells.evaluateAll((cells) =>
+      cells.map((el) => Number(getComputedStyle(el).opacity)),
+    )
+  ).reduce((sum, opacity) => sum + opacity, 0);
+  expect(midVisible).toBeGreaterThan(draggedVisible);
+  await expect(slider(page)).toHaveAttribute('data-progress', '0');
+  await expect(track(page)).toHaveAttribute('data-state', 'idle');
+  await expect(page.getByRole('grid')).toHaveAttribute(
+    'aria-label',
+    /Puzzle level 1,/,
+  );
+});
+
 test('tap, edge clicks, short drags, backtracking and extra keys cannot advance', async ({
   page,
   isMobile,
@@ -308,9 +347,13 @@ for (const interrupt of ['cancel', 'lost-capture', 'blur', 'resize'] as const) {
           ),
         interrupt === 'cancel' ? 'pointercancel' : 'lostpointercapture',
       );
-    await expect(track(page)).toHaveAttribute('data-state', 'idle');
+    if (interrupt === 'resize')
+      await expect(track(page)).toHaveAttribute('data-state', 'idle');
+    else {
+      await expect(track(page)).toHaveAttribute('data-state', 'returning');
+      await expect(track(page)).toHaveAttribute('data-state', 'idle');
+    }
     await page.mouse.up();
-    await page.waitForTimeout(350);
     await expect(slider(page)).toHaveAttribute('data-progress', '0');
     await expect(page.getByRole('grid')).toHaveAttribute(
       'aria-label',
