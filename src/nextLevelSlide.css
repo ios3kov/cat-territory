@@ -212,13 +212,36 @@
   color: #526742;
 }
 .board-stage {
-  transition:
-    opacity 0.18s,
-    transform 0.18s;
+  position: relative;
 }
-.board-stage.level-leaving {
-  opacity: 0;
-  transform: translateY(-8px) scale(0.985);
+.board-transition-layer {
+  width: 100%;
+}
+.board-transition-new-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.board-stage.is-scrubbing .board-transition-old-layer,
+.board-stage.is-scrubbing .board-transition-new-layer {
+  position: absolute;
+  inset: 0;
+}
+.cell.board-transition-old,
+.cell.board-transition-new {
+  will-change: transform, opacity;
+  transform-origin: center;
+}
+.cell.board-transition-old {
+  opacity: clamp(0, calc((var(--transition-cell) - (var(--transition-progress) / 0.8)) * 14 + 1), 1);
+  transform: scale(clamp(0.72, calc((var(--transition-cell) - (var(--transition-progress) / 0.8)) * 3 + 1), 1));
+}
+.cell.board-transition-new {
+  opacity: clamp(0, calc((((var(--transition-progress) - 0.2) / 0.8) - var(--transition-cell)) * 14 + 1), 1);
+  transform: scale(clamp(0.72, calc((((var(--transition-progress) - 0.2) / 0.8) - var(--transition-cell)) * 3 + 1), 1));
+}
+.board-transition-new .board-assembling .cell {
+  animation: none !important;
 }
 .board .celebrating-cat .cat-idle-body {
   animation: cat-victory 2.4s ease-in-out infinite;
