@@ -55,7 +55,10 @@ export function NextLevelSlide({ ready, onNext, onProgress }: Props) {
   const animateReturn = useCallback(() => {
     stopReturn();
     const from = progressRef.current;
-    if (from <= 0) {
+    if (
+      from <= 0 ||
+      matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
       setScrubProgress(0);
       setPhase(restingPhase.current);
       return;
@@ -284,7 +287,9 @@ export function NextLevelSlide({ ready, onNext, onProgress }: Props) {
       <button
         type="button"
         className="slide-assistive-action"
-        disabled={!armed || !ready || phase === 'loading'}
+        disabled={
+          !armed || !ready || phase === 'loading' || phase === 'returning'
+        }
         onClick={() => void advance()}
       >
         {phase === 'error' ? 'Retry next level' : 'Continue to next level'}
