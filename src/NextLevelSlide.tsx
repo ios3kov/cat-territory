@@ -43,6 +43,7 @@ export function NextLevelSlide({ ready, onNext, onProgress }: Props) {
     mounted = useRef(false),
     restingPhase = useRef<'idle' | 'error'>('idle'),
     progressRef = useRef(0),
+    travelRef = useRef(0),
     returnFrame = useRef<number | null>(null);
   const [armed, setArmed] = useState(false),
     [phase, setPhase] = useState<Phase>('idle'),
@@ -53,6 +54,15 @@ export function NextLevelSlide({ ready, onNext, onProgress }: Props) {
     (value: number) => {
       const next = clamp(value);
       progressRef.current = next;
+      if (track.current) {
+        track.current.style.setProperty(
+          '--slide-offset',
+          `${next * travelRef.current}px`,
+        );
+        track.current.style.setProperty('--slide-progress', String(next));
+      }
+      if (handle.current)
+        handle.current.dataset.progress = String(Math.round(next * 100));
       setProgress(next);
       onProgress?.(next);
     },
@@ -146,12 +156,16 @@ export function NextLevelSlide({ ready, onNext, onProgress }: Props) {
     mounted.current = true;
     const measure = () => {
       cancelDrag(false);
-      setTravel(
-        Math.max(
-          0,
-          (track.current?.clientWidth ?? 0) -
-            (handle.current?.offsetWidth ?? 0),
-        ),
+      const nextTravel = Math.max(
+        0,
+        (track.current?.clientWidth ?? 0) -
+          (handle.current?.offsetWidth ?? 0),
+      );
+      travelRef.current = nextTravel;
+      setTravel(nextTravel);
+      track.current?.style.setProperty(
+        '--slide-offset',
+        `${progressRef.current * nextTravel}px`,
       );
     };
     const blur = () => cancelDrag(true);
