@@ -212,13 +212,36 @@
   color: #526742;
 }
 .board-stage {
-  transition:
-    opacity 0.18s,
-    transform 0.18s;
+  --p: var(--level-transition-progress, 0);
+  --old-front: calc(var(--p) * 1.25);
+  --new-front: calc((var(--p) - 0.2) * 1.25);
+  position: relative;
 }
-.board-stage.level-leaving {
-  opacity: 0;
-  transform: translateY(-8px) scale(0.985);
+.board-transition-layer {
+  width: 100%;
+}
+.board-transition-new-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.cell.board-transition-old,
+.cell.board-transition-new {
+  will-change: transform, opacity;
+  transform-origin: center;
+}
+.cell.board-transition-old {
+  --delta: calc(var(--transition-cell) - var(--old-front));
+  opacity: clamp(0, calc(var(--delta) * 14 + 0.5), 1);
+  transform: scale(clamp(0.72, calc(var(--delta) * 3 + 0.85), 1));
+}
+.cell.board-transition-new {
+  --delta: calc(var(--new-front) - var(--transition-cell));
+  opacity: clamp(0, calc(var(--delta) * 14 + 0.5), 1);
+  transform: scale(clamp(0.72, calc(var(--delta) * 3 + 0.85), 1));
+}
+.board-assembling .cell.board-transition-new {
+  animation: none !important;
 }
 .board .celebrating-cat .cat-idle-body {
   animation: cat-victory 2.4s ease-in-out infinite;

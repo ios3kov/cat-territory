@@ -75,6 +75,12 @@ export function getLevel(index: number): CatalogLevel {
   return read(`level-${index}`, { index });
 }
 
+export function peekLevel(index: number): CatalogLevel | undefined {
+  return (
+    resources.get(`level-${index}`)?.level ?? readGenerated(index) ?? undefined
+  );
+}
+
 export async function prepareLevel(index: number) {
   const key = `level-${index}`;
   if (resources.get(key)?.error) resources.delete(key);

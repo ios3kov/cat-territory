@@ -9,7 +9,11 @@ import {
 import { ChevronRight, LoaderCircle, PawPrint } from 'lucide-react';
 import { haptic } from './haptics';
 
-type Props = { ready: boolean; onNext: () => Promise<void> };
+type Props = {
+  ready: boolean;
+  onNext: () => Promise<void>;
+  onProgress?: (progress: number) => void;
+};
 type Phase = 'idle' | 'dragging' | 'loading' | 'error';
 type Drag = {
   id: number;
@@ -21,7 +25,7 @@ type Drag = {
 const THRESHOLD = 0.8;
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
 
-export function NextLevelSlide({ ready, onNext }: Props) {
+export function NextLevelSlide({ ready, onNext, onProgress }: Props) {
   const track = useRef<HTMLDivElement>(null),
     handle = useRef<HTMLDivElement>(null),
     drag = useRef<Drag | null>(null),
@@ -40,8 +44,9 @@ export function NextLevelSlide({ ready, onNext }: Props) {
     if (current.target.hasPointerCapture(current.id))
       current.target.releasePointerCapture(current.id);
     setProgress(0);
+    onProgress?.(0);
     setPhase(restingPhase.current);
-  }, []);
+  }, [onProgress]);
 
   useEffect(() => {
     mounted.current = true;
@@ -87,6 +92,7 @@ export function NextLevelSlide({ ready, onNext }: Props) {
     if (submitting.current) return;
     submitting.current = true;
     setProgress(1);
+    onProgress?.(1);
     setPhase('loading');
     haptic('next');
     try {
@@ -94,12 +100,14 @@ export function NextLevelSlide({ ready, onNext }: Props) {
       if (mounted.current) {
         restingPhase.current = 'idle';
         setProgress(0);
+        onProgress?.(0);
         setPhase('idle');
       }
     } catch {
       if (mounted.current) {
         restingPhase.current = 'error';
         setProgress(0);
+        onProgress?.(0);
         setPhase('error');
       }
     } finally {
@@ -133,6 +141,7 @@ export function NextLevelSlide({ ready, onNext }: Props) {
     };
     event.currentTarget.focus({ preventScroll: true });
     setProgress(0);
+    onProgress?.(0);
     setPhase('dragging');
   };
   const pointerMove = (event: PointerEvent<HTMLDivElement>) => {
@@ -145,7 +154,9 @@ export function NextLevelSlide({ ready, onNext }: Props) {
       cancelDrag();
       return;
     }
-    setProgress(clamp((event.clientX - current.x) / current.travel));
+    const nextProgress = clamp((event.clientX - current.x) / current.travel);
+    setProgress(nextProgress);
+    onProgress?.(nextProgress);
   };
   const pointerUp = (event: PointerEvent<HTMLDivElement>) => {
     const current = drag.current;

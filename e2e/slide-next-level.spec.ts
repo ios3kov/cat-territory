@@ -5,13 +5,19 @@ import { slideToNext } from './helpers/slide';
 const slider = (page: Page) => page.locator('.slide-handle');
 const track = (page: Page) => page.getByTestId('next-level-slide');
 
-async function start(page: Page, index = 0, almostWon = false) {
-  const level = getLevel(index);
+async function start(
+  page: Page,
+  index = 0,
+  almostWon = false,
+  seedNextLevel = false,
+) {
+  const level = getLevel(index),
+    nextLevel = seedNextLevel ? getLevel(index + 1) : null;
   const cats = level.solution.map((col, row) => row * level.size + col);
   const board = Array(level.size * level.size).fill(0);
   if (almostWon) for (const cell of cats.slice(0, -1)) board[cell] = 2;
   await page.addInitScript(
-    ({ index, level, board, almostWon }) => {
+    ({ index, level, nextLevel, board, almostWon }) => {
       if (sessionStorage.getItem('slide-test-seeded')) return;
       sessionStorage.setItem('slide-test-seeded', '1');
       localStorage.setItem('cat-territory-progress-migrated-v3', '1');
@@ -21,6 +27,11 @@ async function start(page: Page, index = 0, almostWon = false) {
         'cat-territory-generated-v5-' + index,
         JSON.stringify(level),
       );
+      if (nextLevel)
+        localStorage.setItem(
+          'cat-territory-generated-v5-' + (index + 1),
+          JSON.stringify(nextLevel),
+        );
       if (almostWon)
         localStorage.setItem(
           'cat-territory-session-v3-' + level.id,
@@ -33,7 +44,7 @@ async function start(page: Page, index = 0, almostWon = false) {
           }),
         );
     },
-    { index, level, board, almostWon },
+    { index, level, nextLevel, board, almostWon },
   );
   await page.goto('/');
   await expect(page.getByRole('grid')).toBeVisible();
@@ -56,8 +67,13 @@ async function placeCat(page: Page, index: number, touch: boolean) {
   await page.waitForTimeout(420);
 }
 
-async function win(page: Page, touch: boolean, index = 0) {
-  const cells = await start(page, index, true);
+async function win(
+  page: Page,
+  touch: boolean,
+  index = 0,
+  seedNextLevel = false,
+) {
+  const cells = await start(page, index, true, seedNextLevel);
   await placeCat(page, cells.at(-1)!, touch);
   await expect(slider(page)).toHaveAttribute('data-disabled', 'false');
 }
@@ -119,6 +135,70 @@ test('keyboard and assistive users can continue without changing the drag contra
     'aria-label',
     /Puzzle level 2,/,
   );
+});
+
+test('slider scrubs old and new boards with a gap and exact 80/100 endpoints', async ({
+  page,
+  isMobile,
+}) => {
+  await win(page, isMobile, 0, true);
+  const oldCells = page.locator('.board-transition-old-layer .cell');
+  const newCells = page.locator('.board-transition-new-layer .cell');
+  await expect(newCells.first()).toHaveCount(1);
+
+  const trackBounds = (await track(page).boundingBox())!;
+  const thumbBounds = (await slider(page).boundingBox())!;
+  const startX = thumbBounds.x + thumbBounds.width / 2;
+  const y = thumbBounds.y + thumbBounds.height / 2;
+  const travel = trackBounds.width - thumbBounds.width;
+
+  const moveTo = async (fraction: number) => {
+    await page.mouse.move(startX, y);
+    await page.mouse.down();
+    await page.mouse.move(startX + travel * fraction, y, { steps: 12 });
+  };
+  const reset = async () => {
+    await page.mouse.move(startX, y, { steps: 8 });
+    await page.mouse.up();
+    await expect(slider(page)).toHaveAttribute('data-progress', '0');
+    await page.waitForTimeout(350);
+  };
+  const opacity = async (locator: ReturnType<typeof oldCells.nth>) =>
+    Number(
+      await locator.evaluate((element) => getComputedStyle(element).opacity),
+    );
+
+  await moveTo(0.2);
+  expect(await opacity(oldCells.first())).toBeLessThan(0.05);
+  expect(await opacity(oldCells.last())).toBeGreaterThan(0.95);
+  expect(await opacity(newCells.first())).toBeLessThan(0.05);
+  await reset();
+
+  await moveTo(0.5);
+  const oldOpacity = await oldCells.evaluateAll((cells) =>
+    cells.map((cell) => Number(getComputedStyle(cell).opacity)),
+  );
+  const newOpacity = await newCells.evaluateAll((cells) =>
+    cells.map((cell) => Number(getComputedStyle(cell).opacity)),
+  );
+  const size = Math.sqrt(oldOpacity.length);
+  for (let column = 0; column < size; column++) {
+    const oldVisible = oldOpacity[column] > 0.05;
+    const newVisible = newOpacity[column] > 0.05;
+    expect(oldVisible && newVisible).toBe(false);
+  }
+  await reset();
+
+  await moveTo(0.8);
+  expect(await opacity(oldCells.last())).toBeLessThan(0.05);
+  expect(await opacity(newCells.first())).toBeGreaterThan(0.95);
+  expect(await opacity(newCells.last())).toBeLessThan(0.95);
+  await reset();
+
+  await moveTo(1);
+  expect(await opacity(oldCells.last())).toBeLessThan(0.05);
+  expect(await opacity(newCells.last())).toBeGreaterThan(0.95);
+  await reset();
 });
 
 test('tap, edge clicks, short drags, backtracking and extra keys cannot advance', async ({

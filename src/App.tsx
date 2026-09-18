@@ -12,7 +12,16 @@ import {
   VolumeX,
   X,
 } from 'lucide-react';
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react';
 import { playSound, readSoundEnabled, setSoundEnabled } from './audio';
 import { readAutoMarksEnabled, writeAutoMarksEnabled } from './autoMarks';
 import { CatProgress } from './CatProgress';
@@ -21,6 +30,7 @@ import { GameBoard } from './GameBoard';
 import { haptic } from './haptics';
 import { MistakeIndicator } from './MistakeIndicator';
 import { getProgressionMeta } from './progression';
+import { createInitialBoard, peekLevel } from './game';
 import { storageGet, storageSet } from './storage';
 import { useGameController } from './useGameController';
 const RulesDialog = lazy(() =>
@@ -171,6 +181,32 @@ function App() {
         ? 'Mark X'
         : 'Check this';
   const achievementNotice = game.achievementToast;
+  const transitionPreview = useMemo(() => {
+    if (!game.won || !game.completionReady) return null;
+    const nextLevel = peekLevel(game.levelIndex + 1);
+    if (!nextLevel) return null;
+    return {
+      level: nextLevel,
+      board: createInitialBoard(nextLevel),
+    };
+  }, [
+    game.won,
+    game.completionReady,
+    game.levelIndex,
+    game.nextLevelPreviewRevision,
+  ]);
+  const boardStageRef = useRef<HTMLDivElement>(null);
+  const transitionPreviewReady = Boolean(transitionPreview);
+  const setBoardTransitionProgress = useCallback(
+    (progress: number) => {
+      boardStageRef.current?.style.setProperty(
+        '--level-transition-progress',
+        transitionPreviewReady ? String(progress) : '0',
+      );
+    },
+    [transitionPreviewReady],
+  );
+  const noop = () => {};
   return (
     <main className="app-shell">
       <section
@@ -253,35 +289,63 @@ function App() {
           <MistakeIndicator count={game.mistakes} />
         </div>
         <div
-          className={`board-stage ${game.levelLeaving ? 'level-leaving' : ''}`}
+          ref={boardStageRef}
+          className="board-stage"
+          style={{ '--level-transition-progress': 0 } as CSSProperties}
         >
-          <GameBoard
-            board={game.board}
-            level={game.level}
-            levelIndex={game.levelIndex}
-            mistakeCell={game.mistakeCell}
-            correctCell={game.correctCell}
-            hintCells={hintCells}
-            hintExcluded={
-              game.hintRevealed ? game.hintInfo?.eliminate : undefined
-            }
-            hintTarget={
-              game.hintInfo && game.hintRevealed
-                ? game.hintInfo.cell
-                : undefined
-            }
-            cellFeedback={game.cellFeedback}
-            coachCell={coachCell === -1 ? undefined : coachCell}
-            coachLabel={coachLabel}
-            celebrateCats={game.won}
-            onToggleCat={game.gestures.toggleCat}
-            onKeyboardMark={game.gestures.keyboardMark}
-            onPointerDown={game.gestures.pointerDown}
-            onPointerMove={game.gestures.pointerMove}
-            onPointerEnd={game.gestures.pointerEnd}
-            onPointerCancel={game.gestures.pointerCancel}
-            onMouseLeave={game.gestures.finishMouseDragOnLeave}
-          />
+          <div className="board-transition-layer board-transition-old-layer">
+            <GameBoard
+              board={game.board}
+              level={game.level}
+              levelIndex={game.levelIndex}
+              mistakeCell={game.mistakeCell}
+              correctCell={game.correctCell}
+              hintCells={hintCells}
+              hintExcluded={
+                game.hintRevealed ? game.hintInfo?.eliminate : undefined
+              }
+              hintTarget={
+                game.hintInfo && game.hintRevealed
+                  ? game.hintInfo.cell
+                  : undefined
+              }
+              cellFeedback={game.cellFeedback}
+              coachCell={coachCell === -1 ? undefined : coachCell}
+              coachLabel={coachLabel}
+              celebrateCats={game.won}
+              transitionRole={
+                game.won && game.completionReady ? 'old' : undefined
+              }
+              onToggleCat={game.gestures.toggleCat}
+              onKeyboardMark={game.gestures.keyboardMark}
+              onPointerDown={game.gestures.pointerDown}
+              onPointerMove={game.gestures.pointerMove}
+              onPointerEnd={game.gestures.pointerEnd}
+              onPointerCancel={game.gestures.pointerCancel}
+              onMouseLeave={game.gestures.finishMouseDragOnLeave}
+            />
+          </div>
+          {transitionPreview && (
+            <div
+              className="board-transition-layer board-transition-new-layer"
+              aria-hidden="true"
+              inert
+            >
+              <GameBoard
+                board={transitionPreview.board}
+                level={transitionPreview.level}
+                levelIndex={game.levelIndex + 1}
+                transitionRole="new"
+                onToggleCat={noop}
+                onKeyboardMark={noop}
+                onPointerDown={noop}
+                onPointerMove={noop}
+                onPointerEnd={noop}
+                onPointerCancel={noop}
+                onMouseLeave={noop}
+              />
+            </div>
+          )}
         </div>
         <div className="context-slot">
           {!game.won && game.mistakeNotice ? (
@@ -409,6 +473,7 @@ function App() {
                 <NextLevelSlide
                   ready={game.completionReady}
                   onNext={game.nextLevel}
+                  onProgress={setBoardTransitionProgress}
                 />
               )}
             </div>
