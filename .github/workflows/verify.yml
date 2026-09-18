@@ -24,7 +24,11 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run format:check
+      - name: Debug slider format
+        run: |
+          npm run format
+          git diff -- src/NextLevelSlide.tsx
+          git diff --exit-code
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run build
