@@ -77,19 +77,22 @@ export function NextLevelSlide({ ready, onNext, onProgress }: Props) {
     };
     returnFrame.current = requestAnimationFrame(tick);
   }, [setScrubProgress, stopReturn]);
-  const cancelDrag = useCallback((animate = true) => {
-    const current = drag.current;
-    if (!current) return;
-    drag.current = null;
-    if (current.target.hasPointerCapture(current.id))
-      current.target.releasePointerCapture(current.id);
-    if (animate) animateReturn();
-    else {
-      stopReturn();
-      setScrubProgress(0);
-      setPhase(restingPhase.current);
-    }
-  }, [animateReturn, setScrubProgress, stopReturn]);
+  const cancelDrag = useCallback(
+    (animate = true) => {
+      const current = drag.current;
+      if (!current) return;
+      drag.current = null;
+      if (current.target.hasPointerCapture(current.id))
+        current.target.releasePointerCapture(current.id);
+      if (animate) animateReturn();
+      else {
+        stopReturn();
+        setScrubProgress(0);
+        setPhase(restingPhase.current);
+      }
+    },
+    [animateReturn, setScrubProgress, stopReturn],
+  );
 
   useEffect(() => {
     mounted.current = true;
