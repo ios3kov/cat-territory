@@ -24,11 +24,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Debug logicalEngine format
-        run: |
-          npm run format
-          git diff -- src/logicalEngine.ts
-          git diff --exit-code
+      - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run build
