@@ -267,9 +267,8 @@ export function useGameController(autoMarksEnabled: boolean) {
     return runWhenIdle(() => prewarmLevel(levelIndex + 1), 5000, 2500);
   }, [level.id, levelIndex]);
   useEffect(() => {
-    dismissHint();
     cancelRestart();
-  }, [board, levelIndex, dismissHint, cancelRestart]);
+  }, [board, levelIndex, cancelRestart]);
   useEffect(() => {
     setIdleHelpVisible(false);
     clearTimer(idleHelpTimer);
