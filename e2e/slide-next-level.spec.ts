@@ -342,6 +342,11 @@ test('completed drag holds at the endpoint before the dock morphs back', async (
     'aria-label',
     /Puzzle level 2,/,
   );
+  await expect(page.locator('.action-dock')).toHaveClass(/is-handoff/);
+  await expect(page.locator('.action-row')).toBeVisible();
+  await expect(page.locator('.action-row')).toHaveCSS('opacity', '1');
+  await expect(track(page)).toHaveAttribute('data-state', 'handoff');
+  await expect(track(page)).toHaveCSS('opacity', '0');
   await expect(track(page)).toHaveCount(0);
   await expect(page.locator('.action-dock')).not.toHaveClass(/is-handoff/);
   await expect(page.locator('.action-row')).toBeVisible();
