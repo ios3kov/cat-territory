@@ -191,6 +191,20 @@ export function useGameController(autoMarksEnabled: boolean) {
       cellFeedback.flashCell(idx, kind);
       if (source !== 'auto') playSound(mode === 'erase' ? 'erase' : 'mark');
     },
+    onCellsChange: (cells, mode, source) => {
+      const kind =
+        source === 'swipe'
+          ? mode === 'erase'
+            ? 'swipe-erase'
+            : 'swipe-paint'
+          : mode;
+      cellFeedback.flashCells(
+        cells.map(({ idx }) => idx),
+        kind,
+        260,
+        new Map(cells.map(({ idx, delayMs }) => [idx, delayMs])),
+      );
+    },
     onCatRemoved: () => {
       playSound('catRemove');
     },

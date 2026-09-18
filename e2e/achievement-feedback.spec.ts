@@ -58,9 +58,10 @@ test('achievement unlocks stay in the header and never cover the game', async ({
   await expect(page.getByRole('grid')).toBeVisible();
   await expect(page.getByRole('dialog')).toHaveCount(0);
 
-  await expect(
-    page.getByRole('slider', { name: 'Slide to next level' }),
-  ).toHaveAttribute('aria-disabled', 'false');
+  await expect(page.locator('.slide-handle')).toHaveAttribute(
+    'data-disabled',
+    'false',
+  );
   await expect(page.locator('.completion-summary')).toBeVisible();
   await expect(page.locator('.achievement-inline')).toHaveCount(0);
   await expect(achievements.locator('.achievement-gain')).toHaveText('+1');
@@ -76,8 +77,9 @@ test('reduced motion keeps the quiet achievement feedback readable', async ({
     .click({ button: 'right' });
   await expect(page.locator('.achievement-toast')).toHaveCount(0);
   await expect(page.locator('.achievement-gain')).toHaveText('+1');
-  await expect(
-    page.getByRole('slider', { name: 'Slide to next level' }),
-  ).toHaveAttribute('aria-disabled', 'false');
+  await expect(page.locator('.slide-handle')).toHaveAttribute(
+    'data-disabled',
+    'false',
+  );
   await expect(page.locator('.completion-summary')).toBeVisible();
 });

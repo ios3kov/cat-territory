@@ -31,8 +31,8 @@ for (const mistakes of [0, 1]) {
     await page
       .locator(`[data-cell-index="${first.solutionCells.at(-1)!}"]`)
       .click({ button: 'right' });
-    const slider = page.getByRole('slider', { name: 'Slide to next level' });
-    await expect(slider).toHaveAttribute('aria-disabled', 'false');
+    const slider = page.locator('.slide-handle');
+    await expect(slider).toHaveAttribute('data-disabled', 'false');
     const summary = page.locator('.completion-summary');
     await expect(summary).toHaveAttribute(
       'aria-label',
@@ -59,8 +59,8 @@ for (const mistakes of [0, 1]) {
         .click({ button: 'right' });
       await page.waitForTimeout(420);
     }
-    await expect(slider).toHaveAttribute('aria-disabled', 'false');
-    await expect(slider).toHaveAttribute('aria-valuenow', '0');
+    await expect(slider).toHaveAttribute('data-disabled', 'false');
+    await expect(slider).toHaveAttribute('data-progress', '0');
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await slideToNext(page);
     await expect(page.getByRole('grid')).toHaveAttribute(

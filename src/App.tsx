@@ -135,7 +135,7 @@ function App() {
   const coachText =
     coachStep === 'tap'
       ? 'Tap the outlined tile to draw an X. Tap again to erase.'
-      : 'Double tap the outlined tile to place a cat. Keyboard: press C.';
+      : 'Double tap the outlined tile to place a cat.';
   const toggleSound = () => {
     const next = !soundEnabled;
     setSoundEnabled(next);

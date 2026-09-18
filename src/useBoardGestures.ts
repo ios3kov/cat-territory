@@ -35,6 +35,11 @@ type Options = {
   onFirstInteraction?: () => void;
   onBoardInteraction?: () => void;
   onCellChange?: (idx: number, mode: DragMode, source: InputSource) => void;
+  onCellsChange?: (
+    cells: { idx: number; delayMs: number }[],
+    mode: DragMode,
+    source: InputSource,
+  ) => void;
   onCatRemoved?: () => void;
   onCorrectCat?: (idx: number) => void;
   onMistake?: (idx: number, restore: () => void) => void;
@@ -50,6 +55,7 @@ export function useBoardGestures({
   onFirstInteraction,
   onBoardInteraction,
   onCellChange,
+  onCellsChange,
   onCatRemoved,
   onCorrectCat,
   onMistake,
@@ -128,31 +134,41 @@ export function useBoardGestures({
     }
     feedbackLocked.current = true;
     smartFinalRef.current = finalBoard;
-    const stepMs = Math.min(34, 360 / smartMarks.length);
-    smartMarks.forEach((cell, order) => {
-      const timer = window.setTimeout(
-        () => {
-          const frame = [...boardRef.current] as CellState[];
-          if (catIndices.some((cat) => frame[cat] !== 2)) {
-            clearSmartMarkTimers();
-            return;
-          }
-          frame[cell] = 1;
-          boardRef.current = frame;
-          setBoard(frame);
-          onCellChange?.(cell, 'paint', 'auto');
-          if (order === smartMarks.length - 1) {
-            boardRef.current = finalBoard;
-            setBoard(finalBoard);
-            feedbackLocked.current = false;
-            smartFinalRef.current = null;
-            smartMarkTimersRef.current = [];
-          }
-        },
-        28 + order * stepMs,
-      );
+    const stepMs = Math.min(34, 360 / smartMarks.length),
+      maxRenderFrames = 28,
+      batchSize = Math.max(1, Math.ceil(smartMarks.length / maxRenderFrames));
+    for (let start = 0; start < smartMarks.length; start += batchSize) {
+      const batch = smartMarks.slice(start, start + batchSize),
+        timer = window.setTimeout(
+          () => {
+            const frame = [...boardRef.current] as CellState[];
+            if (catIndices.some((cat) => frame[cat] !== 2)) {
+              clearSmartMarkTimers();
+              return;
+            }
+            for (const cell of batch) frame[cell] = 1;
+            boardRef.current = frame;
+            setBoard(frame);
+            const changes = batch.map((cell, offset) => ({
+              idx: cell,
+              delayMs: offset * stepMs,
+            }));
+            if (onCellsChange) onCellsChange(changes, 'paint', 'auto');
+            else
+              for (const { idx } of changes)
+                onCellChange?.(idx, 'paint', 'auto');
+            if (start + batch.length === smartMarks.length) {
+              boardRef.current = finalBoard;
+              setBoard(finalBoard);
+              feedbackLocked.current = false;
+              smartFinalRef.current = null;
+              smartMarkTimersRef.current = [];
+            }
+          },
+          28 + start * stepMs,
+        );
       smartMarkTimersRef.current.push(timer);
-    });
+    }
   };
   const placeCorrectCat = (
     idx: number,

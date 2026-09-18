@@ -306,7 +306,14 @@ h1 {
 }
 .feedback-paint {
   z-index: 2;
-  animation: bounce 0.235s cubic-bezier(0.2, 0.78, 0.25, 1);
+  animation: bounce 0.235s cubic-bezier(0.2, 0.78, 0.25, 1)
+    var(--feedback-delay, 0ms);
+}
+.feedback-paint .mark-x-drawn .mark-x-stroke {
+  animation-delay: var(--feedback-delay, 0ms);
+}
+.feedback-paint .mark-x-drawn .mark-x-stroke-two {
+  animation-delay: calc(var(--feedback-delay, 0ms) + 0.085s);
 }
 .feedback-erase {
   animation: bounce-small 0.185s;
