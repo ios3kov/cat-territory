@@ -169,6 +169,7 @@
 .next-level-slide[data-state='dragging'] .slide-handle {
   cursor: grabbing;
 }
+.next-level-slide[data-state='settling'] .slide-copy,
 .next-level-slide[data-state='confirmed'] .slide-copy,
 .next-level-slide[data-state='handoff'] .slide-copy {
   opacity: 0;
