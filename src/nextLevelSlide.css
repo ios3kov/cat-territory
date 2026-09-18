@@ -214,7 +214,7 @@
 .board-stage {
   --p: var(--level-transition-progress, 0);
   --old-front: calc(var(--p) * 1.25);
-  --new-front: calc((var(--p) - 0.2) * 1.25);
+  --new-front: calc((var(--p) - 0.08) * 1.0869565);
   position: relative;
   display: grid;
   place-items: center;

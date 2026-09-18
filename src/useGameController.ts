@@ -255,7 +255,10 @@ export function useGameController(autoMarksEnabled: boolean) {
       trackedLevelStartRef.current = level.id;
       trackGameplayEvent('level_start', level.id, levelIndex, seconds);
     }
-    return runWhenIdle(() => prewarmLevel(levelIndex + 1), 5000, 2500);
+    // Prepare the next territory while the player is still solving this one.
+    // Generation itself runs in a Worker; requestIdleCallback only keeps worker
+    // startup away from the first render/input burst.
+    return runWhenIdle(() => prewarmLevel(levelIndex + 1), 1200, 700);
   }, [level.id, levelIndex]);
   useEffect(() => {
     dismissHint();
