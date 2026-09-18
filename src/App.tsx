@@ -20,6 +20,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
 } from 'react';
 import { playSound, readSoundEnabled, setSoundEnabled } from './audio';
 import { readAutoMarksEnabled, writeAutoMarksEnabled } from './autoMarks';
@@ -281,7 +282,7 @@ function App() {
         <div
           ref={boardStageRef}
           className="board-stage"
-          style={{ '--level-transition-progress': 0 } as React.CSSProperties}
+          style={{ '--level-transition-progress': 0 } as CSSProperties}
         >
           <div className="board-transition-layer board-transition-old-layer">
             <GameBoard
