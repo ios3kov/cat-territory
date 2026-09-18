@@ -233,14 +233,14 @@
   transform-origin: center;
 }
 .cell.board-transition-old {
-  opacity: clamp(0, calc((var(--transition-cell) - (var(--transition-progress) / 0.8)) * 14 + 1), 1);
+  opacity: clamp(0, calc((var(--transition-cell) - (var(--transition-progress) * 1.25)) * 14 + 1), 1);
   transform: scale(clamp(0.72, calc((var(--transition-cell) - (var(--transition-progress) / 0.8)) * 3 + 1), 1));
 }
 .cell.board-transition-new {
-  opacity: clamp(0, calc((((var(--transition-progress) - 0.2) / 0.8) - var(--transition-cell)) * 14 + 1), 1);
+  opacity: clamp(0, calc((((var(--transition-progress) - 0.2) * 1.25) - var(--transition-cell)) * 14 + 1), 1);
   transform: scale(clamp(0.72, calc((((var(--transition-progress) - 0.2) / 0.8) - var(--transition-cell)) * 3 + 1), 1));
 }
-.board-transition-new .board-assembling .cell {
+.board-assembling .cell.board-transition-new {
   animation: none !important;
 }
 .board .celebrating-cat .cat-idle-body {
