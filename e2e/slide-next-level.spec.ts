@@ -347,9 +347,13 @@ for (const interrupt of ['cancel', 'lost-capture', 'blur', 'resize'] as const) {
           ),
         interrupt === 'cancel' ? 'pointercancel' : 'lostpointercapture',
       );
-    await expect(track(page)).toHaveAttribute('data-state', 'idle');
+    if (interrupt === 'resize')
+      await expect(track(page)).toHaveAttribute('data-state', 'idle');
+    else {
+      await expect(track(page)).toHaveAttribute('data-state', 'returning');
+      await expect(track(page)).toHaveAttribute('data-state', 'idle');
+    }
     await page.mouse.up();
-    await page.waitForTimeout(350);
     await expect(slider(page)).toHaveAttribute('data-progress', '0');
     await expect(page.getByRole('grid')).toHaveAttribute(
       'aria-label',
