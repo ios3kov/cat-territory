@@ -18,6 +18,7 @@ type Phase =
   | 'idle'
   | 'dragging'
   | 'returning'
+  | 'settling'
   | 'confirmed'
   | 'loading'
   | 'handoff'
@@ -31,6 +32,7 @@ type Drag = {
 };
 const THRESHOLD = 0.8;
 const CONFIRM_HOLD_MS = 150;
+const SETTLE_MS = 90;
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
 
 export function NextLevelSlide({ ready, onNext, onProgress }: Props) {
@@ -85,6 +87,40 @@ export function NextLevelSlide({ ready, onNext, onProgress }: Props) {
     };
     returnFrame.current = requestAnimationFrame(tick);
   }, [setScrubProgress, stopReturn]);
+  const settleAtEnd = useCallback(
+    () =>
+      new Promise<void>((resolve) => {
+        stopReturn();
+        const from = progressRef.current;
+        if (
+          from >= 1 ||
+          matchMedia('(prefers-reduced-motion: reduce)').matches
+        ) {
+          setScrubProgress(1);
+          resolve();
+          return;
+        }
+        setPhase('settling');
+        const started = performance.now();
+        const tick = (now: number) => {
+          if (!mounted.current) {
+            resolve();
+            return;
+          }
+          const t = clamp((now - started) / SETTLE_MS);
+          const eased = 1 - Math.pow(1 - t, 3);
+          setScrubProgress(from + (1 - from) * eased);
+          if (t < 1) returnFrame.current = requestAnimationFrame(tick);
+          else {
+            returnFrame.current = null;
+            setScrubProgress(1);
+            resolve();
+          }
+        };
+        returnFrame.current = requestAnimationFrame(tick);
+      }),
+    [setScrubProgress, stopReturn],
+  );
   const releaseDragCapture = useCallback(() => {
     const current = drag.current;
     if (!current) return false;
@@ -152,11 +188,11 @@ export function NextLevelSlide({ ready, onNext, onProgress }: Props) {
   const advance = async () => {
     if (submitting.current) return;
     submitting.current = true;
-    stopReturn();
-    setScrubProgress(1);
-    setPhase('confirmed');
-    haptic('next');
     try {
+      await settleAtEnd();
+      if (!mounted.current) return;
+      setPhase('confirmed');
+      haptic('next');
       await new Promise((resolve) =>
         window.setTimeout(resolve, CONFIRM_HOLD_MS),
       );
@@ -280,6 +316,7 @@ export function NextLevelSlide({ ready, onNext, onProgress }: Props) {
         data-disabled={
           !armed ||
           phase === 'returning' ||
+          phase === 'settling' ||
           phase === 'confirmed' ||
           phase === 'loading' ||
           phase === 'handoff'
@@ -310,6 +347,7 @@ export function NextLevelSlide({ ready, onNext, onProgress }: Props) {
           !armed ||
           !ready ||
           phase === 'returning' ||
+          phase === 'settling' ||
           phase === 'confirmed' ||
           phase === 'loading' ||
           phase === 'handoff'
