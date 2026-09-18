@@ -206,7 +206,7 @@ test('slider keeps both boards aligned and scrubs a diagonal gap at 0â€“80 / 20â
     await transitionIndex(size - 1),
   );
   expect(await transitionIndex(0)).toBeLessThan(await transitionIndex(size));
-  expect(await transitionIndex(size - 1)).toBeCloseTo(
+  expect(await transitionIndex(1)).toBeCloseTo(
     await transitionIndex(size),
     5,
   );
