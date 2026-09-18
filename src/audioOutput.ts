@@ -162,10 +162,6 @@ export function installAudioUnlock() {
   // cold AudioContext may need the whole tap duration before it can emit the
   // first game cue, so waiting until release can make tap #1 silent.
   document.addEventListener('pointerdown', unlock, true);
-  document.addEventListener('touchstart', unlock, {
-    capture: true,
-    passive: true,
-  });
   // Keep release listeners as retries for browsers/OS states that reject the
   // first resume attempt or interrupt an already-created context.
   document.addEventListener('pointerup', unlock, true);
