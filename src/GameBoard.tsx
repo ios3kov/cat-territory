@@ -1,6 +1,5 @@
 import {
   memo,
-  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
