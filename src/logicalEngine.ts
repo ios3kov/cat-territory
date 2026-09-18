@@ -294,13 +294,9 @@ function deadUnit(c: C, s: State) {
   }
   return null;
 }
-function explainableContradiction(
-  c: C,
-  s: State,
-  board: BoardCell[],
-): LogicalHint | null {
+function explainableContradiction(c: C, s: State): LogicalHint | null {
   for (const cell of s.candidates) {
-    if (s.cats.has(cell) || board[cell] === 1) continue;
+    if (s.cats.has(cell)) continue;
     const trial = cloneState(s);
     apply(c, trial, {
       kind: 'place',
@@ -338,7 +334,7 @@ function userHint(c: C, board: BoardCell[]): LogicalHint | null {
     const next =
       single(c, visible) ??
       intersection(c, visible) ??
-      explainableContradiction(c, visible, board);
+      explainableContradiction(c, visible);
     if (!next) return null;
     if (next.kind === 'place') {
       if (board[next.cell] === 1)
