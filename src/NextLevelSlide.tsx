@@ -55,10 +55,7 @@ export function NextLevelSlide({ ready, onNext, onProgress }: Props) {
   const animateReturn = useCallback(() => {
     stopReturn();
     const from = progressRef.current;
-    if (
-      from <= 0 ||
-      matchMedia('(prefers-reduced-motion: reduce)').matches
-    ) {
+    if (from <= 0 || matchMedia('(prefers-reduced-motion: reduce)').matches) {
       setScrubProgress(0);
       setPhase(restingPhase.current);
       return;
