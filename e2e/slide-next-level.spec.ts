@@ -5,9 +5,14 @@ import { slideToNext } from './helpers/slide';
 const slider = (page: Page) => page.locator('.slide-handle');
 const track = (page: Page) => page.getByTestId('next-level-slide');
 
-async function start(page: Page, index = 0, almostWon = false) {
+async function start(
+  page: Page,
+  index = 0,
+  almostWon = false,
+  seedNextLevel = false,
+) {
   const level = getLevel(index),
-    nextLevel = getLevel(index + 1);
+    nextLevel = seedNextLevel ? getLevel(index + 1) : null;
   const cats = level.solution.map((col, row) => row * level.size + col);
   const board = Array(level.size * level.size).fill(0);
   if (almostWon) for (const cell of cats.slice(0, -1)) board[cell] = 2;
@@ -22,10 +27,11 @@ async function start(page: Page, index = 0, almostWon = false) {
         'cat-territory-generated-v5-' + index,
         JSON.stringify(level),
       );
-      localStorage.setItem(
-        'cat-territory-generated-v5-' + (index + 1),
-        JSON.stringify(nextLevel),
-      );
+      if (nextLevel)
+        localStorage.setItem(
+          'cat-territory-generated-v5-' + (index + 1),
+          JSON.stringify(nextLevel),
+        );
       if (almostWon)
         localStorage.setItem(
           'cat-territory-session-v3-' + level.id,
@@ -61,8 +67,13 @@ async function placeCat(page: Page, index: number, touch: boolean) {
   await page.waitForTimeout(420);
 }
 
-async function win(page: Page, touch: boolean, index = 0) {
-  const cells = await start(page, index, true);
+async function win(
+  page: Page,
+  touch: boolean,
+  index = 0,
+  seedNextLevel = false,
+) {
+  const cells = await start(page, index, true, seedNextLevel);
   await placeCat(page, cells.at(-1)!, touch);
   await expect(slider(page)).toHaveAttribute('data-disabled', 'false');
 }
@@ -130,7 +141,7 @@ test('slider scrubs old and new boards with a gap and exact 80/100 endpoints', a
   page,
   isMobile,
 }) => {
-  await win(page, isMobile);
+  await win(page, isMobile, 0, true);
   const oldCells = page.locator('.board-transition-old-layer .cell');
   const newCells = page.locator('.board-transition-new-layer .cell');
   await expect(newCells.first()).toHaveCount(1);
