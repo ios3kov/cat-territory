@@ -72,7 +72,6 @@ test('late generated puzzles and Moon Runs meet progression floors', async ({}, 
   }
 });
 
-
 test('hints never promote speculative X marks into a fake single', () => {
   const size = 5;
   const regions = Array.from({ length: size }, () =>
