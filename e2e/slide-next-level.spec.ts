@@ -194,8 +194,23 @@ test('slider keeps both boards aligned and scrubs a diagonal gap at 0â€“80 / 20â
       const index = row * size + column;
       expect(oldOpacity[index] > 0.05 && newOpacity[index] > 0.05).toBe(false);
     }
-  expect(oldOpacity[1]).toBeLessThan(oldOpacity[size - 1]);
-  expect(oldOpacity[size]).toBeLessThan(oldOpacity[(size - 1) * size]);
+  const transitionIndex = async (index: number) =>
+    Number(
+      await oldCells
+        .nth(index)
+        .evaluate((element) =>
+          getComputedStyle(element).getPropertyValue('--transition-cell'),
+        ),
+    );
+  expect(await transitionIndex(0)).toBeLessThan(await transitionIndex(size - 1));
+  expect(await transitionIndex(0)).toBeLessThan(await transitionIndex(size));
+  expect(await transitionIndex(size - 1)).toBeCloseTo(
+    await transitionIndex(size),
+    5,
+  );
+  expect(await opacity(oldCells.first())).toBeLessThan(
+    await opacity(oldCells.last()),
+  );
   await reset();
 
   await moveTo(0.8);
