@@ -17,6 +17,25 @@ async function start(page: Page) {
   await expect(page.getByRole('grid')).toBeVisible();
 }
 
+test('next level is prepared in the background while the current level stays active', async ({
+  page,
+}) => {
+  await start(page);
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() =>
+          Boolean(localStorage.getItem('cat-territory-generated-v5-1')),
+        ),
+      { timeout: 5000 },
+    )
+    .toBe(true);
+  await expect(page.getByRole('grid')).toHaveAttribute(
+    'aria-label',
+    /Puzzle level 1,/,
+  );
+});
+
 test('hint on an untouched board is persisted and restartable', async ({
   page,
 }) => {
