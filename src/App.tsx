@@ -12,7 +12,15 @@ import {
   VolumeX,
   X,
 } from 'lucide-react';
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { playSound, readSoundEnabled, setSoundEnabled } from './audio';
 import { readAutoMarksEnabled, writeAutoMarksEnabled } from './autoMarks';
 import { CatProgress } from './CatProgress';
@@ -45,7 +53,6 @@ function App() {
     [showAchievements, setShowAchievements] = useState(false),
     [soundEnabled, setSoundEnabledState] = useState(readSoundEnabled),
     [rankPulse, setRankPulse] = useState(false),
-    [levelTransitionProgress, setLevelTransitionProgress] = useState(0),
     [coachStep, setCoachStep] = useState<CoachStep>(readCoachStep);
   const progression = getProgressionMeta(game.levelIndex),
     previousProgression = useRef({
@@ -181,12 +188,14 @@ function App() {
       level: nextLevel,
       board: createInitialBoard(nextLevel),
     };
-  }, [
-    game.won,
-    game.completionReady,
-    game.levelIndex,
-    levelTransitionProgress,
-  ]);
+  }, [game.won, game.completionReady, game.levelIndex]);
+  const boardStageRef = useRef<HTMLDivElement>(null);
+  const setBoardTransitionProgress = useCallback((progress: number) => {
+    boardStageRef.current?.style.setProperty(
+      '--level-transition-progress',
+      String(progress),
+    );
+  }, []);
   const noop = () => {};
   return (
     <main className="app-shell">
@@ -270,7 +279,9 @@ function App() {
           <MistakeIndicator count={game.mistakes} />
         </div>
         <div
-          className={`board-stage ${levelTransitionProgress > 0 ? 'is-scrubbing' : ''}`}
+          ref={boardStageRef}
+          className="board-stage"
+          style={{ '--level-transition-progress': 0 } as React.CSSProperties}
         >
           <div className="board-transition-layer board-transition-old-layer">
             <GameBoard
@@ -292,8 +303,9 @@ function App() {
               coachCell={coachCell === -1 ? undefined : coachCell}
               coachLabel={coachLabel}
               celebrateCats={game.won}
-              transitionProgress={levelTransitionProgress}
-              transitionRole={levelTransitionProgress > 0 ? 'old' : undefined}
+              transitionRole={
+                game.won && game.completionReady ? 'old' : undefined
+              }
               onToggleCat={game.gestures.toggleCat}
               onKeyboardMark={game.gestures.keyboardMark}
               onPointerDown={game.gestures.pointerDown}
@@ -303,7 +315,7 @@ function App() {
               onMouseLeave={game.gestures.finishMouseDragOnLeave}
             />
           </div>
-          {transitionPreview && levelTransitionProgress > 0 && (
+          {transitionPreview && (
             <div
               className="board-transition-layer board-transition-new-layer"
               aria-hidden="true"
@@ -313,7 +325,6 @@ function App() {
                 board={transitionPreview.board}
                 level={transitionPreview.level}
                 levelIndex={game.levelIndex + 1}
-                transitionProgress={levelTransitionProgress}
                 transitionRole="new"
                 onToggleCat={noop}
                 onKeyboardMark={noop}
@@ -452,7 +463,7 @@ function App() {
                 <NextLevelSlide
                   ready={game.completionReady}
                   onNext={game.nextLevel}
-                  onProgress={setLevelTransitionProgress}
+                  onProgress={setBoardTransitionProgress}
                 />
               )}
             </div>
