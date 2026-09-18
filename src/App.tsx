@@ -21,7 +21,7 @@ import { GameBoard } from './GameBoard';
 import { haptic } from './haptics';
 import { MistakeIndicator } from './MistakeIndicator';
 import { getProgressionMeta } from './progression';
-import { createInitialBoard, getLevel } from './game';
+import { createInitialBoard, peekLevel } from './game';
 import { storageGet, storageSet } from './storage';
 import { useGameController } from './useGameController';
 const RulesDialog = lazy(() =>
@@ -175,12 +175,13 @@ function App() {
   const achievementNotice = game.achievementToast;
   const transitionPreview = useMemo(() => {
     if (!game.won || !game.completionReady) return null;
-    const nextLevel = getLevel(game.levelIndex + 1);
+    const nextLevel = peekLevel(game.levelIndex + 1);
+    if (!nextLevel) return null;
     return {
       level: nextLevel,
       board: createInitialBoard(nextLevel),
     };
-  }, [game.won, game.completionReady, game.levelIndex]);
+  }, [game.won, game.completionReady, game.levelIndex, levelTransitionProgress]);
   const noop = () => {};
   return (
     <main className="app-shell">
