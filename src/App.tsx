@@ -196,12 +196,16 @@ function App() {
     game.nextLevelPreviewRevision,
   ]);
   const boardStageRef = useRef<HTMLDivElement>(null);
-  const setBoardTransitionProgress = useCallback((progress: number) => {
-    boardStageRef.current?.style.setProperty(
-      '--level-transition-progress',
-      String(progress),
-    );
-  }, []);
+  const transitionPreviewReady = Boolean(transitionPreview);
+  const setBoardTransitionProgress = useCallback(
+    (progress: number) => {
+      boardStageRef.current?.style.setProperty(
+        '--level-transition-progress',
+        transitionPreviewReady ? String(progress) : '0',
+      );
+    },
+    [transitionPreviewReady],
+  );
   const noop = () => {};
   return (
     <main className="app-shell">
