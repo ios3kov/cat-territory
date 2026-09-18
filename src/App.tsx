@@ -17,6 +17,7 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -54,6 +55,7 @@ function App() {
     [showAchievements, setShowAchievements] = useState(false),
     [soundEnabled, setSoundEnabledState] = useState(readSoundEnabled),
     [rankPulse, setRankPulse] = useState(false),
+    [handoffLevelIndex, setHandoffLevelIndex] = useState<number | null>(null),
     [coachStep, setCoachStep] = useState<CoachStep>(readCoachStep);
   const progression = getProgressionMeta(game.levelIndex),
     previousProgression = useRef({
@@ -197,6 +199,12 @@ function App() {
   ]);
   const boardStageRef = useRef<HTMLDivElement>(null);
   const transitionPreviewReady = Boolean(transitionPreview);
+  useLayoutEffect(() => {
+    boardStageRef.current?.style.setProperty(
+      '--level-transition-progress',
+      '0',
+    );
+  }, [game.levelIndex]);
   const setBoardTransitionProgress = useCallback(
     (progress: number) => {
       boardStageRef.current?.style.setProperty(
@@ -206,6 +214,21 @@ function App() {
     },
     [transitionPreviewReady],
   );
+  const advanceLevel = useCallback(async () => {
+    const target = game.levelIndex + 1;
+    setHandoffLevelIndex(transitionPreviewReady ? target : null);
+    try {
+      await game.nextLevel();
+    } catch (error) {
+      setHandoffLevelIndex(null);
+      throw error;
+    }
+  }, [game.levelIndex, game.nextLevel, transitionPreviewReady]);
+  useEffect(() => {
+    if (handoffLevelIndex !== game.levelIndex) return;
+    const frame = requestAnimationFrame(() => setHandoffLevelIndex(null));
+    return () => cancelAnimationFrame(frame);
+  }, [game.levelIndex, handoffLevelIndex]);
   const noop = () => {};
   return (
     <main className="app-shell">
@@ -313,6 +336,7 @@ function App() {
               coachCell={coachCell === -1 ? undefined : coachCell}
               coachLabel={coachLabel}
               celebrateCats={game.won}
+              skipAssembly={handoffLevelIndex === game.levelIndex}
               transitionRole={
                 game.won && game.completionReady ? 'old' : undefined
               }
@@ -472,7 +496,7 @@ function App() {
               {game.won && (
                 <NextLevelSlide
                   ready={game.completionReady}
-                  onNext={game.nextLevel}
+                  onNext={advanceLevel}
                   onProgress={setBoardTransitionProgress}
                 />
               )}
