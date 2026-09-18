@@ -189,7 +189,12 @@ function App() {
       level: nextLevel,
       board: createInitialBoard(nextLevel),
     };
-  }, [game.won, game.completionReady, game.levelIndex]);
+  }, [
+    game.won,
+    game.completionReady,
+    game.levelIndex,
+    game.nextLevelPreviewRevision,
+  ]);
   const boardStageRef = useRef<HTMLDivElement>(null);
   const setBoardTransitionProgress = useCallback((progress: number) => {
     boardStageRef.current?.style.setProperty(
