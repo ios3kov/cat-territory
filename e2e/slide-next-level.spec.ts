@@ -364,14 +364,13 @@ test('completed drag holds at the endpoint before the dock morphs back', async (
   const confirmed = recorded.timeline.find(
     (item) => item.state === 'confirmed',
   );
-  const loading = recorded.timeline.find((item) => item.state === 'loading');
+  const handoff = recorded.timeline.find((item) => item.state === 'handoff');
   expect(recorded.timeline.some((item) => item.state === 'settling')).toBe(
     true,
   );
   expect(confirmed?.progress).toBe(1);
-  expect(loading).toBeTruthy();
-  expect(loading!.time - confirmed!.time).toBeGreaterThanOrEqual(120);
-  expect(recorded.timeline.some((item) => item.state === 'handoff')).toBe(true);
+  expect(handoff).toBeTruthy();
+  expect(handoff!.time - confirmed!.time).toBeGreaterThanOrEqual(120);
 
   const settlingSamples = recorded.samples.filter(
     (sample) => sample.state === 'settling',
