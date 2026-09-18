@@ -188,7 +188,7 @@ function GameBoardView({
                 backgroundColor: regionColors[region],
                 ...(transitionRole
                   ? {
-                      '--transition-cell': (colIndex + 0.5) / size,
+                      '--transition-cell': (rowIndex + colIndex + 1) / (size * 2),
                     }
                   : {}),
                 '--assemble-delay': `${Math.min(360, (rowIndex + colIndex) * 22 + ((rowIndex * 7 + colIndex * 11) % 3) * 8)}ms`,
