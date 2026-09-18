@@ -153,7 +153,9 @@ test('slider scrubs old and new boards with a gap and exact 80/100 endpoints', a
     await page.waitForTimeout(350);
   };
   const opacity = async (locator: ReturnType<typeof oldCells.nth>) =>
-    Number(await locator.evaluate((element) => getComputedStyle(element).opacity));
+    Number(
+      await locator.evaluate((element) => getComputedStyle(element).opacity),
+    );
 
   await moveTo(0.2);
   expect(await opacity(oldCells.first())).toBeLessThan(0.05);
