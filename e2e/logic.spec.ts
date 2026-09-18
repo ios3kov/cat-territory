@@ -77,14 +77,12 @@ test('hints never promote speculative X marks into a fake single', () => {
   const regions = Array.from({ length: size }, () =>
     Array.from({ length: size }, (_, col) => col),
   );
-  const board = Array(size * size).fill(0) as (0 | 1 | 2)[];
+  const empty = Array(size * size).fill(0) as (0 | 1 | 2)[],
+    board = [...empty] as (0 | 1 | 2)[];
   for (let col = 1; col < size; col++) board[col] = 1;
-  const hint = getLogicalHint(regions, board);
-  expect(hint).not.toMatchObject({
-    kind: 'place',
-    cell: 0,
-    technique: 'single',
-  });
+  expect(getLogicalHint(regions, board)).toEqual(
+    getLogicalHint(regions, empty),
+  );
 });
 
 test('a contradictory player mark is repaired instead of being used as a premise', () => {
