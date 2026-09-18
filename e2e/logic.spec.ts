@@ -87,16 +87,18 @@ test('hints never promote speculative X marks into a fake single', () => {
   });
 });
 
-test('a contradictory player mark is repaired instead of being used as a premise', () => {
+test(
+  'a contradictory player mark is repaired instead of being used as a premise',
+  () => {
   const level = getLevel(0);
   const board = Array(level.size * level.size).fill(0) as (0 | 1 | 2)[];
   const forcedCat = level.solution[0];
   board[forcedCat] = 1;
   const hint = getLogicalHint(level.regions, board);
   expect(hint?.kind).toBe('repair');
-  expect(hint?.highlight).toContain(forcedCat);
-});
-
+    expect(hint?.highlight).toContain(forcedCat);
+  },
+);
 
 test('user hint sequence stays valid and progresses representative levels', async ({}, testInfo) => {
   test.skip(
