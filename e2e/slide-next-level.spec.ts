@@ -229,6 +229,41 @@ test('slider keeps both boards aligned with an 8% scrub gap and no post-slide re
   await reset();
 });
 
+test('releasing below the threshold animates the slider and board back to zero', async ({
+  page,
+  isMobile,
+}) => {
+  await win(page, isMobile, 0, true);
+  const oldCell = page.locator('.board-transition-old-layer .cell').first();
+  const bounds = (await track(page).boundingBox())!;
+  const thumb = (await slider(page).boundingBox())!;
+  const x = thumb.x + thumb.width / 2,
+    y = thumb.y + thumb.height / 2,
+    travel = bounds.width - thumb.width;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + travel * 0.6, y, { steps: 12 });
+  const draggedOpacity = Number(
+    await oldCell.evaluate((el) => getComputedStyle(el).opacity),
+  );
+  await page.mouse.up();
+  await expect(track(page)).toHaveAttribute('data-state', 'returning');
+  await page.waitForTimeout(70);
+  const midProgress = Number(await slider(page).getAttribute('data-progress'));
+  expect(midProgress).toBeGreaterThan(0);
+  expect(midProgress).toBeLessThan(60);
+  const midOpacity = Number(
+    await oldCell.evaluate((el) => getComputedStyle(el).opacity),
+  );
+  expect(midOpacity).toBeGreaterThan(draggedOpacity);
+  await expect(slider(page)).toHaveAttribute('data-progress', '0');
+  await expect(track(page)).toHaveAttribute('data-state', 'idle');
+  await expect(page.getByRole('grid')).toHaveAttribute(
+    'aria-label',
+    /Puzzle level 1,/,
+  );
+});
+
 test('tap, edge clicks, short drags, backtracking and extra keys cannot advance', async ({
   page,
   isMobile,
