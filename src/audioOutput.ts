@@ -153,15 +153,16 @@ export function installAudioUnlock() {
     if (enabled) void unlockAudio(true);
   };
   // Keep these listeners: iOS can interrupt an already-unlocked context later.
-  document.addEventListener(
-    'pointerdown',
-    (event) => {
-      if (event.pointerType === 'mouse') unlock();
-    },
-    true,
-  );
-  // Do not construct a cold context at touchstart: touch activation arrives
-  // on release. A first swipe can queue its latest cue until that release.
+  // Start the audio session at the earliest real gesture. On iOS/WebKit a
+  // cold AudioContext may need the whole tap duration before it can emit the
+  // first game cue, so waiting until release can make tap #1 silent.
+  document.addEventListener('pointerdown', unlock, true);
+  document.addEventListener('touchstart', unlock, {
+    capture: true,
+    passive: true,
+  });
+  // Keep release listeners as retries for browsers/OS states that reject the
+  // first resume attempt or interrupt an already-created context.
   document.addEventListener('pointerup', unlock, true);
   document.addEventListener('touchend', unlock, {
     capture: true,
