@@ -226,7 +226,7 @@ function App() {
   }, [game.levelIndex, game.nextLevel, transitionPreviewReady]);
   useEffect(() => {
     if (handoffLevelIndex !== game.levelIndex) return;
-    const timer = window.setTimeout(() => setHandoffLevelIndex(null), 220);
+    const timer = window.setTimeout(() => setHandoffLevelIndex(null), 400);
     return () => window.clearTimeout(timer);
   }, [game.levelIndex, handoffLevelIndex]);
   const noop = () => {};
