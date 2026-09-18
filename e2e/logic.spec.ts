@@ -7,6 +7,7 @@ import {
   minimumDifficulty,
 } from '../src/infiniteLevels';
 import { analyzePuzzle } from '../src/puzzleEngine';
+import { getLogicalHint } from '../src/logicalEngine';
 
 test('canonical score formula covers all bonuses and clamps', () => {
   expect(getScoreBreakdown(8, 77, 0, false)).toEqual({
@@ -69,4 +70,30 @@ test('late generated puzzles and Moon Runs meet progression floors', async ({}, 
     );
     expect(l.logicalScore).toBeGreaterThan(Math.max(...early));
   }
+});
+
+
+test('hints never promote speculative X marks into a fake single', () => {
+  const size = 5;
+  const regions = Array.from({ length: size }, () =>
+    Array.from({ length: size }, (_, col) => col),
+  );
+  const board = Array(size * size).fill(0) as (0 | 1 | 2)[];
+  for (let col = 1; col < size; col++) board[col] = 1;
+  const hint = getLogicalHint(regions, board);
+  expect(hint).not.toMatchObject({
+    kind: 'place',
+    cell: 0,
+    technique: 'single',
+  });
+});
+
+test('a contradictory player mark is repaired instead of being used as a premise', () => {
+  const level = getLevel(0);
+  const board = Array(level.size * level.size).fill(0) as (0 | 1 | 2)[];
+  const forcedCat = level.solution[0];
+  board[forcedCat] = 1;
+  const hint = getLogicalHint(level.regions, board);
+  expect(hint?.kind).toBe('repair');
+  expect(hint?.highlight).toContain(forcedCat);
 });
