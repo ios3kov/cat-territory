@@ -281,14 +281,24 @@ test('completed drag holds at the endpoint before the dock morphs back', async (
 
   await page.mouse.move(x, y);
   await page.mouse.down();
-  await page.mouse.move(x + travel, y, { steps: 12 });
-  await expect(slider(page)).toHaveAttribute('data-progress', '100');
+  await page.mouse.move(x + travel * 0.9, y, { steps: 12 });
+  await expect(slider(page)).toHaveAttribute('data-progress', '90');
   await expect(page.getByRole('grid')).toHaveAttribute(
     'aria-label',
     /Puzzle level 1,/,
   );
 
   await page.mouse.up();
+  await expect(track(page)).toHaveAttribute('data-state', 'settling');
+  await page.waitForTimeout(30);
+  const settlingProgress =
+    Number(await slider(page).getAttribute('data-progress')) / 100;
+  const boardProgress = Number(
+    await page.locator('.board-stage').evaluate((element) =>
+      getComputedStyle(element).getPropertyValue('--level-transition-progress'),
+    ),
+  );
+  expect(Math.abs(boardProgress - settlingProgress)).toBeLessThan(0.015);
   await expect(track(page)).toHaveAttribute('data-state', 'confirmed');
   await expect(slider(page)).toHaveAttribute('data-progress', '100');
   await page.waitForTimeout(70);
