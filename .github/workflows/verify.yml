@@ -28,6 +28,8 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run build
+      - name: Verify Neuro Runner embedding policy
+        run: grep -F "frame-ancestors 'self' https://neuro-runner.os3kov.workers.dev" dist/_headers
       - run: npm run audit:prod
       - run: npx playwright install --with-deps chromium webkit
       - run: npm run test:e2e
