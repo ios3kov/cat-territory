@@ -268,6 +268,49 @@ test('releasing below the threshold animates the slider and board back to zero',
   );
 });
 
+test('completed drag holds at the endpoint before the dock morphs back', async ({
+  page,
+  isMobile,
+}) => {
+  await win(page, isMobile, 0, true);
+  const bounds = (await track(page).boundingBox())!;
+  const thumb = (await slider(page).boundingBox())!;
+  const x = thumb.x + thumb.width / 2,
+    y = thumb.y + thumb.height / 2,
+    travel = bounds.width - thumb.width;
+
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + travel, y, { steps: 12 });
+  await expect(slider(page)).toHaveAttribute('data-progress', '100');
+  await expect(page.getByRole('grid')).toHaveAttribute(
+    'aria-label',
+    /Puzzle level 1,/,
+  );
+
+  await page.mouse.up();
+  await expect(track(page)).toHaveAttribute('data-state', 'confirmed');
+  await expect(slider(page)).toHaveAttribute('data-progress', '100');
+  await page.waitForTimeout(70);
+  await expect(track(page)).toHaveAttribute('data-state', 'confirmed');
+  await expect(slider(page)).toHaveAttribute('data-progress', '100');
+  await expect(page.getByRole('grid')).toHaveAttribute(
+    'aria-label',
+    /Puzzle level 1,/,
+  );
+
+  await expect(page.getByRole('grid')).toHaveAttribute(
+    'aria-label',
+    /Puzzle level 2,/,
+  );
+  await expect(page.locator('.action-dock')).toHaveClass(/is-handoff/);
+  await expect(track(page)).toHaveAttribute('data-state', 'handoff');
+  await expect(slider(page)).toHaveAttribute('data-progress', '100');
+  await expect(track(page)).toHaveCount(0);
+  await expect(page.locator('.action-dock')).not.toHaveClass(/is-handoff/);
+  await expect(page.locator('.action-row')).toBeVisible();
+});
+
 test('tap, edge clicks, short drags, backtracking and extra keys cannot advance', async ({
   page,
   isMobile,
