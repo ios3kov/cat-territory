@@ -271,6 +271,7 @@ export function useBoardGestures({
       next[idx] = 0;
       commitBoard(next);
       onCatRemoved?.();
+      haptic('remove');
     } else if (!isSolutionCell(idx)) {
       const restored = current,
         preview = [...current] as CellState[];
