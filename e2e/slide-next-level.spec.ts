@@ -509,6 +509,7 @@ test('slow generation keeps the solved board; failure retries in the slider with
   await expect(slider(page)).toHaveAttribute('data-disabled', 'false');
   await page.waitForTimeout(350);
   await slideToNext(page);
+  await expect(track(page)).toHaveAttribute('data-state', 'loading');
   expect(await page.evaluate(() => (window as any).__workerCalls)).toBe(2);
   await page.evaluate(
     (level) => (window as any).__worker.onmessage({ data: { level } }),
