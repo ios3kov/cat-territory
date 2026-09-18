@@ -96,3 +96,36 @@ test('a contradictory player mark is repaired instead of being used as a premise
   expect(hint?.kind).toBe('repair');
   expect(hint?.highlight).toContain(forcedCat);
 });
+
+
+test('user hint sequence stays valid and progresses representative levels', async ({}, testInfo) => {
+  test.skip(
+    testInfo.project.name !== 'chromium',
+    'Representative hint solver runs once',
+  );
+  for (const index of [0, 10, 24, 33]) {
+    const level = getLevel(index);
+    const board = Array(level.size * level.size).fill(0) as (0 | 1 | 2)[];
+    const solution = new Set(
+      level.solution.map((col, row) => row * level.size + col),
+    );
+    for (let step = 0; step < level.size * level.size * 4; step++) {
+      if (board.filter((value) => value === 2).length === level.size) break;
+      const hint = getLogicalHint(level.regions, board);
+      expect(hint, `level ${index + 1}, step ${step + 1}`).not.toBeNull();
+      if (!hint) break;
+      expect(hint.kind).not.toBe('repair');
+      if (hint.kind === 'place') {
+        expect(solution.has(hint.cell)).toBe(true);
+        board[hint.cell] = 2;
+      } else {
+        const targets = hint.eliminate ?? [hint.cell];
+        for (const cell of targets) {
+          expect(solution.has(cell)).toBe(false);
+          board[cell] = 1;
+        }
+      }
+    }
+    expect(board.filter((value) => value === 2).length).toBe(level.size);
+  }
+});
