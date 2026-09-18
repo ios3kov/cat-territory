@@ -23,7 +23,6 @@ type Props = {
   coachCell?: number;
   coachLabel?: string;
   celebrateCats?: boolean;
-  transitionProgress?: number;
   transitionRole?: 'old' | 'new';
   onToggleCat: (idx: number) => void;
   onKeyboardMark: (idx: number) => void;
@@ -40,7 +39,6 @@ type Props = {
 };
 type CellStyle = CSSProperties & {
   '--transition-cell'?: number;
-  '--transition-progress'?: number;
   '--cat-delay'?: string;
   '--cat-idle-delay'?: string;
   '--cat-blink-delay'?: string;
@@ -92,7 +90,6 @@ function GameBoardView({
   coachCell,
   coachLabel,
   celebrateCats = false,
-  transitionProgress,
   transitionRole,
   onToggleCat,
   onKeyboardMark,
@@ -189,13 +186,11 @@ function GameBoardView({
                 celebrating = celebrateCats && value === 2;
               const style: CellStyle = {
                 backgroundColor: regionColors[region],
-                ...(transitionProgress == null
-                  ? {}
-                  : {
-                      '--transition-cell':
-                        size <= 1 ? 0 : colIndex / (size - 1),
-                      '--transition-progress': transitionProgress,
-                    }),
+                ...(transitionRole
+                  ? {
+                      '--transition-cell': (colIndex + 0.5) / size,
+                    }
+                  : {}),
                 '--assemble-delay': `${Math.min(360, (rowIndex + colIndex) * 22 + ((rowIndex * 7 + colIndex * 11) % 3) * 8)}ms`,
               };
               if (celebrating)
