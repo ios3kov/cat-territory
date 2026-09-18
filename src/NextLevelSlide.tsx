@@ -14,7 +14,14 @@ type Props = {
   onNext: () => Promise<void>;
   onProgress?: (progress: number) => void;
 };
-type Phase = 'idle' | 'dragging' | 'returning' | 'loading' | 'error';
+type Phase =
+  | 'idle'
+  | 'dragging'
+  | 'returning'
+  | 'confirmed'
+  | 'loading'
+  | 'handoff'
+  | 'error';
 type Drag = {
   id: number;
   x: number;
@@ -23,6 +30,7 @@ type Drag = {
   target: HTMLDivElement;
 };
 const THRESHOLD = 0.8;
+const CONFIRM_HOLD_MS = 150;
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
 
 export function NextLevelSlide({ ready, onNext, onProgress }: Props) {
@@ -77,13 +85,17 @@ export function NextLevelSlide({ ready, onNext, onProgress }: Props) {
     };
     returnFrame.current = requestAnimationFrame(tick);
   }, [setScrubProgress, stopReturn]);
+  const releaseDragCapture = useCallback(() => {
+    const current = drag.current;
+    if (!current) return false;
+    drag.current = null;
+    if (current.target.hasPointerCapture(current.id))
+      current.target.releasePointerCapture(current.id);
+    return true;
+  }, []);
   const cancelDrag = useCallback(
     (animate = true) => {
-      const current = drag.current;
-      if (!current) return;
-      drag.current = null;
-      if (current.target.hasPointerCapture(current.id))
-        current.target.releasePointerCapture(current.id);
+      if (!releaseDragCapture()) return;
       if (animate) animateReturn();
       else {
         stopReturn();
@@ -91,7 +103,7 @@ export function NextLevelSlide({ ready, onNext, onProgress }: Props) {
         setPhase(restingPhase.current);
       }
     },
-    [animateReturn, setScrubProgress, stopReturn],
+    [animateReturn, releaseDragCapture, setScrubProgress, stopReturn],
   );
 
   useEffect(() => {
@@ -142,14 +154,16 @@ export function NextLevelSlide({ ready, onNext, onProgress }: Props) {
     submitting.current = true;
     stopReturn();
     setScrubProgress(1);
-    setPhase('loading');
+    setPhase('confirmed');
     haptic('next');
     try {
+      await new Promise((resolve) => window.setTimeout(resolve, CONFIRM_HOLD_MS));
+      if (!mounted.current) return;
+      setPhase('loading');
       await onNext();
       if (mounted.current) {
         restingPhase.current = 'idle';
-        setScrubProgress(0);
-        setPhase('idle');
+        setPhase('handoff');
       }
     } catch {
       if (mounted.current) {
@@ -212,7 +226,7 @@ export function NextLevelSlide({ ready, onNext, onProgress }: Props) {
       (event.clientX - current.x) / current.travel >= THRESHOLD &&
       Math.abs(event.clientY - current.y) <= 80;
     if (completed) {
-      cancelDrag(false);
+      releaseDragCapture();
       void advance();
     } else cancelDrag(true);
   };
@@ -261,7 +275,13 @@ export function NextLevelSlide({ ready, onNext, onProgress }: Props) {
         className="slide-handle"
         aria-hidden="true"
         data-progress={Math.round(progress * 100)}
-        data-disabled={!armed || phase === 'loading' || phase === 'returning'}
+        data-disabled={
+          !armed ||
+          phase === 'returning' ||
+          phase === 'confirmed' ||
+          phase === 'loading' ||
+          phase === 'handoff'
+        }
         onPointerDown={pointerDown}
         onPointerMove={pointerMove}
         onPointerUp={pointerUp}
@@ -285,7 +305,12 @@ export function NextLevelSlide({ ready, onNext, onProgress }: Props) {
         type="button"
         className="slide-assistive-action"
         disabled={
-          !armed || !ready || phase === 'loading' || phase === 'returning'
+          !armed ||
+          !ready ||
+          phase === 'returning' ||
+          phase === 'confirmed' ||
+          phase === 'loading' ||
+          phase === 'handoff'
         }
         onClick={() => void advance()}
       >
