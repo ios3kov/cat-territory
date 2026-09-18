@@ -23,6 +23,8 @@ type Props = {
   coachCell?: number;
   coachLabel?: string;
   celebrateCats?: boolean;
+  transitionProgress?: number;
+  transitionRole?: 'old' | 'new';
   onToggleCat: (idx: number) => void;
   onKeyboardMark: (idx: number) => void;
   onPointerDown: (
@@ -37,6 +39,8 @@ type Props = {
   onMouseLeave: () => void;
 };
 type CellStyle = CSSProperties & {
+  '--transition-cell'?: number;
+  '--transition-progress'?: number;
   '--cat-delay'?: string;
   '--cat-idle-delay'?: string;
   '--cat-blink-delay'?: string;
@@ -88,6 +92,8 @@ function GameBoardView({
   coachCell,
   coachLabel,
   celebrateCats = false,
+  transitionProgress,
+  transitionRole,
   onToggleCat,
   onKeyboardMark,
   onPointerDown,
@@ -183,6 +189,13 @@ function GameBoardView({
                 celebrating = celebrateCats && value === 2;
               const style: CellStyle = {
                 backgroundColor: regionColors[region],
+                ...(transitionProgress == null
+                  ? {}
+                  : {
+                      '--transition-cell':
+                        size <= 1 ? 0 : colIndex / (size - 1),
+                      '--transition-progress': transitionProgress,
+                    }),
                 '--assemble-delay': `${Math.min(360, (rowIndex + colIndex) * 22 + ((rowIndex * 7 + colIndex * 11) % 3) * 8)}ms`,
               };
               if (celebrating)
@@ -195,7 +208,7 @@ function GameBoardView({
               }
               return (
                 <button
-                  className={`cell ${starter ? 'starter' : ''} ${mistakeCell === idx ? 'mistake-cell' : ''} ${correctCell === idx ? 'correct-cell' : ''} ${hintCellSet.has(idx) ? 'hint-cell' : ''} ${hintTarget === idx ? 'hint-target' : ''} ${excludedSet.has(idx) ? 'hint-excluded' : ''} ${coachCell === idx ? 'gesture-coach-cell' : ''} ${feedback ? `feedback-${feedback.kind} feedback-phase-${feedback.token % 2}` : ''} ${celebrating ? 'win-sequence' : ''}`}
+                  className={`cell ${transitionRole ? `board-transition-${transitionRole}` : ''} ${starter ? 'starter' : ''} ${mistakeCell === idx ? 'mistake-cell' : ''} ${correctCell === idx ? 'correct-cell' : ''} ${hintCellSet.has(idx) ? 'hint-cell' : ''} ${hintTarget === idx ? 'hint-target' : ''} ${excludedSet.has(idx) ? 'hint-excluded' : ''} ${coachCell === idx ? 'gesture-coach-cell' : ''} ${feedback ? `feedback-${feedback.kind} feedback-phase-${feedback.token % 2}` : ''} ${celebrating ? 'win-sequence' : ''}`}
                   key={`${rowIndex}-${colIndex}`}
                   type="button"
                   role="gridcell"
