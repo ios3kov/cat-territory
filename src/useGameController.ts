@@ -71,7 +71,6 @@ export function useGameController(autoMarksEnabled: boolean) {
     [restartingFromMistakes, setRestartingFromMistakes] = useState(false),
     [won, setWon] = useState(false),
     [completionReady, setCompletionReady] = useState(false),
-    [levelLeaving, setLevelLeaving] = useState(false),
     [idleHelpVisible, setIdleHelpVisible] = useState(false),
     [achievementQueue, setAchievementQueue] = useState<Achievement[]>([]),
     [achievementCount, setAchievementCount] = useState(
@@ -391,18 +390,11 @@ export function useGameController(autoMarksEnabled: boolean) {
         getAchievementSnapshot().filter((i) => i.unlocked).length,
       );
   const nextLevelBusy = useRef(false),
-    mounted = useRef(false),
-    exitTransition = useRef<{ timer: number; finish: () => void } | null>(null);
+    mounted = useRef(false);
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
-      const exit = exitTransition.current;
-      if (exit) {
-        clearTimeout(exit.timer);
-        exit.finish();
-        exitTransition.current = null;
-      }
     };
   }, []);
   const nextLevel = async () => {
@@ -412,19 +404,6 @@ export function useGameController(autoMarksEnabled: boolean) {
     try {
       await prepareLevel(next);
       if (!mounted.current) return;
-      // Keep the solved board visible throughout generation. Only leave when ready.
-      if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        setLevelLeaving(true);
-        await new Promise<void>((finish) => {
-          exitTransition.current = {
-            timer: window.setTimeout(() => {
-              exitTransition.current = null;
-              finish();
-            }, 180),
-            finish,
-          };
-        });
-      }
       if (!mounted.current) return;
       gestures.resetInteraction();
       cellFeedback.clear();
@@ -453,7 +432,6 @@ export function useGameController(autoMarksEnabled: boolean) {
       trackedFirstMoveRef.current = null;
     } finally {
       nextLevelBusy.current = false;
-      if (mounted.current) setLevelLeaving(false);
     }
   };
   return {
@@ -472,7 +450,6 @@ export function useGameController(autoMarksEnabled: boolean) {
     restartingFromMistakes,
     won,
     completionReady,
-    levelLeaving,
     restartArmed,
     conflicts,
     catCount,
