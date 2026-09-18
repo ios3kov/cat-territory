@@ -39,12 +39,16 @@ function context(regions: number[][]) {
   return { size, count, row, col, region, rows, cols, regs, conflict };
 }
 type C = ReturnType<typeof context>;
-function state(c: C, board?: BoardCell[]): State | null {
+function state(
+  c: C,
+  board?: BoardCell[],
+  trustPlayerMarks = true,
+): State | null {
   const cats = new Set<number>(),
     candidates = new Set<number>();
   for (let cell = 0; cell < c.count; cell++) {
     if (board?.[cell] === 2) cats.add(cell);
-    if (board?.[cell] !== 1) candidates.add(cell);
+    if (!trustPlayerMarks || board?.[cell] !== 1) candidates.add(cell);
   }
   const placed = [...cats];
   for (let a = 0; a < placed.length; a++)
@@ -266,6 +270,106 @@ function apply(c: C, s: State, h: LogicalHint) {
   } else if (h.kind === 'eliminate')
     for (const x of h.eliminate ?? [h.cell]) s.candidates.delete(x);
 }
+function cloneState(s: State): State {
+  return {
+    cats: new Set(s.cats),
+    candidates: new Set(s.candidates),
+  };
+}
+function deadUnit(c: C, s: State) {
+  for (let r = 0; r < c.size; r++) {
+    const cells = c.rows(r);
+    if (!hasCat(cells, s.cats) && candidates(cells, s.candidates).length === 0)
+      return `row ${r + 1}`;
+  }
+  for (let col = 0; col < c.size; col++) {
+    const cells = c.cols(col);
+    if (!hasCat(cells, s.cats) && candidates(cells, s.candidates).length === 0)
+      return `column ${col + 1}`;
+  }
+  for (let region = 0; region < c.size; region++) {
+    const cells = c.regs(region);
+    if (!hasCat(cells, s.cats) && candidates(cells, s.candidates).length === 0)
+      return 'a territory';
+  }
+  return null;
+}
+function explainableContradiction(
+  c: C,
+  s: State,
+  board: BoardCell[],
+): LogicalHint | null {
+  for (const cell of s.candidates) {
+    if (s.cats.has(cell) || board[cell] === 1) continue;
+    const trial = cloneState(s);
+    apply(c, trial, {
+      kind: 'place',
+      cell,
+      highlight: [cell],
+      technique: 'single',
+      prompt: '',
+      reason: '',
+    });
+    for (let step = 0; step < c.count * 4; step++) {
+      const dead = deadUnit(c, trial);
+      if (dead)
+        return {
+          kind: 'eliminate',
+          cell,
+          highlight: [cell],
+          focus: c.rows(c.row(cell)),
+          eliminate: [cell],
+          prompt:
+            'Test this candidate using only forced row, column and territory moves.',
+          reason: `If a cat goes here, the forced deductions leave ${dead} with no possible cat. Mark this cell X.`,
+          technique: 'contradiction',
+        };
+      const next = single(c, trial) ?? intersection(c, trial);
+      if (!next) break;
+      apply(c, trial, next);
+    }
+  }
+  return null;
+}
+function userHint(c: C, board: BoardCell[]): LogicalHint | null {
+  const visible = state(c, board, false);
+  if (!visible) return null;
+  for (let step = 0; step < c.count * 20; step++) {
+    const next =
+      single(c, visible) ??
+      intersection(c, visible) ??
+      explainableContradiction(c, visible, board);
+    if (!next) return null;
+    if (next.kind === 'place') {
+      if (board[next.cell] === 1)
+        return {
+          kind: 'repair',
+          cell: next.cell,
+          highlight: [next.cell],
+          focus: next.focus,
+          prompt: 'This X conflicts with a forced cat.',
+          reason: `${next.reason} Remove the X here before continuing.`,
+          technique: 'repair',
+        };
+      if (board[next.cell] !== 2) return next;
+      apply(c, visible, next);
+      continue;
+    }
+    const targets = (next.eliminate ?? [next.cell]).filter(
+      (cell) => !visible.cats.has(cell),
+    );
+    const remaining = targets.filter((cell) => board[cell] !== 1);
+    if (remaining.length)
+      return {
+        ...next,
+        cell: remaining[0],
+        eliminate: remaining,
+        highlight: [...(next.focus ?? []), ...remaining],
+      };
+    apply(c, visible, next);
+  }
+  return null;
+}
 function boardSolvable(c: C, b: BoardCell[]) {
   const s = state(c, b);
   return Boolean(s && solvable(c, s));
@@ -310,9 +414,9 @@ function repair(c: C, b: BoardCell[]): LogicalHint | null {
 }
 export function getLogicalHint(regions: number[][], board: BoardCell[]) {
   const c = context(regions),
-    s = state(c, board);
-  if (!s || !solvable(c, s)) return repair(c, board);
-  return single(c, s) ?? intersection(c, s) ?? contradiction(c, s);
+    asserted = state(c, board);
+  if (!asserted || !solvable(c, asserted)) return repair(c, board);
+  return userHint(c, board);
 }
 export function analyzeLogicalPuzzle(regions: number[][]): LogicalAnalysis {
   const c = context(regions),
