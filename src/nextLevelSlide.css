@@ -216,13 +216,17 @@
   --old-front: calc(var(--p) * 1.25);
   --new-front: calc((var(--p) - 0.2) * 1.25);
   position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
 }
 .board-transition-layer {
+  grid-area: 1 / 1;
   width: 100%;
+  display: grid;
+  place-items: center;
 }
 .board-transition-new-layer {
-  position: absolute;
-  inset: 0;
   pointer-events: none;
 }
 .cell.board-transition-old,
@@ -232,13 +236,13 @@
 }
 .cell.board-transition-old {
   --delta: calc(var(--transition-cell) - var(--old-front));
-  opacity: clamp(0, calc(var(--delta) * 14 + 0.5), 1);
-  transform: scale(clamp(0.72, calc(var(--delta) * 3 + 0.85), 1));
+  opacity: clamp(0, calc(var(--delta) * 8 + 0.5), 1);
+  transform: scale(clamp(0.86, calc(var(--delta) * 1.8 + 0.95), 1));
 }
 .cell.board-transition-new {
   --delta: calc(var(--new-front) - var(--transition-cell));
-  opacity: clamp(0, calc(var(--delta) * 14 + 0.5), 1);
-  transform: scale(clamp(0.72, calc(var(--delta) * 3 + 0.85), 1));
+  opacity: clamp(0, calc(var(--delta) * 8 + 0.5), 1);
+  transform: scale(clamp(0.86, calc(var(--delta) * 1.8 + 0.95), 1));
 }
 .board-assembling .cell.board-transition-new {
   animation: none !important;
