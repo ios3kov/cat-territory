@@ -71,7 +71,7 @@ export function useGameController(autoMarksEnabled: boolean) {
     [restartingFromMistakes, setRestartingFromMistakes] = useState(false),
     [won, setWon] = useState(false),
     [completionReady, setCompletionReady] = useState(false),
-    [, setNextLevelPreviewRevision] = useState(0),
+    [, refreshNextLevelPreview] = useState(0),
     [idleHelpVisible, setIdleHelpVisible] = useState(false),
     [achievementQueue, setAchievementQueue] = useState<Achievement[]>([]),
     [achievementCount, setAchievementCount] = useState(
@@ -336,7 +336,7 @@ export function useGameController(autoMarksEnabled: boolean) {
     let active = true;
     void prepareLevel(levelIndex + 1)
       .then(() => {
-        if (active) setNextLevelPreviewRevision((revision) => revision + 1);
+        if (active) refreshNextLevelPreview((revision) => revision + 1);
       })
       .catch(() => undefined);
     return () => {
