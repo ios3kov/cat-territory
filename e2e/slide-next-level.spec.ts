@@ -78,12 +78,16 @@ async function win(
   await expect(slider(page)).toHaveAttribute('data-disabled', 'false');
 }
 
-test('victory stays on the board and four actions morph without changing the dock bounds', async ({
+test('victory slider matches one action button in height with a wider handle', async ({
   page,
   isMobile,
 }, testInfo) => {
   const cats = await start(page);
-  const before = (await page.locator('.action-row').boundingBox())!;
+  const beforeRow = (await page.locator('.action-row').boundingBox())!;
+  const beforeButton = (await page
+    .locator('.action-row button')
+    .first()
+    .boundingBox())!;
   for (const cat of cats) await placeCat(page, cat, isMobile);
   await expect(slider(page)).toHaveAttribute('data-disabled', 'false');
   await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -97,8 +101,16 @@ test('victory stays on the board and four actions morph without changing the doc
     page.getByRole('button', { name: 'Hint', exact: true }),
   ).toHaveCount(0);
   const after = (await track(page).boundingBox())!;
-  for (const dimension of ['x', 'y', 'width', 'height'] as const)
-    expect(after[dimension]).toBeCloseTo(before[dimension], 0);
+  const handle = (await slider(page).boundingBox())!;
+  expect(after.x).toBeCloseTo(beforeRow.x, 0);
+  expect(after.width).toBeCloseTo(beforeRow.width, 0);
+  expect(after.height).toBeCloseTo(beforeButton.height, 0);
+  expect(after.y + after.height / 2).toBeCloseTo(
+    beforeRow.y + beforeRow.height / 2,
+    0,
+  );
+  expect(handle.width).toBeCloseTo(128, 0);
+  expect(handle.height).toBeCloseTo(after.height, 0);
   await page.screenshot({
     path: testInfo.outputPath('victory-slide.png'),
     fullPage: true,
@@ -408,8 +420,11 @@ test('tap, edge clicks, short drags, backtracking and extra keys cannot advance'
     'aria-label',
     /Puzzle level 1,/,
   );
+  const draggedHandle = (await slider(page).boundingBox())!;
   await page.mouse.move(
-    bounds.x + 28 + (bounds.width - 56) * 0.4,
+    bounds.x +
+      draggedHandle.width / 2 +
+      (bounds.width - draggedHandle.width) * 0.4,
     bounds.y + bounds.height / 2,
   );
   await page.mouse.up();
@@ -606,8 +621,15 @@ test('small 10x10 victory fits and reduced motion removes transition delays', as
     expect(b.y + b.height).toBeLessThanOrEqual(569);
   }
   const b = (await slider(page).boundingBox())!;
-  expect(b.width).toBeGreaterThanOrEqual(44);
-  expect(b.height).toBeGreaterThanOrEqual(44);
+  const compactTrack = (await track(page).boundingBox())!;
+  const compactButton = (await page
+    .locator('.action-row button')
+    .first()
+    .boundingBox())!;
+  expect(b.width).toBeCloseTo(128, 0);
+  expect(b.height).toBeCloseTo(42, 0);
+  expect(compactTrack.height).toBeCloseTo(compactButton.height, 0);
+  expect(b.height).toBeCloseTo(compactTrack.height, 0);
   await expect(slider(page)).toHaveCSS('transition-duration', '0s');
   await expect(
     page.locator('.board .celebrating-cat .cat-idle-body').first(),
