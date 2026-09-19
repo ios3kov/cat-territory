@@ -1,53 +1,26 @@
-export type HapticCue =
-  | 'mark'
-  | 'paint'
-  | 'erase'
-  | 'cat'
-  | 'remove'
-  | 'mistake'
-  | 'strikeout'
-  | 'undo'
-  | 'hint'
-  | 'reveal'
-  | 'restart'
-  | 'win'
-  | 'achievement'
-  | 'secretAchievement'
-  | 'milestone'
-  | 'next';
+export type HapticCue = 'drop' | 'merge' | 'order' | 'fail' | 'restart';
+
 const PATTERNS: Record<HapticCue, number | number[]> = {
-  mark: 4,
-  paint: 4,
-  erase: 3,
-  cat: [9, 18, 7],
-  remove: 6,
-  mistake: 16,
-  strikeout: [20, 34, 20],
-  undo: [6, 16, 5],
-  hint: 7,
-  reveal: [7, 16, 9],
-  restart: [10, 18, 8],
-  win: [14, 26, 18, 30, 24],
-  achievement: [8, 20, 11],
-  secretAchievement: [8, 16, 8, 24, 16],
-  milestone: [10, 22, 14],
-  next: 8,
+  drop: 5,
+  merge: [9, 16, 7],
+  order: [10, 20, 12, 26, 16],
+  fail: [18, 34, 20],
+  restart: [7, 18, 7],
 };
-let lastCellPulseAt = 0;
-const CELL_PULSE_GAP_MS = 48;
+
+let lastPulseAt = 0;
+
 export function haptic(cue: HapticCue) {
   if (
     typeof navigator === 'undefined' ||
-    typeof navigator.vibrate !== 'function'
+    typeof navigator.vibrate !== 'function' ||
+    (typeof document !== 'undefined' && document.visibilityState !== 'visible')
   )
     return false;
-  if (typeof document !== 'undefined' && document.visibilityState !== 'visible')
-    return false;
-  if (cue === 'mark' || cue === 'paint' || cue === 'erase') {
-    const now = performance.now();
-    if (now - lastCellPulseAt < CELL_PULSE_GAP_MS) return false;
-    lastCellPulseAt = now;
-  }
+
+  const now = performance.now();
+  if (cue === 'drop' && now - lastPulseAt < 80) return false;
+  lastPulseAt = now;
   try {
     return navigator.vibrate(PATTERNS[cue]);
   } catch {
