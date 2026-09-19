@@ -211,7 +211,7 @@ test('update checks are cold-start plus six-hour foreground events without polli
   }));
 
   await page.evaluate(({ checkedAt }) => {
-    Date.now = () => checkedAt + 6 * 60 * 60 * 1000 - 1;
+    Date.now = () => checkedAt + 5 * 60 * 60 * 1000 + 59 * 60 * 1000;
     document.dispatchEvent(new Event('visibilitychange'));
   }, initial);
   await page.waitForTimeout(100);
@@ -220,7 +220,7 @@ test('update checks are cold-start plus six-hour foreground events without polli
   );
 
   await page.evaluate(({ checkedAt }) => {
-    Date.now = () => checkedAt + 6 * 60 * 60 * 1000;
+    Date.now = () => checkedAt + 6 * 60 * 60 * 1000 + 60 * 1000;
     document.dispatchEvent(new Event('visibilitychange'));
   }, initial);
   await expect
