@@ -123,6 +123,42 @@ test('small phone keeps board, title and actions inside the viewport', async ({
   ).toBeInViewport();
 });
 
+test('small landscape keeps board and action controls usable without overlap', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 568, height: 320 });
+  await start(page);
+  await expect(page.getByRole('grid')).not.toHaveClass(/board-assembling/);
+
+  const board = (await page.getByRole('grid').boundingBox())!;
+  const dock = (await page.locator('.action-dock').boundingBox())!;
+  const separated =
+    board.x + board.width <= dock.x + 1 ||
+    dock.x + dock.width <= board.x + 1 ||
+    board.y + board.height <= dock.y + 1 ||
+    dock.y + dock.height <= board.y + 1;
+  expect(separated).toBe(true);
+
+  for (const button of await page.locator('.action-row button').all()) {
+    await expect(button).toBeInViewport();
+    const bounds = (await button.boundingBox())!;
+    expect(bounds.height).toBeGreaterThanOrEqual(42);
+    expect(
+      await button.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        return (
+          document
+            .elementFromPoint(
+              rect.left + rect.width / 2,
+              rect.top + rect.height / 2,
+            )
+            ?.closest('button') === element
+        );
+      }),
+    ).toBe(true);
+  }
+});
+
 test('saved statistics and invalid cats are validated', async ({ page }) => {
   await start(page);
   const result = await page.evaluate(async () => {
@@ -213,6 +249,55 @@ test('core screens pass automated accessibility checks', async ({
   await page.getByRole('button', { name: 'All achievements' }).click();
   await check('achievements');
   await page.keyboard.press('Escape');
+});
+
+test('victory slider is accessible and does not strand focus in inert actions', async ({
+  page,
+}) => {
+  const board = Array(levelOne.level.size * levelOne.level.size).fill(0);
+  for (const cell of levelOne.solutionCells.slice(0, -1)) board[cell] = 2;
+  await page.addInitScript(
+    ({ sessionKey, board }) =>
+      localStorage.setItem(
+        sessionKey,
+        JSON.stringify({
+          board,
+          seconds: 40,
+          history: [],
+          mistakes: 0,
+          usedHint: false,
+        }),
+      ),
+    { sessionKey: levelOne.sessionKey, board },
+  );
+  await start(page);
+  await page.getByRole('button', { name: 'Hint', exact: true }).focus();
+  const lastCat = levelOne.solutionCells.at(-1)!;
+  await page
+    .locator(`[data-cell-index="${lastCat}"]`)
+    .click({ button: 'right' });
+  const slider = page.getByTestId('next-level-slide');
+  await expect(slider).toBeVisible();
+  await expect(page.locator('.slide-handle')).toHaveAttribute(
+    'data-disabled',
+    'false',
+  );
+  expect(
+    await page.evaluate(() =>
+      Boolean(document.activeElement?.closest('.action-row[inert]')),
+    ),
+  ).toBe(false);
+
+  const { default: AxeBuilder } = await import('@axe-core/playwright');
+  const result = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze();
+  expect(
+    result.violations.map((violation) => ({
+      id: violation.id,
+      nodes: violation.nodes.map((node) => node.target),
+    })),
+  ).toEqual([]);
 });
 
 test('a failed worker can be retried without reloading the game', async ({

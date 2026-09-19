@@ -1,9 +1,12 @@
-# CAT TERRITORY 1.1.7 acceptance
+# CAT TERRITORY production acceptance
 
-1. Core play: tap X, double/right-click cat, swipe marks, wrong-cat feedback, Smart Auto-X sequential wave, one Undo reverses cat + full wave.
-2. Win: reward, optional Personal Best, subdued stats and exactly one `Next level` CTA; no chapter/size transition plaque and no dynamic `Start N×N` label.
-3. Territory colors: every level computes a deterministic adjacency-aware pastel mapping; neighboring regions use different, perceptually separated palette choices; paw progress uses the same mapping.
-4. Keyboard: initial roving focus lands on an enabled cell and directional movement skips disabled starter cats; Enter/Space marks X and C toggles cat.
-5. Endless: persistence, Hint, three-mistake restart, generated 8×8–10×10 levels remain functional.
-6. Release gate: npm install, npm run typecheck, npm run build and npm run test:e2e must all pass before merging migration-1.1.7 into main.
-
+1. Core play: tap X, double/right-click cat, swipe paint/erase, wrong-cat feedback, Smart Auto-X sequential wave, and one Undo reverses the cat plus its full auto-X transaction.
+2. Win handoff: completion feedback remains readable; the Next Level slider follows one progress value with the board, returns smoothly below threshold, settles before handoff, and preserves the next prepared board.
+3. Mobile UX: 320×568 portrait, 568×320 compact landscape, standard Android profiles and iPhone/WebKit portrait/landscape keep the board and controls usable without clipping or overlap.
+4. Accessibility: grid semantics and roving focus work; dialogs trap/restore focus; reduced motion removes nonessential motion; board, dialogs, progress, achievements and victory slider pass automated WCAG A/AA checks.
+5. Endless progression: generated 5×5–10×10 levels, persistence, Hint logic, three-mistake restart, achievements and background prewarm remain functional.
+6. Audio/haptics: first user gesture unlocks sound; cues are not duplicated; visibility suspend/resume is safe; haptic calls remain progressive enhancement.
+7. PWA/offline: first visit precaches the release; unopened screens work offline; automatic updates preserve in-progress gameplay, wait for active pointer input, restore all controlled tabs and keep the last working release if an update is incomplete.
+8. Security: production output contains the Cloudflare Pages security policy and the dependency audit has no high-or-higher production advisory.
+9. Performance: production profiling passes desktop, 4× CPU mobile and 6× CPU low-end 10×10 budgets for LCP, CLS, long tasks, event latency, JS transfer, DOM size and JS heap.
+10. Release gate: format, lint, typecheck, build, security policy, Chromium E2E, WebKit, offline lifecycle, performance and production dependency audit must all pass before merge.

@@ -13,5 +13,7 @@ Migration release: GitHub becomes the source of truth for Cloudflare Pages deplo
 Core puzzle rules, Smart Auto-X wave/one-step Undo, three-mistake restart, Hint logic, Endless generation, scoring, achievements and persistence remain unchanged from 1.1.6.
 
 ## Verification target
-Run `npm run typecheck`, `npm run build`, then `npm run test:e2e`. Cloudflare Pages build command: `npm run build`; output directory: `dist`.
+The merge gate is the full CI pipeline: formatting, lint, TypeScript, production build, dependency audit, security-policy validation, Chromium E2E, WebKit/iPhone interaction tests, offline/update lifecycle tests and performance budgets.
+
+Cloudflare Pages build command: `npm run build`; output directory: `dist`.
 
