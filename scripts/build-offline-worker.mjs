@@ -13,7 +13,11 @@ export async function buildOfflineWorker(outDir) {
     for (const entry of await readdir(dir, { withFileTypes: true })) {
       const path = join(dir, entry.name);
       if (entry.isDirectory()) await visit(path);
-      else if (entry.name !== 'sw.js' && !entry.name.endsWith('.map'))
+      else if (
+        entry.name !== 'sw.js' &&
+        !entry.name.endsWith('.map') &&
+        !['_headers', '_redirects', '_routes.json'].includes(entry.name)
+      )
         paths.push(relative(outDir, path).split('\\').join('/'));
     }
   }
