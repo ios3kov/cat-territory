@@ -56,9 +56,13 @@ function App() {
   const game = useGameController(autoMarksEnabled);
   useEffect(
     () =>
-      runWhenIdle(() => {
-        void loadGameDialogs();
-      }, 1200, 700),
+      runWhenIdle(
+        () => {
+          void loadGameDialogs();
+        },
+        1200,
+        700,
+      ),
     [],
   );
   const [showRules, setShowRules] = useState(false),
