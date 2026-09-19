@@ -1,7 +1,10 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-const headers = await readFile(resolve('dist/_headers'), 'utf8');
+const [headers, serviceWorker] = await Promise.all([
+  readFile(resolve('dist/_headers'), 'utf8'),
+  readFile(resolve('dist/sw.js'), 'utf8'),
+]);
 const requiredHeaders = [
   'X-Frame-Options: DENY',
   'X-Content-Type-Options: nosniff',
@@ -26,4 +29,10 @@ const missing = [
 if (missing.length)
   throw new Error(`Security policy is missing: ${missing.join(', ')}`);
 
-console.log('Production security headers: OK');
+for (const controlFile of ['_headers', '_redirects', '_routes.json'])
+  if (serviceWorker.includes(`"./${controlFile}"`))
+    throw new Error(
+      `Deployment control file ${controlFile} must not be precached`,
+    );
+
+console.log('Production security headers and offline asset boundary: OK');
