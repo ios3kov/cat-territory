@@ -24,6 +24,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run format
+      - run: git diff --exit-code -- e2e/slide-next-level.spec.ts
       - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck
