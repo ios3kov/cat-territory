@@ -146,12 +146,14 @@ test('small landscape keeps board and action controls usable without overlap', a
     expect(
       await button.evaluate((element) => {
         const rect = element.getBoundingClientRect();
-        return document
-          .elementFromPoint(
-            rect.left + rect.width / 2,
-            rect.top + rect.height / 2,
-          )
-          ?.closest('button') === element;
+        return (
+          document
+            .elementFromPoint(
+              rect.left + rect.width / 2,
+              rect.top + rect.height / 2,
+            )
+            ?.closest('button') === element
+        );
       }),
     ).toBe(true);
   }
