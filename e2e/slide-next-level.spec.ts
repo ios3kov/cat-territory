@@ -354,14 +354,14 @@ test('completed drag holds at the endpoint before the dock morphs back', async (
     'aria-label',
     /Puzzle level 2,/,
   );
-  await expect(page.locator('.action-dock')).toHaveClass(/is-handoff/);
-  await expect(page.locator('.action-row')).toBeVisible();
-  await expect(page.locator('.action-row')).toHaveCSS('opacity', '1');
-  await expect(track(page)).toHaveAttribute('data-state', 'handoff');
-  await expect(track(page)).toHaveCSS('opacity', '0');
+  // The handoff is intentionally only 400ms. On slower WebKit CI the
+  // level-label assertion above can outlive that window, so verify the
+  // transient phase from the timeline we started before pointerup instead of
+  // racing a post-transition DOM assertion.
   await expect(track(page)).toHaveCount(0);
   await expect(page.locator('.action-dock')).not.toHaveClass(/is-handoff/);
   await expect(page.locator('.action-row')).toBeVisible();
+  await expect(page.locator('.action-row')).toHaveCSS('opacity', '1');
 
   const recorded = await page.evaluate(() => {
     (window as any).__slideObserver?.disconnect();
