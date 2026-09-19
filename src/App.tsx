@@ -18,7 +18,6 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
-  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -183,20 +182,14 @@ function App() {
         ? 'Mark X'
         : 'Check this';
   const achievementNotice = game.achievementToast;
-  const transitionPreview = useMemo(() => {
-    if (!game.won || !game.completionReady) return null;
-    const nextLevel = peekLevel(game.levelIndex + 1);
-    if (!nextLevel) return null;
-    return {
-      level: nextLevel,
-      board: createInitialBoard(nextLevel),
-    };
-  }, [
-    game.won,
-    game.completionReady,
-    game.levelIndex,
-    game.nextLevelPreviewRevision,
-  ]);
+  const previewLevel =
+    game.won && game.completionReady ? peekLevel(game.levelIndex + 1) : null;
+  const transitionPreview = previewLevel
+    ? {
+        level: previewLevel,
+        board: createInitialBoard(previewLevel),
+      }
+    : null;
   const boardStageRef = useRef<HTMLDivElement>(null);
   const transitionPreviewReady = Boolean(transitionPreview);
   useLayoutEffect(() => {
@@ -214,16 +207,18 @@ function App() {
     },
     [transitionPreviewReady],
   );
+  const currentLevelIndex = game.levelIndex;
+  const nextLevel = game.nextLevel;
   const advanceLevel = useCallback(async () => {
-    const target = game.levelIndex + 1;
+    const target = currentLevelIndex + 1;
     setHandoffLevelIndex(transitionPreviewReady ? target : null);
     try {
-      await game.nextLevel();
+      await nextLevel();
     } catch (error) {
       setHandoffLevelIndex(null);
       throw error;
     }
-  }, [game.levelIndex, game.nextLevel, transitionPreviewReady]);
+  }, [currentLevelIndex, nextLevel, transitionPreviewReady]);
   useEffect(() => {
     if (handoffLevelIndex !== game.levelIndex) return;
     const timer = window.setTimeout(() => setHandoffLevelIndex(null), 400);
