@@ -43,10 +43,5 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-      - name: Deploy verified commit to Cloudflare Pages
-        run: >-
-          npx --yes wrangler@4 pages deploy dist
-          --project-name cat-territory
-          --branch main
-          --commit-hash "${{ github.event.workflow_run.head_sha }}"
-          --commit-message "${{ github.event.workflow_run.head_commit.message }}"
+      - name: Deploy verified commit to Cloudflare Worker
+        run: npx --yes wrangler@4 deploy

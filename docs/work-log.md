@@ -119,3 +119,15 @@ Next: validate the retry in PR CI, then merge if the full aggregate gate is gree
 - Product animation code is unchanged.
 
 Next: validate the full production gate in PR CI, then merge and resume the automatic deploy chain.
+
+
+## 2026-09-20 — Correct Cloudflare deployment target
+
+- Verified production gate #287 is fully green on `main` (`8a3cc78c`).
+- Automatic `deploy-production` started successfully and loaded both Cloudflare repository secrets.
+- The deployment failed because `cat-territory` is not a Cloudflare Pages project. Wrangler explicitly reported that the Pages project does not exist and suggested deploying a Worker instead.
+- Added `wrangler.jsonc` for the existing `cat-territory` Worker with static assets from `./dist` and SPA fallback routing.
+- Switched the production workflow from `wrangler pages deploy` to `wrangler deploy`.
+- Product code is unchanged.
+
+Next: validate PR CI, merge, then verify the automatic Worker deployment. The Cloudflare API token must have Worker deploy permission (Workers Editor / Workers Scripts Write) for the existing worker.
