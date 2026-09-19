@@ -374,10 +374,16 @@ function expectedId(index: number, size: number) {
     : `endless-v5-${index}-${size}`;
 }
 
-export function readGenerated(levelIndex: number) {
+function generatedStorageKey(index: number, phaseOffset = 0) {
+  return phaseOffset === 0
+    ? `${PERSISTED_LEVEL_PREFIX}${index}`
+    : `${PERSISTED_LEVEL_PREFIX}${index}-adaptive-${Math.trunc(phaseOffset)}`;
+}
+
+export function readGenerated(levelIndex: number, phaseOffset = 0) {
   const index = normalizeIndex(levelIndex),
     plan = levelPlan(index),
-    key = `${PERSISTED_LEVEL_PREFIX}${index}`,
+    key = generatedStorageKey(index, phaseOffset),
     raw = storageGet(key);
   if (!raw) return null;
   try {
@@ -394,10 +400,15 @@ export function readGenerated(levelIndex: number) {
   }
 }
 
-export function rememberGenerated(levelIndex: number, level: CatalogLevel) {
-  const index = normalizeIndex(levelIndex);
-  generatedCache.set(index, level);
-  storageSet(`${PERSISTED_LEVEL_PREFIX}${index}`, JSON.stringify(level));
+export function rememberGenerated(
+  levelIndex: number,
+  level: CatalogLevel,
+  phaseOffset = 0,
+) {
+  const index = normalizeIndex(levelIndex),
+    cacheKey = index * 10 + (Math.trunc(phaseOffset) + 2);
+  generatedCache.set(cacheKey, level);
+  storageSet(generatedStorageKey(index, phaseOffset), JSON.stringify(level));
   while (generatedCache.size > GENERATED_CACHE_LIMIT)
     generatedCache.delete(generatedCache.keys().next().value!);
 }
@@ -540,14 +551,16 @@ function generate(levelIndex: number, phaseOffset = 0) {
 
 export function getLevel(levelIndex: number, phaseOffset = 0) {
   const index = normalizeIndex(levelIndex),
-    cached = generatedCache.get(index);
+    normalizedOffset = Math.max(-2, Math.min(1, Math.trunc(phaseOffset))),
+    cacheKey = index * 10 + (normalizedOffset + 2),
+    cached = generatedCache.get(cacheKey);
   if (cached) return cached;
-  const persisted = readGenerated(index);
+  const persisted = readGenerated(index, normalizedOffset);
   if (persisted) {
-    generatedCache.set(index, persisted);
+    generatedCache.set(cacheKey, persisted);
     return persisted;
   }
-  const generated = generate(index, phaseOffset);
-  rememberGenerated(index, generated);
+  const generated = generate(index, normalizedOffset);
+  rememberGenerated(index, generated, normalizedOffset);
   return generated;
 }
