@@ -136,7 +136,6 @@ test('user hint sequence stays valid and progresses representative levels', asyn
   }
 });
 
-
 test('adaptive difficulty uses hysteresis and never jumps more than one step', () => {
   const memory = new Map<string, string>();
   const previous = globalThis.localStorage;
@@ -149,7 +148,13 @@ test('adaptive difficulty uses hysteresis and never jumps more than one step', (
     },
   });
   try {
-    const strong = { size: 7, seconds: 70, mistakes: 0, usedHint: false, undos: 0 };
+    const strong = {
+      size: 7,
+      seconds: 70,
+      mistakes: 0,
+      usedHint: false,
+      undos: 0,
+    };
     expect(getAdaptivePhaseOffset()).toBe(0);
     recordAdaptiveResult(strong);
     recordAdaptiveResult(strong);
@@ -224,7 +229,14 @@ test('adaptive profile restores safely and ignores corrupted storage', () => {
         direction: 1,
         streak: 999,
         recent: [
-          { size: 7, seconds: 90, mistakes: 0, usedHint: false, undos: 0, pace: 1.8 },
+          {
+            size: 7,
+            seconds: 90,
+            mistakes: 0,
+            usedHint: false,
+            undos: 0,
+            pace: 1.8,
+          },
           { size: 'bad', seconds: -4 },
         ],
       }),
