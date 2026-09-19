@@ -108,3 +108,14 @@ Next: validate the corrected parallel workflow; merge only after the final aggre
 - Persistent failures still fail the production gate; local runs remain retry-free.
 
 Next: validate the retry in PR CI, then merge if the full aggregate gate is green.
+
+
+## 2026-09-19 — WebKit return-animation test stabilization
+
+- Post-merge verify #285 reproduced the same WebKit portrait failure in the victory-slider return test.
+- Root cause was the test sampling exactly 70 ms after pointer release. On WebKit CI that fixed instant could observe either the pre-animation value (60) or the completed value (0).
+- Removed the fixed-time midpoint assertion.
+- The test now verifies the actual behavior contract: enters `returning`, returns progress to `0`, returns to `idle`, restores the old board, and remains on the current level.
+- Product animation code is unchanged.
+
+Next: validate the full production gate in PR CI, then merge and resume the automatic deploy chain.

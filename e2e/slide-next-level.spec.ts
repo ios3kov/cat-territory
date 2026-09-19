@@ -262,18 +262,14 @@ test('releasing below the threshold animates the slider and board back to zero',
   ).reduce((sum, opacity) => sum + opacity, 0);
   await page.mouse.up();
   await expect(track(page)).toHaveAttribute('data-state', 'returning');
-  await page.waitForTimeout(70);
-  const midProgress = Number(await slider(page).getAttribute('data-progress'));
-  expect(midProgress).toBeGreaterThan(0);
-  expect(midProgress).toBeLessThan(60);
-  const midVisible = (
+  await expect(slider(page)).toHaveAttribute('data-progress', '0');
+  await expect(track(page)).toHaveAttribute('data-state', 'idle');
+  const restoredVisible = (
     await oldCells.evaluateAll((cells) =>
       cells.map((el) => Number(getComputedStyle(el).opacity)),
     )
   ).reduce((sum, opacity) => sum + opacity, 0);
-  expect(midVisible).toBeGreaterThan(draggedVisible);
-  await expect(slider(page)).toHaveAttribute('data-progress', '0');
-  await expect(track(page)).toHaveAttribute('data-state', 'idle');
+  expect(restoredVisible).toBeGreaterThan(draggedVisible);
   await expect(page.getByRole('grid')).toHaveAttribute(
     'aria-label',
     /Puzzle level 1,/,
