@@ -91,14 +91,18 @@ try {
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: cpuThrottle });
     await page.addInitScript(
       ({ index }) => {
-        window.metrics = { longTasks: [], lcp: 0, cls: 0, events: [] };
+        window.metrics = { longTasks: [], lcp: 0, lcpElement: '', lcpUrl: '', cls: 0, events: [] };
         new PerformanceObserver((list) =>
           list
             .getEntries()
             .forEach((entry) => window.metrics.longTasks.push(entry.duration)),
         ).observe({ type: 'longtask', buffered: true });
         new PerformanceObserver((list) => {
-          window.metrics.lcp = list.getEntries().at(-1).startTime;
+          const entry = list.getEntries().at(-1);
+          window.metrics.lcp = entry.startTime;
+          window.metrics.lcpElement =
+            entry.element?.className || entry.element?.tagName || '';
+          window.metrics.lcpUrl = entry.url || '';
         }).observe({ type: 'largest-contentful-paint', buffered: true });
         new PerformanceObserver((list) =>
           list.getEntries().forEach((entry) => {
