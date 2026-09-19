@@ -71,7 +71,7 @@ export function useGameController(autoMarksEnabled: boolean) {
     [restartingFromMistakes, setRestartingFromMistakes] = useState(false),
     [won, setWon] = useState(false),
     [completionReady, setCompletionReady] = useState(false),
-    [nextLevelPreviewRevision, setNextLevelPreviewRevision] = useState(0),
+    [, setNextLevelPreviewRevision] = useState(0),
     [idleHelpVisible, setIdleHelpVisible] = useState(false),
     [achievementQueue, setAchievementQueue] = useState<Achievement[]>([]),
     [achievementCount, setAchievementCount] = useState(
@@ -264,11 +264,13 @@ export function useGameController(autoMarksEnabled: boolean) {
       trackedLevelStartRef.current = level.id;
       trackGameplayEvent('level_start', level.id, levelIndex, seconds);
     }
+  }, [level.id, levelIndex, seconds]);
+  useEffect(() => {
     // Prepare the next territory while the player is still solving this one.
     // Generation itself runs in a Worker; requestIdleCallback only keeps worker
     // startup away from the first render/input burst.
     return runWhenIdle(() => prewarmLevel(levelIndex + 1), 1200, 700);
-  }, [level.id, levelIndex]);
+  }, [levelIndex]);
   useEffect(() => {
     cancelRestart();
   }, [board, levelIndex, cancelRestart]);
@@ -286,7 +288,7 @@ export function useGameController(autoMarksEnabled: boolean) {
     if (!solved || won) return;
     setWon(true);
     setCompletionReady(false);
-    track('level_complete');
+    trackGameplayEvent('level_complete', level.id, levelIndex, seconds);
     haptic('win');
     clearLevelSession(level.id);
     const previousBest = getBestTimeForSize(level.size),
@@ -321,6 +323,7 @@ export function useGameController(autoMarksEnabled: boolean) {
   }, [
     level.id,
     level.size,
+    getUsedHint,
     levelIndex,
     mistakes,
     seconds,
@@ -354,8 +357,6 @@ export function useGameController(autoMarksEnabled: boolean) {
   }, [achievementQueue]);
   useEffect(
     () => () => {
-      gestures.resetInteraction();
-      cellFeedback.clear();
       [
         idleHelpTimer,
         mistakeRestartTimer,
@@ -474,7 +475,6 @@ export function useGameController(autoMarksEnabled: boolean) {
     restartingFromMistakes,
     won,
     completionReady,
-    nextLevelPreviewRevision,
     restartArmed,
     conflicts,
     catCount,
