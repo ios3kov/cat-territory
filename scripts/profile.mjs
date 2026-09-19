@@ -85,8 +85,15 @@ try {
 
   const results = [];
   for (const scenario of scenarios) {
-    const { name, width, height, cpuThrottle, levelIndex, expectedCells } =
-      scenario;
+    const {
+      name,
+      width,
+      height,
+      cpuThrottle,
+      levelIndex,
+      expectedCells,
+      seededLevel,
+    } = scenario;
     const page = await browser.newPage({ viewport: { width, height } });
     const cdp = await page.context().newCDPSession(page);
     await cdp.send('Performance.enable');
