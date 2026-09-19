@@ -26,28 +26,21 @@ Verification before merge: full PR gate passed.
 - PR #34 merged into `main`.
 - Merge commit: `ff7c25d82beda231f2589ab653ae4c2ca19f82f5`.
 
+## 2026-09-19 — Final post-merge production gate
+
+- CI #275 was automatically cancelled when the documentation commit advanced `main`; no test failure caused the cancellation.
+- CI #276 ran against the resulting current `main` commit `fe2a5e90488b21bfa90b214ad91ff914e355272b`.
+- Full gate passed: format, lint, typecheck, build, security, Chromium E2E, WebKit/iPhone, offline/PWA, low-end performance and production dependency audit.
+- The WebKit handoff race fix is therefore verified on the final current `main`, not only on PR #34.
+
 ## Current step
 
-Post-merge CI #275 is running on `main`.
-
-Already passed:
-- install
-- format
-- lint
-- typecheck
-- build
-- security
-
-Currently running:
-- Chromium E2E
+Production code gate is green.
 
 Remaining:
-- WebKit/iPhone
-- offline/PWA
-- low-end performance
-- production dependency audit
-- Cloudflare production deploy
-- live production smoke-test
+- verify Cloudflare production deployment;
+- run live production smoke-test;
+- verify live security headers, service worker/PWA and core gameplay path.
 
 ## Rule for continuation
 
