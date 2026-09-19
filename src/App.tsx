@@ -36,8 +36,7 @@ import { createInitialBoard, peekLevel } from './game';
 import { storageGet, storageSet } from './storage';
 import { useGameController } from './useGameController';
 let gameDialogsPromise: Promise<typeof import('./GameDialogs')> | null = null;
-const loadGameDialogs = () =>
-  (gameDialogsPromise ??= import('./GameDialogs'));
+const loadGameDialogs = () => (gameDialogsPromise ??= import('./GameDialogs'));
 const RulesDialog = lazy(() =>
   loadGameDialogs().then((m) => ({ default: m.RulesDialog })),
 );
