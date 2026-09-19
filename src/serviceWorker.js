@@ -21,7 +21,24 @@ self.addEventListener('install', (event) => {
       }
     })(),
   );
-  // A new release waits for old tabs to close. Never replace their lazy chunks mid-game.
+  // A new release waits until a client explicitly activates it after saving gameplay.
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type !== 'ACTIVATE_UPDATE') return;
+  event.waitUntil(
+    (async () => {
+      const clients = await self.clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true,
+      });
+      for (const client of clients)
+        client.postMessage({ type: 'PREPARE_UPDATE' });
+      // Give controlled pages a brief turn to synchronously flush local state.
+      await new Promise((resolve) => setTimeout(resolve, 120));
+      await self.skipWaiting();
+    })(),
+  );
 });
 
 self.addEventListener('activate', (event) => {
