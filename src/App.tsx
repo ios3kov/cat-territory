@@ -47,6 +47,7 @@ type Ui = {
   combo: number;
   bestCombo: number;
   message: string;
+  powerCharges: number;
 };
 
 const COINS_KEY = 'monster-merge-coins-v3';
@@ -54,52 +55,26 @@ const BEST_SCORE_KEY = 'monster-merge-best-score-v3';
 const BEST_TIER_KEY = 'monster-merge-best-tier-v3';
 const ORDER_KEY = 'monster-merge-order-v3';
 const COACH_KEY = 'monster-merge-coach-v3';
-const SPRITE_URLS = [
-  'data:image/webp;base64,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',
-  'data:image/webp;base64,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',
-  'data:image/webp;base64,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',
-  'data:image/webp;base64,UklGRl4KAABXRUJQVlA4WAoAAAAQAAAARwAARwAAQUxQSBAFAAABoEXbtilJ2ufcl2Xbttu2bdu2bdu2bdu27e5kOTsjI+49+yMi3ntxG98RMQH4X6wuX41PkbfE5nDw9Vddk/3qq6ZD4lLszpx/nQCNSTBmgRVLOfp2ftdfJCJN7qFnnhbmX9pVISKRKMYXzHIJ/KAP4ABI7cQ5UTe2lfkwtC4zegw6jOoBqZUCQEesHwJzLj7826dbvdj84zJaJzVx6LHt2Q9/evlXtLyq/jIJNVVgxc9Za2/Be3v7pgduHALJQ5zCoeupc+m9Dz7UIO2qcHkAUPS+kRYYZ2j3r4iTbIKhB07UpV566wezSGg2f30k2RSbLKw/6p3iIm8zxMLA5rXhcljuTR72/an4LCIaWzdFksVh45avzuPUsY1m8TCwuDtcpi2LP21cf9+XNMZsVtoBLp1ghWtL631PGuMOnL8YNMMa6x16EYvGOG1BFQZ+0lcl3SbDh7b6wEjDn5WMLPFQuHQbjet8M2M1pg3hzzGqqTaciEkvfkOL4tdWq9TcSnruirp0YwV9nmeonXHuHFY0Pvk1LYQfhkFTTcCAt2iMoen5p0JgysAPhquk2Gjs0MfoGaO3o7u00FKwxHugKTYddA6LzNMCaZYq8OPrAlObL6wgWm3jUXcGn4cxxhJPhqu2wcyPGDIYSWPjg3O/u+q7kM58FrNfRkOrbDjr3UzlNufKs9vafv+8kC5Hzyvhqqw37uNMPzXS+HcLY/T2dJ1WUGx8Zxuz/rmAbK7/rkAG+6WlNsa/RqqWOSxmtCxf/8XSDzfo8fTGxobaMPASJJW2KAVmndPGxk+fGnIdA2tvYeGe0AobWjaShTY2MU4jj4eW7UyfLfD1942xWvBbwcFhtzyMX/7CEAs9D0ICxdKtZjm8+jMtlmBXdVJAMayF2QK/e609lsCXBFI2vD4HY+vHRUbqeTcUgGDZXX6jZYm6xMORoHzcwE8YcrCIDoArk9Er/238B5d4kCYABJuv1kD7Z0GlbHSXFefS/jnGF3brBAA6RvEY/T8ncNd19xkqQLJjR9z7zzoQm10ERbJV0uMLWhqzyHz9qscNE0Hd1jiInpWDp5EWvMVD8vsVoBDZf6kbGKqQgYV2VgwhBmPhxA93gANEhm59xj30pA/Bnn2ApTU3bXzz+oXeGGW7nYODOwmq7mEFVtweO20EDO6AC1h69bNQCjUjN5mwFrSC1OEwkgvu+fTbwqkKqEJ09Hlry7astXHOYY37b7yEVILDrvOfLzSP6tpn1lQkDhBU7HHMOc/QatMsW521VXek7Dqpwyt8HADEKcrFqQDYzxdrUz+483V7QlMAWPnl1VRVkFo6JCezpp4PKpYZB0khqugzGOowfZtlU0DQ/aAfg+VmIewIh8zqlhsJYIeHz6+DVAEU+7NgeXl+0UlEJQsgG51zRicATlMl4z5l7t5eUQhyFOxxCapKFQj67/sbLZVZlXbeBEUuInvNGrPMPvuvtnhPQCoIgNH1Vs08SXpvpBnn75QTgM7rbrHdBhustto+qykEgMCNkd3oGcrMkxZ+W0DSe/LECRDkLKjaeZXtOwpUMHSbRWXy0yzSjIFc8EiRH2y59y3zyOJxgCB/UaeqCqy+pxPojF1GQNHlK74d6Nlyy4q44osH+wCTrvxkOySK2ou6NWYN2miTdesgUKy4X+97yJsnAIKOQOKABIpY69zYIYAAEADJ1ocDTkUgAqhCEasAgKCiOgEgCgCCf6AI0qrD/2xWUDggKAUAAPAYAJ0BKkgASAA+5VilTiklI6I1uW35IByJbADCeDAM0Ca/Vt9OeK05DeWb8A26/IKD2N9PJlq6YnHp6M2gRUG6U367eyqwm1jbs+zQvPugRg3MDo4W8Scgk9vzHncK/f2RLeuvn6nB+kgJ32ifdgYiDB/pShzLogD6wnaQQtEbQKQqf6hGda2RYIGLVa8u0KDZQ41uz6rCsVjW0O4f4FTiKhrkBvHqfuJuDHnTv61MwR2s66nVE4q1kjXx207BysnbLFMdZfViDQdZQpdReAAA/s1nnuEqnPEucFTWWNcTF4YwsDkdFUaUn1G7YPcLU/7woZ8/BeTp3xYgaR6gFyjLrflF2D9m7NvNrta6LYDgL1C+F/h50Za3SxlPJvYoquCjbQ57pfNnYdztd3ofBsJ0eq/YARsR5K888iZ2v7eK0xhrc3gNrNtqo5H0fJn1YePrZkCo06TQ4Fgrj1PgJx6mAFGKz0paDqtvoos8K0zDHuXxooRK9UQlpDhdhEhvBP9ePfWrGJc+4fkbhvkjuE3v7AmJ3Di5nDPq+uoMuLqh3yYmuxXdWk7+Xqxv9TwNGrKjQvY9Vd6uvzkMN23RqNQ3b8shzdFH/XawMT7S++ujuvEGyapE8zeZhZpUrRAclLs6rIyNTPZY7AGdCRqCXxB3kK1tlAbeTgERdLrev/JwE6goerCg332ZWE2v7F0PUhNUd0z8yI8k6aBQ2fG6TZbgxMiDpAqPfJimvszIA57SAF83RI+Oh35Doe1eEl8WYJuhlf6Njddfy8yE10ProE2SDsmbQ/haSoCfmDaA0HrlFgL+b//+bcINZrFqjKer0bhP+/RHlk0hkCqetYRbA0f/mU5Qt2tgXgyMtABzMS5SPiJbJVV5RmJldxgkv++fcp+8QDXy2epnowgkmKvlmmSLXpJ9WY4/wPL2A4Sy5Zl3CW2SISgSrVPv/t5gW+KrT1jYGwhQt0/54kOj6L420q9w7DwxpfofAZ4Jz3V32e3w6ns+LT7WzUGzG8cIPyoK22saE5fsaoKIY9fIEJkBVcFrILqNB8SgJaeb6xLjkfDcTek+w6zVimo8XwHs1/34EXb0TGD54H+tS6YvWjyP/+eiIFHDrbk9y9mfP9OlnuGtUg8oXQX1v7suSuQGf+5zOXRPU3k7pS/V0U7wfQq9+X8bhUbGPa51Pkh1j3V6+qG0ahuNwATI5952Is/nG4KixCh3EErazVs6xh8mOWKxDW9uwI6NV8B8EtbaL99UL+mAT42KE8Uq8elR9SabIMT0sNA68YXwgB34bCybUrXVAy++RPsiLoDPo0L9n/aP47L+U6PDUIE0cYaecD2qs+sDVYgSUYDLPPOzYSP1tiWWermyAyzT2qQVL8RxnItD8hansjEyXypNl7lqsdoEQSVYT0cSNxOHHwWWl5rsqQlXtyymGcveljSW6sbLzpZyr6olDUG3k4H5/3ia1Fr05h86rqsWjV3idonKawQgfLXdiYjZeOo1H+Pp7UCbJPq5Q5QpgXiTtncz+KgGXzPpY5yppVswocb2A8CQlRzNK96MyT//ia0DkcdChh1CpuZ4px5kHdQJpB5WsTSiJ8GhCwyazg+mQZzRyJWYoxPbzuKOQ4kFin7NglM+ObSqKN+w5CAFIA+cQRrSxmJ9XTProzDeIaT53kl3Fa0d0RH1A6f8no1308hY03xnXymkK8ukw/k+UqOa1o3w1kwPRm3VK0uWzDe1tae2ZbPvTD7xIbufwh/0xYDUYsgAAA==',
-];
-const SPRITE_MAP = [0, 1, 0, 0, 2, 3, 2, 3, 3];
-const FILTERS = [
-  'none',
-  'none',
-  'hue-rotate(320deg) saturate(1.12)',
-  'hue-rotate(54deg) saturate(1.12)',
-  'none',
-  'none',
-  'hue-rotate(42deg) saturate(1.08)',
-  'hue-rotate(38deg) saturate(1.06)',
-  'hue-rotate(120deg) saturate(1.12)',
-];
-
-const spriteImages = SPRITE_URLS.map((src) => {
-  const image = new Image();
-  image.decoding = 'async';
-  image.src = src;
-  return image;
-});
-
-const HYBRID_URLS = [
-  'https://gcdn.picsart.com/editing-temp/ad119df8-9446-43c8-9cc5-9e2f0bb1fc47.png',
-  'https://gcdn.picsart.com/editing-temp/53eec6f8-6032-4fd3-a984-a89e86f2f41b.png',
-  'https://gcdn.picsart.com/editing-temp/9f61e77f-9ecb-43f8-8981-c862393901c6.png',
-  'https://gcdn.picsart.com/editing-temp/d2099d24-c27d-4238-9a8f-08551cca3a84.png',
-  'https://gcdn.picsart.com/editing-temp/47515fc2-d703-4118-a2a4-e84a07a37464.png',
-  'https://gcdn.picsart.com/editing-temp/64e0bccb-a852-4bce-bbe7-78aa6110b32f.png',
-  'https://gcdn.picsart.com/editing-temp/befcad88-208b-4ef0-a7e6-4200d3051b95.png',
-  'https://gcdn.picsart.com/editing-temp/bdeb159e-d447-4166-93f7-90b37850eb30.png',
-];
+const POWER_KEY = 'monster-merge-power-v1';
+const POWER_COST = 200;
+const HYBRID_ATLAS_URL =
+  'https://gcdn.picsart.com/editing-temp/f69fe466-c03a-4502-b5c1-7c5dfce62c4c.webp';
 const HYBRID_TIER_MAP = [0, 1, 2, 3, 4, 5, 6, 7, 7];
-const HYBRID_IRIS = ['#245ee8', '#13a757', '#7230a8', '#6b3519', '#a84a16', '#7831b5', '#1977df', '#7f4b25', '#7f4b25'];
+const HYBRID_IRIS = [
+  '#245ee8',
+  '#13a757',
+  '#7230a8',
+  '#6b3519',
+  '#a84a16',
+  '#7831b5',
+  '#1977df',
+  '#7f4b25',
+  '#7f4b25',
+];
 
-const hybridImages = HYBRID_URLS.map((src) => {
-  const image = new Image();
-  image.decoding = 'async';
-  image.crossOrigin = 'anonymous';
-  image.src = src;
-  return image;
-});
+const hybridAtlas = new Image();
+hybridAtlas.decoding = 'async';
+hybridAtlas.src = HYBRID_ATLAS_URL;
 
 type FaceMode = 'normal' | 'cyclops' | 'closed' | 'wink';
 
@@ -129,13 +104,20 @@ function spawnTier(bestTier: number) {
   return 0;
 }
 
-function spriteIndex(tier: number) {
-  return SPRITE_MAP[Math.min(MAX_TIER, tier)] ?? 5;
+function atlasIndex(tier: number) {
+  return HYBRID_TIER_MAP[Math.min(MAX_TIER, tier)] ?? 7;
+}
+
+function atlasPosition(index: number) {
+  return {
+    column: index % 4,
+    row: Math.floor(index / 4),
+  };
 }
 
 function MonsterArt({ tier, size = 42 }: { tier: number; size?: number }) {
-  const hybridIndex = HYBRID_TIER_MAP[Math.min(MAX_TIER, tier)] ?? 7;
-  const fallback = SPRITE_URLS[spriteIndex(tier)];
+  const index = atlasIndex(tier);
+  const { column, row } = atlasPosition(index);
   const mode = faceMode(tier);
   return (
     <span
@@ -144,7 +126,15 @@ function MonsterArt({ tier, size = 42 }: { tier: number; size?: number }) {
       aria-hidden="true"
       style={{ width: size, height: size }}
     >
-      <img src={HYBRID_URLS[hybridIndex] ?? fallback} alt="" />
+      <span
+        className="monster-body"
+        style={{
+          backgroundImage: 'url(' + HYBRID_ATLAS_URL + ')',
+          backgroundSize: '400% 200%',
+          backgroundPosition:
+            String((column / 3) * 100) + '% ' + String(row * 100) + '%',
+        }}
+      />
       <span className="thumb-eye thumb-eye-left"><i /></span>
       <span className="thumb-eye thumb-eye-right"><i /></span>
       <span className="thumb-mouth" />
@@ -428,15 +418,17 @@ function drawMonster(
   time: number,
   alpha = 1,
 ) {
-  const legacyIndex = spriteIndex(body.tier);
-  const hybridIndex = HYBRID_TIER_MAP[Math.min(MAX_TIER, body.tier)] ?? 7;
+  const index = atlasIndex(body.tier);
+  const { column, row } = atlasPosition(index);
   const speed = Math.hypot(body.vx ?? 0, body.vy ?? 0);
   const idle = speed < 70 ? Math.sin(time * 0.0021 + body.id * 1.19) : 0;
   const pressure = Math.min(1, body.pressure ?? 0);
   const impact = Math.min(1, body.impact ?? 0);
   const squash = impact * 0.075 + pressure * 0.035;
   const breathe = idle * 0.018 * (1 - pressure);
-  const nervous = pressure > 0.46 ? Math.sin(time * 0.025 + body.id) * 0.018 : 0;
+  const nervous = pressure > 0.46
+    ? Math.sin(time * 0.025 + body.id) * 0.018
+    : 0;
   const radius = body.r * (body.tier >= 5 ? 1.08 : 1.12);
   const size = radius * 2.46;
 
@@ -446,16 +438,20 @@ function drawMonster(
   ctx.rotate(body.angle + nervous);
   ctx.scale(1 + squash - breathe * 0.18, 1 - squash + breathe);
 
-  const hybridImage = hybridImages[hybridIndex];
-  const legacyImage = spriteImages[legacyIndex];
-  const useHybrid = Boolean(hybridImage?.complete && hybridImage.naturalWidth > 0);
-  const image = useHybrid ? hybridImage : legacyImage;
-  ctx.filter = useHybrid
-    ? 'none'
-    : FILTERS[Math.min(FILTERS.length - 1, body.tier)] ?? 'none';
-
-  if (image?.complete && image.naturalWidth > 0) {
-    ctx.drawImage(image, -size / 2, -size / 2, size, size);
+  if (hybridAtlas.complete && hybridAtlas.naturalWidth > 0) {
+    const sw = hybridAtlas.naturalWidth / 4;
+    const sh = hybridAtlas.naturalHeight / 2;
+    ctx.drawImage(
+      hybridAtlas,
+      column * sw,
+      row * sh,
+      sw,
+      sh,
+      -size / 2,
+      -size / 2,
+      size,
+      size,
+    );
   } else {
     ctx.fillStyle = TIER_DEFS[body.tier]!.base;
     ctx.beginPath();
@@ -463,7 +459,6 @@ function drawMonster(
     ctx.fill();
   }
 
-  ctx.filter = 'none';
   drawRuntimeFace(ctx, body, radius, time);
   ctx.restore();
 }
@@ -483,6 +478,8 @@ function App() {
   const initialBestTier = readInt(BEST_TIER_KEY, 0);
   const [coach, setCoach] = useState(storageGet(COACH_KEY) !== 'done');
   const [showMonsters, setShowMonsters] = useState(false);
+  const [showShop, setShowShop] = useState(false);
+  const [showLab, setShowLab] = useState(false);
   const [ui, setUi] = useState<Ui>(() => ({
     score: 0,
     coins: readInt(COINS_KEY, 0),
@@ -499,6 +496,7 @@ function App() {
     combo: 0,
     bestCombo: 0,
     message: '',
+    powerCharges: readInt(POWER_KEY, 1),
   }));
   const uiRef = useRef(ui);
   uiRef.current = ui;
@@ -590,8 +588,38 @@ function App() {
     haptic('restart');
   }, [sync]);
 
+  const buyPower = useCallback(() => {
+    const state = uiRef.current;
+    if (state.coins < POWER_COST) {
+      flash('Need ' + String(POWER_COST) + ' coins');
+      playSound('fail');
+      haptic('fail');
+      return;
+    }
+    state.coins -= POWER_COST;
+    state.powerCharges += 1;
+    storageSet(COINS_KEY, String(state.coins));
+    storageSet(POWER_KEY, String(state.powerCharges));
+    sync();
+    playSound('order');
+    haptic('order');
+  }, [flash, sync]);
+
   const nudge = useCallback(() => {
-    if (uiRef.current.gameOver || worldRef.current.bodies.length === 0) return;
+    const state = uiRef.current;
+    if (state.gameOver) return;
+    if (state.powerCharges <= 0) {
+      setShowShop(true);
+      flash('Get a Pulse in Shop');
+      return;
+    }
+    if (worldRef.current.bodies.length === 0) {
+      flash('Drop a monster first');
+      return;
+    }
+    state.powerCharges -= 1;
+    storageSet(POWER_KEY, String(state.powerCharges));
+    sync();
     for (const body of worldRef.current.bodies) {
       const direction = body.x < WIDTH / 2 ? -1 : 1;
       body.vx += direction * (26 + Math.random() * 24);
@@ -600,14 +628,14 @@ function App() {
     }
     playSound('bounce');
     haptic('merge');
-  }, []);
+  }, [flash, sync]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const dpr = Math.min(2.4, Math.max(1, window.devicePixelRatio || 1));
+    const dpr = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
     canvas.width = Math.round(WIDTH * dpr);
     canvas.height = Math.round(HEIGHT * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -616,6 +644,13 @@ function App() {
     let previous = performance.now();
     let accumulator = 0;
     let lastBounce = -Infinity;
+    let paused = document.hidden;
+    const onVisibility = () => {
+      paused = document.hidden;
+      previous = performance.now();
+      accumulator = 0;
+    };
+    document.addEventListener('visibilitychange', onVisibility);
 
     const onMerge = ({ tier, x, y }: { tier: number; x: number; y: number }) => {
       const state = uiRef.current;
@@ -787,6 +822,11 @@ function App() {
     };
 
     const loop = (time: number) => {
+      if (paused) {
+        previous = time;
+        frame = requestAnimationFrame(loop);
+        return;
+      }
       const delta = Math.min(0.05, (time - previous) / 1000);
       previous = time;
       accumulator += delta;
@@ -821,13 +861,27 @@ function App() {
     };
 
     frame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      cancelAnimationFrame(frame);
+    };
   }, [flash, sync]);
 
   useEffect(() => () => {
     if (dropTimerRef.current !== null) window.clearTimeout(dropTimerRef.current);
     if (comboTimerRef.current !== null) window.clearTimeout(comboTimerRef.current);
     if (messageTimerRef.current !== null) window.clearTimeout(messageTimerRef.current);
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setShowMonsters(false);
+      setShowShop(false);
+      setShowLab(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
   const toggleSound = () => {
@@ -927,6 +981,14 @@ function App() {
         <div className="concept-toolbar">
           <button
             type="button"
+            onClick={() => setShowShop(true)}
+            className="wood-button shop-hit"
+            aria-label="Shop"
+          >
+            SHOP
+          </button>
+          <button
+            type="button"
             onClick={() => setShowMonsters(true)}
             className="wood-button monsters-hit"
             aria-label="Monsters"
@@ -946,18 +1008,29 @@ function App() {
             type="button"
             onClick={nudge}
             className="wood-button power-hit"
-            aria-label="Nudge monsters"
+            aria-label={'Power-up. ' + String(ui.powerCharges) + ' available'}
           >
             <RotateCcw size={22} />
             <span>POWER</span>
+            {ui.powerCharges > 0 && (
+              <b className="power-charge" aria-hidden="true">{ui.powerCharges}</b>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowLab(true)}
+            className="wood-button lab-hit"
+            aria-label="Lab stats"
+          >
+            LAB
           </button>
         </div>
 
         {showMonsters && (
-          <div className="monster-modal" role="dialog" aria-modal="true" aria-label="Monster evolution">
+          <div className="monster-modal" role="dialog" aria-modal="true" aria-labelledby="evolution-title">
             <div className="monster-modal-card">
-              <button className="modal-close" onClick={() => setShowMonsters(false)} aria-label="Close">×</button>
-              <h2>MONSTER EVOLUTION</h2>
+              <button autoFocus className="modal-close" onClick={() => setShowMonsters(false)} aria-label="Close">×</button>
+              <h2 id="evolution-title">MONSTER EVOLUTION</h2>
               <div className="evolution-grid">
                 {TIER_DEFS.map((def, tier) => (
                   <div key={def.name} className={tier <= ui.bestTier + 1 ? '' : 'locked'}>
@@ -966,6 +1039,46 @@ function App() {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        )}
+
+        {showShop && (
+          <div className="monster-modal" role="dialog" aria-modal="true" aria-labelledby="shop-title">
+            <div className="monster-modal-card shop-card">
+              <button autoFocus className="modal-close" onClick={() => setShowShop(false)} aria-label="Close">×</button>
+              <h2 id="shop-title">SHOP</h2>
+              <div className="shop-item">
+                <MonsterArt tier={4} size={72} />
+                <div>
+                  <strong>Pulse</strong>
+                  <span>Loosens a crowded pile and creates new merge chances.</span>
+                </div>
+                <button
+                  type="button"
+                  className="buy-button"
+                  onClick={buyPower}
+                  disabled={ui.coins < POWER_COST}
+                >
+                  ● {POWER_COST}
+                </button>
+              </div>
+              <p className="shop-stock">Owned: {ui.powerCharges}</p>
+            </div>
+          </div>
+        )}
+
+        {showLab && (
+          <div className="monster-modal" role="dialog" aria-modal="true" aria-labelledby="lab-title">
+            <div className="monster-modal-card lab-card">
+              <button autoFocus className="modal-close" onClick={() => setShowLab(false)} aria-label="Close">×</button>
+              <h2 id="lab-title">LAB</h2>
+              <dl className="lab-stats">
+                <div><dt>Best score</dt><dd>{ui.bestScore}</dd></div>
+                <div><dt>Orders completed</dt><dd>{Math.max(0, ui.orderNo - 1)}</dd></div>
+                <div><dt>Highest evolution</dt><dd>{TIER_DEFS[Math.min(ui.bestTier, MAX_TIER)]!.name}</dd></div>
+                <div><dt>Coins</dt><dd>{ui.coins}</dd></div>
+              </dl>
             </div>
           </div>
         )}
