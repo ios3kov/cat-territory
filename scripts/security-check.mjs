@@ -14,12 +14,16 @@ const requiredHeaders = [
 ];
 const requiredCsp = [
   "default-src 'self'",
-  "base-uri 'self'",
+  "base-uri 'none'",
+  "form-action 'none'",
+  "frame-src 'none'",
   "object-src 'none'",
   "frame-ancestors 'none'",
   "script-src 'self'",
+  "script-src-attr 'none'",
   "connect-src 'self'",
   "worker-src 'self'",
+  'upgrade-insecure-requests',
 ];
 
 const missing = [
