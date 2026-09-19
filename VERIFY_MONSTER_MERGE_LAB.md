@@ -2,4 +2,4 @@
 
 Temporary CI trigger for the isolated Monster Merge Lab branch.
 
-Retry after TypeScript scope isolation.
+Final verification after production polish and Tailwind scope cleanup.
