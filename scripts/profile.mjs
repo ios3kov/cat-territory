@@ -1,8 +1,6 @@
 import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { getLevel } from '../src/infiniteLevels.ts';
-
 const root = fileURLToPath(new URL('../', import.meta.url));
 const require = createRequire(new URL('../package.json', import.meta.url));
 const { chromium } = require('playwright');
@@ -39,7 +37,7 @@ const scenarios = [
     levelIndex: 33,
     expectedCells: 100,
     lcpLimit: 3000,
-    seededLevel: getLevel(33),
+    seedFixture: true,
     longTaskLimit: 600,
     eventLimit: 650,
     heapLimitMb: 40,
@@ -92,7 +90,7 @@ try {
       cpuThrottle,
       levelIndex,
       expectedCells,
-      seededLevel,
+      seedFixture,
     } = scenario;
     const page = await browser.newPage({ viewport: { width, height } });
     const cdp = await page.context().newCDPSession(page);
@@ -133,17 +131,19 @@ try {
         localStorage.setItem('cat-territory-progress-migrated-v3', '1');
         localStorage.setItem('cat-territory-current-level-v3', String(index));
         localStorage.setItem('cat-territory-gesture-coach-v3', 'done');
-        if (seededLevel)
-          localStorage.setItem(
-            `cat-territory-generated-v5-${index}`,
-            JSON.stringify(seededLevel),
-          );
+        if (seedFixture)
+          localStorage.setItem('cat-territory-profile-seed-index', String(index));
       },
-      { index: levelIndex, seededLevel },
+      { index: levelIndex, seedFixture },
     );
 
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
+    if (seedFixture) {
+      await page.route('**/levelWorker-*.js', async (route) => {
+        await route.continue();
+      });
+    }
     await page.goto('http://127.0.0.1:4175');
     await page.getByRole('grid').waitFor({ timeout: 30000 });
     await page.waitForFunction(
