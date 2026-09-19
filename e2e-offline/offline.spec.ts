@@ -183,6 +183,18 @@ test('first visit supports offline reload and unopened screens', async ({
   await expect(page.getByRole('grid')).toBeVisible({ timeout: 60000 });
   await ready(page);
   expect(
+    await page.evaluate(
+      () =>
+        new Promise<[number, number]>((resolve, reject) => {
+          const image = new Image();
+          image.onload = () =>
+            resolve([image.naturalWidth, image.naturalHeight]);
+          image.onerror = reject;
+          image.src = './icon-180.png?v=2';
+        }),
+    ),
+  ).toEqual([180, 180]);
+  expect(
     await page.evaluate(async () => {
       const cache = await caches.open(
         (await caches.keys()).find((k) =>
