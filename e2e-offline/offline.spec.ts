@@ -235,21 +235,17 @@ test('new release activates automatically and restores in-progress gameplay', as
     await (await navigator.serviceWorker.getRegistration())!.update();
   });
 
-  await expect
-    .poll(() => releaseName(page), { timeout: 15_000 })
-    .toBe('next');
+  await expect.poll(() => releaseName(page), { timeout: 15_000 }).toBe('next');
   await expect(page.getByRole('grid')).toBeVisible({ timeout: 60000 });
-  await expect(page.getByRole('gridcell').nth(0).locator('.mark-x')).toHaveCount(
-    1,
-  );
-  await expect
-    .poll(() => releaseName(other), { timeout: 15_000 })
-    .toBe('next');
+  await expect(
+    page.getByRole('gridcell').nth(0).locator('.mark-x'),
+  ).toHaveCount(1);
+  await expect.poll(() => releaseName(other), { timeout: 15_000 }).toBe('next');
   await expect(other.getByRole('grid')).toBeVisible({ timeout: 60000 });
 
-  expect(await page.evaluate(() => localStorage.getItem('audit-progress'))).toBe(
-    'retained',
-  );
+  expect(
+    await page.evaluate(() => localStorage.getItem('audit-progress')),
+  ).toBe('retained');
   const keys = await page.evaluate(() => caches.keys());
   expect(
     keys.filter((k) => k.startsWith('cat-territory-release-')),
@@ -263,9 +259,7 @@ test('new release activates automatically and restores in-progress gameplay', as
   await expect(page.getByRole('gridcell').nth(0).locator('.mark-x')).toHaveCount(
     1,
   );
-  await page
-    .getByRole('button', { name: 'Progress and achievements' })
-    .click();
+  await page.getByRole('button', { name: 'Progress and achievements' }).click();
   await expect(page.locator('.achievements-modal')).toBeVisible();
 });
 
@@ -301,9 +295,7 @@ test('installed update waits for an active pointer before reloading', async ({
       new PointerEvent('pointerup', { pointerId: 77, bubbles: true }),
     );
   });
-  await expect
-    .poll(() => releaseName(page), { timeout: 15_000 })
-    .toBe('next');
+  await expect.poll(() => releaseName(page), { timeout: 15_000 }).toBe('next');
   await expect(page.getByRole('grid')).toBeVisible({ timeout: 60000 });
 });
 
