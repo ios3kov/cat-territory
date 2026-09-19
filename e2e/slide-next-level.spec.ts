@@ -84,9 +84,10 @@ test('victory slider matches one action button in height with a wider handle', a
 }, testInfo) => {
   const cats = await start(page);
   const beforeRow = (await page.locator('.action-row').boundingBox())!;
-  const beforeButton = (
-    await page.locator('.action-row button').first().boundingBox()
-  )!;
+  const beforeButton = (await page
+    .locator('.action-row button')
+    .first()
+    .boundingBox())!;
   for (const cat of cats) await placeCat(page, cat, isMobile);
   await expect(slider(page)).toHaveAttribute('data-disabled', 'false');
   await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -621,9 +622,10 @@ test('small 10x10 victory fits and reduced motion removes transition delays', as
   }
   const b = (await slider(page).boundingBox())!;
   const compactTrack = (await track(page).boundingBox())!;
-  const compactButton = (
-    await page.locator('.action-row button').first().boundingBox()
-  )!;
+  const compactButton = (await page
+    .locator('.action-row button')
+    .first()
+    .boundingBox())!;
   expect(b.width).toBeCloseTo(128, 0);
   expect(b.height).toBeCloseTo(42, 0);
   expect(compactTrack.height).toBeCloseTo(compactButton.height, 0);
