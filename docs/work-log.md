@@ -141,3 +141,9 @@ Next: validate PR CI, merge, then verify the automatic Worker deployment. The Cl
 - Background next-level generation receives the current adaptive phase offset, preserving the existing prewarm flow.
 - Corrupted adaptive storage falls back safely.
 - Added regression coverage for hysteresis, clamping, size-curve preservation and corrupted/restored profile data.
+
+### Adaptive cache follow-up
+
+- Code review found that prewarming could otherwise generate the next territory before the just-finished level updated the adaptive profile.
+- Generated/persisted level variants are now keyed by adaptive phase, so a changed profile cannot reuse a stale prewarm from another phase.
+- Added a regression test proving low/high/default adaptive variants remain isolated.
