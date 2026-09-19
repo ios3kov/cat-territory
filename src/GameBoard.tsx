@@ -183,7 +183,7 @@ function GameBoardView({
     setAssembling(true);
     const timer = window.setTimeout(() => setAssembling(false), 800);
     return () => clearTimeout(timer);
-  }, [level.id]);
+  }, [level.id, size, starterCats]);
   const moveFocus = (start: number, step: number) => {
     let target = start + step;
     while (target >= 0 && target < size * size && starterCats.has(target))
