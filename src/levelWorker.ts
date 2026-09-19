@@ -1,8 +1,11 @@
 import { getLevel } from './infiniteLevels';
-self.onmessage = (event: MessageEvent<{ index: number }>) => {
+
+type Request = { index: number; phaseOffset?: number };
+
+self.onmessage = (event: MessageEvent<Request>) => {
   try {
     self.postMessage({
-      level: getLevel(event.data.index),
+      level: getLevel(event.data.index, event.data.phaseOffset ?? 0),
     });
   } catch (error) {
     self.postMessage({
