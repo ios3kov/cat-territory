@@ -215,6 +215,55 @@ test('core screens pass automated accessibility checks', async ({
   await page.keyboard.press('Escape');
 });
 
+test('victory slider is accessible and does not strand focus in inert actions', async ({
+  page,
+}) => {
+  const board = Array(levelOne.level.size * levelOne.level.size).fill(0);
+  for (const cell of levelOne.solutionCells.slice(0, -1)) board[cell] = 2;
+  await page.addInitScript(
+    ({ sessionKey, board }) =>
+      localStorage.setItem(
+        sessionKey,
+        JSON.stringify({
+          board,
+          seconds: 40,
+          history: [],
+          mistakes: 0,
+          usedHint: false,
+        }),
+      ),
+    { sessionKey: levelOne.sessionKey, board },
+  );
+  await start(page);
+  await page.getByRole('button', { name: 'Hint', exact: true }).focus();
+  const lastCat = levelOne.solutionCells.at(-1)!;
+  await page
+    .locator(`[data-cell-index="${lastCat}"]`)
+    .click({ button: 'right' });
+  const slider = page.getByTestId('next-level-slide');
+  await expect(slider).toBeVisible();
+  await expect(page.locator('.slide-handle')).toHaveAttribute(
+    'data-disabled',
+    'false',
+  );
+  expect(
+    await page.evaluate(() =>
+      Boolean(document.activeElement?.closest('.action-row[inert]')),
+    ),
+  ).toBe(false);
+
+  const { default: AxeBuilder } = await import('@axe-core/playwright');
+  const result = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze();
+  expect(
+    result.violations.map((violation) => ({
+      id: violation.id,
+      nodes: violation.nodes.map((node) => node.target),
+    })),
+  ).toEqual([]);
+});
+
 test('a failed worker can be retried without reloading the game', async ({
   page,
 }) => {
