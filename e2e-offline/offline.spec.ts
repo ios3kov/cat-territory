@@ -187,7 +187,8 @@ test('first visit supports offline reload and unopened screens', async ({
       () =>
         new Promise<[number, number]>((resolve, reject) => {
           const image = new Image();
-          image.onload = () => resolve([image.naturalWidth, image.naturalHeight]);
+          image.onload = () =>
+            resolve([image.naturalWidth, image.naturalHeight]);
           image.onerror = reject;
           image.src = './icon-180.png?v=2';
         }),
