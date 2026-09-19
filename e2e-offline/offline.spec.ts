@@ -173,6 +173,61 @@ const savedHint = (page: Page) =>
     return key ? JSON.parse(localStorage.getItem(key)!).usedHint : false;
   });
 
+test('update checks are cold-start plus six-hour foreground events without polling', async ({
+  page,
+  site,
+}) => {
+  const updaterSource = await readFile(
+    resolve('src/serviceWorkerUpdates.ts'),
+    'utf8',
+  );
+  expect(updaterSource).toContain(
+    'const RESUME_CHECK_THROTTLE_MS = 6 * 60 * 60 * 1000;',
+  );
+  expect(updaterSource).not.toContain('PERIODIC_CHECK_MS');
+  expect(updaterSource).not.toContain('window.setInterval');
+
+  await page.addInitScript(() => {
+    const originalUpdate = ServiceWorkerRegistration.prototype.update;
+    (window as any).__swUpdateCalls = 0;
+    (window as any).__swLastUpdateAt = 0;
+    ServiceWorkerRegistration.prototype.update = function (...args) {
+      (window as any).__swUpdateCalls += 1;
+      (window as any).__swLastUpdateAt = Date.now();
+      return originalUpdate.apply(this, args);
+    };
+  });
+
+  await page.goto(site.url);
+  await expect(page.getByRole('grid')).toBeVisible({ timeout: 60000 });
+  await ready(page);
+  await expect
+    .poll(() => page.evaluate(() => (window as any).__swUpdateCalls))
+    .toBeGreaterThanOrEqual(1);
+
+  const initial = await page.evaluate(() => ({
+    calls: (window as any).__swUpdateCalls as number,
+    checkedAt: (window as any).__swLastUpdateAt as number,
+  }));
+
+  await page.evaluate(({ checkedAt }) => {
+    Date.now = () => checkedAt + 6 * 60 * 60 * 1000 - 1;
+    document.dispatchEvent(new Event('visibilitychange'));
+  }, initial);
+  await page.waitForTimeout(100);
+  expect(await page.evaluate(() => (window as any).__swUpdateCalls)).toBe(
+    initial.calls,
+  );
+
+  await page.evaluate(({ checkedAt }) => {
+    Date.now = () => checkedAt + 6 * 60 * 60 * 1000;
+    document.dispatchEvent(new Event('visibilitychange'));
+  }, initial);
+  await expect
+    .poll(() => page.evaluate(() => (window as any).__swUpdateCalls))
+    .toBe(initial.calls + 1);
+});
+
 test('first visit supports offline reload and unopened screens', async ({
   page,
   context,
