@@ -97,3 +97,14 @@ Next: validate the new workflow in PR #36, then merge and observe the first gate
 - Added `npm run build` inside the Offline/PWA job before browser installation/tests.
 
 Next: validate the corrected parallel workflow; merge only after the final aggregate gate is green.
+
+
+## 2026-09-19 — Offline WebKit retry hardening
+
+- Post-merge parallel CI #283 passed static/build/security, dependency audit and low-end performance.
+- Offline/PWA passed 24/25 scenarios; only `webkit-landscape` timed out while opening Achievements after offline reload.
+- The same scenario passed on desktop, portrait, landscape and WebKit portrait, so this is treated as an isolated WebKit CI flake rather than a PWA regression.
+- Added one CI-only retry to `playwright.offline.config.ts`, matching the main Playwright suite policy.
+- Persistent failures still fail the production gate; local runs remain retry-free.
+
+Next: validate the retry in PR CI, then merge if the full aggregate gate is green.

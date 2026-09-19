@@ -3,6 +3,7 @@ export default defineConfig({
   testDir: './e2e-offline',
   workers: 1,
   timeout: 45000,
+  retries: process.env.CI ? 1 : 0,
   reporter: 'list',
   use: {
     launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE
