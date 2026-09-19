@@ -208,19 +208,79 @@ test('first visit supports offline reload and unopened screens', async ({
   await expect(page.locator('.achievements-modal')).toBeVisible();
 });
 
-test('new release waits for old tabs and retains progress', async ({
+test('new release activates automatically and restores in-progress gameplay', async ({
   page,
   context,
   site,
   browserName,
 }) => {
   await page.goto(site.url);
+  await expect(page.getByRole('grid')).toBeVisible({ timeout: 60000 });
   await ready(page);
   const other = await context.newPage();
   await other.goto(site.url);
+  await expect(other.getByRole('grid')).toBeVisible({ timeout: 60000 });
+  await ready(other);
+
+  const changedCell = page.getByRole('gridcell').nth(0);
+  await changedCell.click();
+  await expect(changedCell.locator('.mark-x')).toHaveCount(1);
   await page.evaluate(async () => {
     localStorage.setItem('audit-progress', 'retained');
     await caches.open('unrelated-cache');
+  });
+
+  await site.release('next');
+  await page.evaluate(async () => {
+    await (await navigator.serviceWorker.getRegistration())!.update();
+  });
+
+  await expect
+    .poll(() => releaseName(page), { timeout: 15_000 })
+    .toBe('next');
+  await expect(page.getByRole('grid')).toBeVisible({ timeout: 60000 });
+  await expect(page.getByRole('gridcell').nth(0).locator('.mark-x')).toHaveCount(
+    1,
+  );
+  await expect
+    .poll(() => releaseName(other), { timeout: 15_000 })
+    .toBe('next');
+  await expect(other.getByRole('grid')).toBeVisible({ timeout: 60000 });
+
+  expect(await page.evaluate(() => localStorage.getItem('audit-progress'))).toBe(
+    'retained',
+  );
+  const keys = await page.evaluate(() => caches.keys());
+  expect(
+    keys.filter((k) => k.startsWith('cat-territory-release-')),
+  ).toHaveLength(1);
+  expect(keys).toContain('unrelated-cache');
+
+  await other.close();
+  await goOffline(context, site, browserName);
+  await page.reload();
+  await expect(page.getByRole('grid')).toBeVisible();
+  await expect(page.getByRole('gridcell').nth(0).locator('.mark-x')).toHaveCount(
+    1,
+  );
+  await page
+    .getByRole('button', { name: 'Progress and achievements' })
+    .click();
+  await expect(page.locator('.achievements-modal')).toBeVisible();
+});
+
+test('installed update waits for an active pointer before reloading', async ({
+  page,
+  site,
+}) => {
+  await page.goto(site.url);
+  await expect(page.getByRole('grid')).toBeVisible({ timeout: 60000 });
+  await ready(page);
+
+  await page.evaluate(() => {
+    window.dispatchEvent(
+      new PointerEvent('pointerdown', { pointerId: 77, bubbles: true }),
+    );
   });
   await site.release('next');
   await page.evaluate(async () => {
@@ -233,31 +293,18 @@ test('new release waits for old tabs and retains progress', async ({
       ),
     )
     .toBe(true);
-  await page.reload();
+  await page.waitForTimeout(1500);
   expect(await releaseName(page)).toBe('initial');
-  await page.getByRole('button', { name: 'How to play' }).click();
-  await expect(page.locator('.rules-modal')).toBeVisible();
-  await other.close();
-  await page.close();
-  const fresh = await context.newPage();
-  await fresh.goto(site.url);
-  await expect(fresh.getByRole('grid')).toBeVisible({ timeout: 60000 });
-  await expect.poll(() => releaseName(fresh)).toBe('next');
-  expect(
-    await fresh.evaluate(() => localStorage.getItem('audit-progress')),
-  ).toBe('retained');
-  const keys = await fresh.evaluate(() => caches.keys());
-  expect(
-    keys.filter((k) => k.startsWith('cat-territory-release-')),
-  ).toHaveLength(1);
-  expect(keys).toContain('unrelated-cache');
-  await goOffline(context, site, browserName);
-  await fresh.reload();
-  await expect(fresh.getByRole('grid')).toBeVisible();
-  await fresh
-    .getByRole('button', { name: 'Progress and achievements' })
-    .click();
-  await expect(fresh.locator('.achievements-modal')).toBeVisible();
+
+  await page.evaluate(() => {
+    window.dispatchEvent(
+      new PointerEvent('pointerup', { pointerId: 77, bubbles: true }),
+    );
+  });
+  await expect
+    .poll(() => releaseName(page), { timeout: 15_000 })
+    .toBe('next');
+  await expect(page.getByRole('grid')).toBeVisible({ timeout: 60000 });
 });
 
 test('incomplete update preserves the working offline release', async ({
