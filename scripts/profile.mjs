@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { getLevel } from '../src/infiniteLevels.ts';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const require = createRequire(new URL('../package.json', import.meta.url));
@@ -38,6 +39,7 @@ const scenarios = [
     levelIndex: 33,
     expectedCells: 100,
     lcpLimit: 3000,
+    seededLevel: getLevel(33),
     longTaskLimit: 600,
     eventLimit: 650,
     heapLimitMb: 40,
@@ -90,7 +92,7 @@ try {
     await cdp.send('Performance.enable');
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: cpuThrottle });
     await page.addInitScript(
-      ({ index }) => {
+      ({ index, seededLevel }) => {
         window.metrics = { longTasks: [], lcp: 0, lcpElement: '', lcpUrl: '', cls: 0, events: [] };
         new PerformanceObserver((list) =>
           list
@@ -117,8 +119,13 @@ try {
         localStorage.setItem('cat-territory-progress-migrated-v3', '1');
         localStorage.setItem('cat-territory-current-level-v3', String(index));
         localStorage.setItem('cat-territory-gesture-coach-v3', 'done');
+        if (seededLevel)
+          localStorage.setItem(
+            `cat-territory-generated-v5-${index}`,
+            JSON.stringify(seededLevel),
+          );
       },
-      { index: levelIndex },
+      { index: levelIndex, seededLevel },
     );
 
     const errors = [];
