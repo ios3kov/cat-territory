@@ -31,14 +31,19 @@ import { GameBoard } from './GameBoard';
 import { haptic } from './haptics';
 import { MistakeIndicator } from './MistakeIndicator';
 import { getProgressionMeta } from './progression';
+import { runWhenIdle } from './scheduler';
 import { createInitialBoard, peekLevel } from './game';
 import { storageGet, storageSet } from './storage';
 import { useGameController } from './useGameController';
+let gameDialogsPromise: ReturnType<typeof importGameDialogs> | null = null;
+const importGameDialogs = () => import('./GameDialogs');
+const loadGameDialogs = () =>
+  (gameDialogsPromise ??= importGameDialogs());
 const RulesDialog = lazy(() =>
-  import('./GameDialogs').then((m) => ({ default: m.RulesDialog })),
+  loadGameDialogs().then((m) => ({ default: m.RulesDialog })),
 );
 const AchievementsDialog = lazy(() =>
-  import('./GameDialogs').then((m) => ({ default: m.AchievementsDialog })),
+  loadGameDialogs().then((m) => ({ default: m.AchievementsDialog })),
 );
 type CoachStep = 'tap' | 'cat' | 'done';
 const COACH_KEY = 'cat-territory-gesture-coach-v3';
@@ -51,6 +56,13 @@ function App() {
   const [autoMarksEnabled, setAutoMarksEnabled] =
     useState(readAutoMarksEnabled);
   const game = useGameController(autoMarksEnabled);
+  useEffect(
+    () =>
+      runWhenIdle(() => {
+        void loadGameDialogs();
+      }, 1200, 700),
+    [],
+  );
   const [showRules, setShowRules] = useState(false),
     [showAchievements, setShowAchievements] = useState(false),
     [soundEnabled, setSoundEnabledState] = useState(readSoundEnabled),
