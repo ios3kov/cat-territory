@@ -255,7 +255,6 @@ test('adaptive profile restores safely and ignores corrupted storage', () => {
   }
 });
 
-
 test('adaptive level persistence keeps phase variants isolated', () => {
   const memory = new Map<string, string>();
   const previous = globalThis.localStorage;
