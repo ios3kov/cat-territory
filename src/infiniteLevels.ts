@@ -501,7 +501,7 @@ function select(
   return chooseCandidate(candidates, floor, special, phase);
 }
 
-function progressionPhase(index: number) {
+export function progressionPhase(index: number) {
   if (index >= RUN_START_INDEX) return (index - RUN_START_INDEX) % 10;
   const plan = levelPlan(index),
     start =
@@ -511,12 +511,16 @@ function progressionPhase(index: number) {
   return count <= 1 ? 0 : Math.round((local / (count - 1)) * 9);
 }
 
-function generate(levelIndex: number) {
+export function adaptiveProgressionPhase(index: number, offset = 0) {
+  return Math.max(0, Math.min(9, progressionPhase(index) + Math.trunc(offset)));
+}
+
+function generate(levelIndex: number, phaseOffset = 0) {
   const index = normalizeIndex(levelIndex),
     plan = levelPlan(index),
     special = isMoonRun(index),
     seed = (index + 1) * 2654435761,
-    phase = progressionPhase(index),
+    phase = adaptiveProgressionPhase(index, phaseOffset),
     best = select(
       seed,
       plan.size,
@@ -534,7 +538,7 @@ function generate(levelIndex: number) {
   throw new Error(`Unable to generate level ${index + 1}.`);
 }
 
-export function getLevel(levelIndex: number) {
+export function getLevel(levelIndex: number, phaseOffset = 0) {
   const index = normalizeIndex(levelIndex),
     cached = generatedCache.get(index);
   if (cached) return cached;
@@ -543,7 +547,7 @@ export function getLevel(levelIndex: number) {
     generatedCache.set(index, persisted);
     return persisted;
   }
-  const generated = generate(index);
+  const generated = generate(index, phaseOffset);
   rememberGenerated(index, generated);
   return generated;
 }
