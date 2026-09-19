@@ -86,3 +86,14 @@ Next: run CI on this PR, merge only after green verification, then observe the f
 - Expected effect: total CI time approaches the duration of the slowest suite instead of the sum of all suites.
 
 Next: validate the new workflow in PR #36, then merge and observe the first gated automatic production deploy.
+
+
+## 2026-09-19 — Parallel Offline/PWA job fix
+
+- First public-repository parallel CI run confirmed hosted runners now start normally.
+- Static/build/security, dependency audit and low-end performance passed.
+- Offline/PWA failed because the new isolated job did not build `dist` before running `test:offline`.
+- Root cause was CI job decomposition, not application behavior: all offline failures were the same `ENOENT dist`.
+- Added `npm run build` inside the Offline/PWA job before browser installation/tests.
+
+Next: validate the corrected parallel workflow; merge only after the final aggregate gate is green.
