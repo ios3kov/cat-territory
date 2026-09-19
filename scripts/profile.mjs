@@ -93,7 +93,14 @@ try {
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: cpuThrottle });
     await page.addInitScript(
       ({ index, seededLevel }) => {
-        window.metrics = { longTasks: [], lcp: 0, lcpElement: '', lcpUrl: '', cls: 0, events: [] };
+        window.metrics = {
+          longTasks: [],
+          lcp: 0,
+          lcpElement: '',
+          lcpUrl: '',
+          cls: 0,
+          events: [],
+        };
         new PerformanceObserver((list) =>
           list
             .getEntries()
