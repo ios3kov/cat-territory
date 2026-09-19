@@ -1,3 +1,4 @@
+import { getAdaptivePhaseOffset } from './adaptiveDifficulty';
 import {
   CURATED_LEVEL_COUNT,
   levelSizeAt,
@@ -8,6 +9,7 @@ import type { CatalogLevel } from './levelCatalog';
 
 export { CURATED_LEVEL_COUNT, levelSizeAt };
 
+type LevelRequest = { index: number; phaseOffset: number };
 type Resource = {
   level?: CatalogLevel;
   error?: Error;
@@ -16,14 +18,22 @@ type Resource = {
 
 const resources = new Map<string, Resource>();
 
-function resource(key: string, request: { index: number }): Resource {
+function requestFor(index: number): LevelRequest {
+  return { index, phaseOffset: getAdaptivePhaseOffset() };
+}
+
+function resourceKey(request: LevelRequest) {
+  return `level-${request.index}-adaptive-${request.phaseOffset}`;
+}
+
+function resource(key: string, request: LevelRequest): Resource {
   for (const [old, item] of resources) {
     if (resources.size < 20) break;
     if (old !== key && (item.level || item.error)) resources.delete(old);
   }
   const cached = resources.get(key);
   if (cached) return cached;
-  const persisted = readGenerated(request.index),
+  const persisted = readGenerated(request.index, request.phaseOffset),
     entry: Resource = { level: persisted ?? undefined };
   resources.set(key, entry);
   if (entry.level) return entry;
@@ -44,7 +54,7 @@ function resource(key: string, request: { index: number }): Resource {
       clearTimeout(timeout);
       worker.terminate();
       entry.level = level;
-      if (level) rememberGenerated(request.index, level);
+      if (level) rememberGenerated(request.index, level, request.phaseOffset);
       entry.error = error ? new Error(error) : undefined;
       resolve();
     };
@@ -64,7 +74,7 @@ function resource(key: string, request: { index: number }): Resource {
   return entry;
 }
 
-function read(key: string, request: { index: number }) {
+function read(key: string, request: LevelRequest) {
   const entry = resource(key, request);
   if (entry.error) throw entry.error;
   if (entry.level) return entry.level;
@@ -72,19 +82,24 @@ function read(key: string, request: { index: number }) {
 }
 
 export function getLevel(index: number): CatalogLevel {
-  return read(`level-${index}`, { index });
+  const request = requestFor(index);
+  return read(resourceKey(request), request);
 }
 
 export function peekLevel(index: number): CatalogLevel | undefined {
+  const request = requestFor(index);
   return (
-    resources.get(`level-${index}`)?.level ?? readGenerated(index) ?? undefined
+    resources.get(resourceKey(request))?.level ??
+    readGenerated(index, request.phaseOffset) ??
+    undefined
   );
 }
 
 export async function prepareLevel(index: number) {
-  const key = `level-${index}`;
+  const request = requestFor(index),
+    key = resourceKey(request);
   if (resources.get(key)?.error) resources.delete(key);
-  const entry = resource(key, { index });
+  const entry = resource(key, request);
   await entry.promise;
   if (entry.error) throw entry.error;
 }

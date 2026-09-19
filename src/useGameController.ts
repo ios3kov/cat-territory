@@ -1,3 +1,4 @@
+import { recordAdaptiveResult } from './adaptiveDifficulty';
 import { useRestartConfirmation } from './useRestartConfirmation';
 import { usePuzzleHints } from './usePuzzleHints';
 import { useGameClock } from './useGameClock';
@@ -106,6 +107,7 @@ export function useGameController(autoMarksEnabled: boolean) {
     mistakeNoticeTimer = useRef<number | null>(null),
     achievementToastTimer = useRef<number | null>(null),
     completionTimer = useRef<number | null>(null),
+    undoCountRef = useRef(0),
     trackedLevelStartRef = useRef<string | null>(null),
     trackedFirstMoveRef = useRef<string | null>(null);
   const level = useMemo(() => getLevel(levelIndex), [levelIndex]),
@@ -247,6 +249,7 @@ export function useGameController(autoMarksEnabled: boolean) {
     mistakesRef.current = 0;
     setMistakes(0);
     resetHints();
+    undoCountRef.current = 0;
     setIdleHelpVisible(false);
     setMistakeCell(null);
     setCorrectCell(null);
@@ -300,12 +303,20 @@ export function useGameController(autoMarksEnabled: boolean) {
     const progress = completeLevel(levelIndex);
     if (progress.unlockedIndex !== unlockedLevelIndex)
       setUnlockedLevelIndex(progress.unlockedIndex);
+    const usedHintAtFinish = getUsedHint();
     const unlocked = recordLevelCompletion({
       levelIndex,
       size: level.size,
       seconds,
       mistakes,
-      usedHint: getUsedHint(),
+      usedHint: usedHintAtFinish,
+    });
+    recordAdaptiveResult({
+      size: level.size,
+      seconds,
+      mistakes,
+      usedHint: usedHintAtFinish,
+      undos: undoCountRef.current,
     });
     setAchievementCount(
       getAchievementSnapshot().filter((i) => i.unlocked).length,
@@ -379,6 +390,7 @@ export function useGameController(autoMarksEnabled: boolean) {
       setHistory((h) => h.slice(0, -1));
       playSound('rollback');
       haptic('undo');
+      undoCountRef.current++;
       track('undo');
     },
     restart = () => {
@@ -454,6 +466,7 @@ export function useGameController(autoMarksEnabled: boolean) {
       mistakesRef.current = restoredMistakes;
       setMistakes(restoredMistakes);
       resetHints(restoredHint);
+      undoCountRef.current = 0;
       trackedFirstMoveRef.current = null;
     } finally {
       nextLevelBusy.current = false;
