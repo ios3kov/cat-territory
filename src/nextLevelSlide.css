@@ -313,6 +313,11 @@
     --action-height: 42px;
   }
 }
+@media (orientation: landscape) and (max-height: 620px) {
+  .action-dock {
+    --action-height: 48px;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .action-dock *,
