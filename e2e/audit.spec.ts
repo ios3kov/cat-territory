@@ -123,6 +123,40 @@ test('small phone keeps board, title and actions inside the viewport', async ({
   ).toBeInViewport();
 });
 
+test('small landscape keeps board and action controls usable without overlap', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 568, height: 320 });
+  await start(page);
+  await expect(page.getByRole('grid')).not.toHaveClass(/board-assembling/);
+
+  const board = (await page.getByRole('grid').boundingBox())!;
+  const dock = (await page.locator('.action-dock').boundingBox())!;
+  const separated =
+    board.x + board.width <= dock.x + 1 ||
+    dock.x + dock.width <= board.x + 1 ||
+    board.y + board.height <= dock.y + 1 ||
+    dock.y + dock.height <= board.y + 1;
+  expect(separated).toBe(true);
+
+  for (const button of await page.locator('.action-row button').all()) {
+    await expect(button).toBeInViewport();
+    const bounds = (await button.boundingBox())!;
+    expect(bounds.height).toBeGreaterThanOrEqual(42);
+    expect(
+      await button.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        return document
+          .elementFromPoint(
+            rect.left + rect.width / 2,
+            rect.top + rect.height / 2,
+          )
+          ?.closest('button') === element;
+      }),
+    ).toBe(true);
+  }
+});
+
 test('saved statistics and invalid cats are validated', async ({ page }) => {
   await start(page);
   const result = await page.evaluate(async () => {
