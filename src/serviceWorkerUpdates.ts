@@ -110,7 +110,10 @@ function startServiceWorkerUpdates() {
     },
     true,
   );
-  navigator.serviceWorker.addEventListener('controllerchange', reloadForController);
+  navigator.serviceWorker.addEventListener(
+    'controllerchange',
+    reloadForController,
+  );
   navigator.serviceWorker.addEventListener('message', (event) => {
     const message = event.data as UpdateMessage | null;
     if (message?.type === 'PREPARE_UPDATE') flushSession();
@@ -165,5 +168,6 @@ function startServiceWorkerUpdates() {
 export function installServiceWorkerUpdates() {
   if (!('serviceWorker' in navigator) || !import.meta.env.PROD) return;
   if (document.readyState === 'complete') startServiceWorkerUpdates();
-  else window.addEventListener('load', startServiceWorkerUpdates, { once: true });
+  else
+    window.addEventListener('load', startServiceWorkerUpdates, { once: true });
 }
