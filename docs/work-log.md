@@ -57,3 +57,43 @@ After every completed step, append/update this log with:
 3. commit/PR when applicable;
 4. blockers or risks;
 5. next concrete step.
+
+
+## 2026-09-19 — Automated Cloudflare production deploy
+
+- Added `.github/workflows/deploy-production.yml`.
+- Deployment is gated by successful completion of the existing `verify` workflow for a push to `main`.
+- The workflow checks out the exact verified SHA, rebuilds `dist`, and deploys it to Cloudflare Pages project `cat-territory`.
+- Deployment uses GitHub Secrets only: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`; credentials are never stored in source.
+- Missing credentials fail early with an explicit CI error.
+- Wrangler deployment records the verified commit SHA and message.
+
+Next: run CI on this PR, merge only after green verification, then observe the first gated production deployment and smoke-test the live site.
+
+
+## 2026-09-19 — Parallel production verification
+
+- Replaced the single sequential `verify` job with independent parallel jobs:
+  - static/build/security;
+  - Chromium E2E;
+  - WebKit/iPhone;
+  - Offline/PWA;
+  - low-end performance;
+  - production dependency audit.
+- Added a final `production gate` job that requires every parallel job to succeed.
+- Failure artifacts are now split by browser/offline suite for faster diagnosis.
+- The Cloudflare deploy workflow still waits for the whole `verify` workflow to conclude successfully, so deployment safety is unchanged.
+- Expected effect: total CI time approaches the duration of the slowest suite instead of the sum of all suites.
+
+Next: validate the new workflow in PR #36, then merge and observe the first gated automatic production deploy.
+
+
+## 2026-09-19 — Parallel Offline/PWA job fix
+
+- First public-repository parallel CI run confirmed hosted runners now start normally.
+- Static/build/security, dependency audit and low-end performance passed.
+- Offline/PWA failed because the new isolated job did not build `dist` before running `test:offline`.
+- Root cause was CI job decomposition, not application behavior: all offline failures were the same `ENOENT dist`.
+- Added `npm run build` inside the Offline/PWA job before browser installation/tests.
+
+Next: validate the corrected parallel workflow; merge only after the final aggregate gate is green.

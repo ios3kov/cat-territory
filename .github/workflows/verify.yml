@@ -14,9 +14,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  verify:
+  static:
+    name: static / build / security
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -30,16 +31,113 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
       - run: npm run security:check
-      - run: npx playwright install --with-deps chromium webkit
-      - run: npm run test:e2e
-      - run: npm run test:feedback:webkit
-      - run: npm run test:offline
-      - run: npm run profile:check
-      - run: npm run audit:prod
 
+  chromium:
+    name: Chromium E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install --global npm@11.19.1
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: playwright-failures
+          name: chromium-failures
           path: test-results/
           retention-days: 7
+
+  webkit:
+    name: WebKit / iPhone
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install --global npm@11.19.1
+      - run: npm ci
+      - run: npx playwright install --with-deps webkit
+      - run: npm run test:feedback:webkit
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: webkit-failures
+          path: test-results/
+          retention-days: 7
+
+  offline:
+    name: Offline / PWA
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install --global npm@11.19.1
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium webkit
+      - run: npm run test:offline
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: offline-failures
+          path: test-results/
+          retention-days: 7
+
+  performance:
+    name: Low-end performance
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install --global npm@11.19.1
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run profile:check
+
+  audit:
+    name: Production dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install --global npm@11.19.1
+      - run: npm ci
+      - run: npm run audit:prod
+
+  gate:
+    name: production gate
+    if: always()
+    needs: [static, chromium, webkit, offline, performance, audit]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every production check
+        shell: bash
+        run: |
+          test "${{ needs.static.result }}" = "success"
+          test "${{ needs.chromium.result }}" = "success"
+          test "${{ needs.webkit.result }}" = "success"
+          test "${{ needs.offline.result }}" = "success"
+          test "${{ needs.performance.result }}" = "success"
+          test "${{ needs.audit.result }}" = "success"
