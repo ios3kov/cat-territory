@@ -22,6 +22,10 @@ function requestFor(index: number): LevelRequest {
   return { index, phaseOffset: getAdaptivePhaseOffset() };
 }
 
+function resourceKey(request: LevelRequest) {
+  return `level-${request.index}-adaptive-${request.phaseOffset}`;
+}
+
 function resource(key: string, request: LevelRequest): Resource {
   for (const [old, item] of resources) {
     if (resources.size < 20) break;
@@ -29,7 +33,7 @@ function resource(key: string, request: LevelRequest): Resource {
   }
   const cached = resources.get(key);
   if (cached) return cached;
-  const persisted = readGenerated(request.index),
+  const persisted = readGenerated(request.index, request.phaseOffset),
     entry: Resource = { level: persisted ?? undefined };
   resources.set(key, entry);
   if (entry.level) return entry;
@@ -50,7 +54,7 @@ function resource(key: string, request: LevelRequest): Resource {
       clearTimeout(timeout);
       worker.terminate();
       entry.level = level;
-      if (level) rememberGenerated(request.index, level);
+      if (level) rememberGenerated(request.index, level, request.phaseOffset);
       entry.error = error ? new Error(error) : undefined;
       resolve();
     };
@@ -78,19 +82,24 @@ function read(key: string, request: LevelRequest) {
 }
 
 export function getLevel(index: number): CatalogLevel {
-  return read(`level-${index}`, requestFor(index));
+  const request = requestFor(index);
+  return read(resourceKey(request), request);
 }
 
 export function peekLevel(index: number): CatalogLevel | undefined {
+  const request = requestFor(index);
   return (
-    resources.get(`level-${index}`)?.level ?? readGenerated(index) ?? undefined
+    resources.get(resourceKey(request))?.level ??
+    readGenerated(index, request.phaseOffset) ??
+    undefined
   );
 }
 
 export async function prepareLevel(index: number) {
-  const key = `level-${index}`;
+  const request = requestFor(index),
+    key = resourceKey(request);
   if (resources.get(key)?.error) resources.delete(key);
-  const entry = resource(key, requestFor(index));
+  const entry = resource(key, request);
   await entry.promise;
   if (entry.error) throw entry.error;
 }
