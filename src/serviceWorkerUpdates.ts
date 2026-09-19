@@ -1,8 +1,7 @@
 export const BEFORE_UPDATE_EVENT = 'cat-territory:before-update';
 
 const QUIET_WINDOW_MS = 1200;
-const RESUME_CHECK_THROTTLE_MS = 60_000;
-const PERIODIC_CHECK_MS = 15 * 60_000;
+const RESUME_CHECK_THROTTLE_MS = 6 * 60 * 60 * 1000;
 
 type UpdateMessage = {
   type?: string;
@@ -141,10 +140,6 @@ function startServiceWorkerUpdates() {
       watchInstallingWorker();
       queueWorker(registration.waiting);
       checkForUpdate();
-
-      window.setInterval(() => {
-        if (document.visibilityState === 'visible') checkForUpdate();
-      }, PERIODIC_CHECK_MS);
 
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
