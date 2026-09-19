@@ -273,16 +273,24 @@ function resolvePair(
   }
 }
 
+function broadPhase(bodies: Body[]) {
+  return [...bodies].sort(
+    (a, b) => a.x - a.r - (b.x - b.r)
+  );
+}
+
 function findMerges(bodies: Body[], now: number) {
   const consumed = new Set<number>();
   const pairs: Array<[Body, Body]> = [];
+  const ordered = broadPhase(bodies);
 
-  for (let i = 0; i < bodies.length; i += 1) {
-    const a = bodies[i]!;
+  for (let i = 0; i < ordered.length; i += 1) {
+    const a = ordered[i]!;
     if (consumed.has(a.id)) continue;
 
-    for (let j = i + 1; j < bodies.length; j += 1) {
-      const b = bodies[j]!;
+    for (let j = i + 1; j < ordered.length; j += 1) {
+      const b = ordered[j]!;
+      if (b.x - b.r > a.x + a.r + 1.6) break;
       if (
         consumed.has(b.id) ||
         a.tier !== b.tier ||
@@ -317,7 +325,7 @@ export function stepWorld(
   onImpact: (strength: number) => void
 ) {
   for (const body of world.bodies) {
-    body.pressure *= 0.9;
+    body.pressure *= 0.975;
     body.impact = Math.max(0, body.impact - dt * 4.4);
     body.vy += GRAVITY * dt;
     body.vx *= AIR_DRAG;
@@ -363,14 +371,24 @@ export function stepWorld(
     world.bodies = nextBodies;
   }
 
-  for (let iteration = 0; iteration < SOLVER_ITERATIONS; iteration += 1) {
+  const solverIterations =
+    world.bodies.length > 36
+      ? Math.max(4, SOLVER_ITERATIONS - 2)
+      : world.bodies.length > 20
+        ? Math.max(5, SOLVER_ITERATIONS - 1)
+        : SOLVER_ITERATIONS;
+
+  for (let iteration = 0; iteration < solverIterations; iteration += 1) {
     const reportImpact = iteration === 0;
-    for (let i = 0; i < world.bodies.length; i += 1) {
-      const a = world.bodies[i]!;
+    const ordered = broadPhase(world.bodies);
+    for (let i = 0; i < ordered.length; i += 1) {
+      const a = ordered[i]!;
       resolveBoundary(a, onImpact, reportImpact);
 
-      for (let j = i + 1; j < world.bodies.length; j += 1) {
-        resolvePair(a, world.bodies[j]!, onImpact, reportImpact);
+      for (let j = i + 1; j < ordered.length; j += 1) {
+        const b = ordered[j]!;
+        if (b.x - b.r > a.x + a.r) break;
+        resolvePair(a, b, onImpact, reportImpact);
       }
     }
   }
