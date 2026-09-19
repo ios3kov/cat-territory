@@ -28,13 +28,13 @@ npm run format:check
 npm run lint
 npm run typecheck
 npm run build
-npm run audit:prod
 npm run security:check
 npx playwright install --with-deps chromium webkit
 npm run test:e2e
 npm run test:feedback:webkit
 npm run test:offline
 npm run profile:check
+npm run audit:prod
 ```
 
 The Playwright matrix covers desktop, mobile portrait, mobile landscape and WebKit/iPhone profiles. The performance gate also profiles a CPU-throttled 10×10 level.
