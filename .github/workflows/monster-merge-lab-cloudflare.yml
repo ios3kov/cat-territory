@@ -1,0 +1,46 @@
+name: Monster Merge Lab Cloudflare
+
+on:
+  push:
+    branches:
+      - monster-merge-lab
+  pull_request:
+    branches:
+      - monster-merge-lab
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: monster-merge-lab-cloudflare
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify
+        run: |
+          npm run typecheck
+          npm run build
+          npm audit --omit=dev --audit-level=high
+
+      - name: Deploy Monster Merge Lab
+        run: npx --yes wrangler@4 deploy --config wrangler.jsonc
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 018d8fa99d7e951d6c5751dd456ba7e1
