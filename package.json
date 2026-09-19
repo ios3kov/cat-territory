@@ -17,7 +17,8 @@
     "format:check": "prettier --check src e2e e2e-offline scripts *.ts *.js *.json .github/workflows/*.yml",
     "test:feedback:webkit": "playwright test -c playwright.feedback.config.ts",
     "profile:check": "node scripts/profile.mjs --check",
-    "audit:prod": "npm audit --omit=dev --audit-level=high"
+    "audit:prod": "npm audit --omit=dev --audit-level=high",
+    "security:check": "node scripts/security-check.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.469.0",
