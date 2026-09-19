@@ -1,6 +1,7 @@
 import { storageGet, storageSet } from './storage';
 
-const KEY = 'cat-territory-adaptive-difficulty-v1';
+export const ADAPTIVE_DIFFICULTY_KEY = 'cat-territory-adaptive-difficulty-v1';
+const KEY = ADAPTIVE_DIFFICULTY_KEY;
 const WINDOW = 10;
 
 export type AdaptiveResult = {
@@ -60,9 +61,10 @@ export function readAdaptiveProfile(): Profile {
     const direction: Direction =
       parsed.direction === -1 || parsed.direction === 1 ? parsed.direction : 0;
     return {
-      offset: finiteNonnegative(Math.abs(parsed.offset ?? NaN))
-        ? clampOffset(Number(parsed.offset))
-        : 0,
+      offset:
+        typeof parsed.offset === 'number' && Number.isFinite(parsed.offset)
+          ? clampOffset(parsed.offset)
+          : 0,
       direction,
       streak:
         finiteNonnegative(parsed.streak) && parsed.streak <= WINDOW
