@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { CellState } from './game';
 import { saveLevelSession } from './session';
+import { BEFORE_UPDATE_EVENT } from './serviceWorkerUpdates';
 type Snapshot = {
   levelId: string;
   board: CellState[];
@@ -64,9 +65,11 @@ export function useSessionPersistence(snapshot: Snapshot) {
       if (document.visibilityState === 'hidden') flush();
     };
     window.addEventListener('pagehide', flush);
+    window.addEventListener(BEFORE_UPDATE_EVENT, flush);
     document.addEventListener('visibilitychange', visibility);
     return () => {
       window.removeEventListener('pagehide', flush);
+      window.removeEventListener(BEFORE_UPDATE_EVENT, flush);
       document.removeEventListener('visibilitychange', visibility);
       flush();
     };
