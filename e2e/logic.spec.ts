@@ -14,6 +14,8 @@ import {
   adaptiveProgressionPhase,
   progressionPhase,
   levelSizeAt,
+  readGenerated,
+  rememberGenerated,
 } from '../src/infiniteLevels';
 import { analyzePuzzle } from '../src/puzzleEngine';
 import { getLogicalHint } from '../src/logicalEngine';
@@ -245,6 +247,34 @@ test('adaptive profile restores safely and ignores corrupted storage', () => {
     expect(profile.offset).toBe(1);
     expect(profile.streak).toBe(0);
     expect(profile.recent).toHaveLength(1);
+  } finally {
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: previous,
+    });
+  }
+});
+
+
+test('adaptive level persistence keeps phase variants isolated', () => {
+  const memory = new Map<string, string>();
+  const previous = globalThis.localStorage;
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: {
+      getItem: (key: string) => memory.get(key) ?? null,
+      setItem: (key: string, value: string) => void memory.set(key, value),
+      removeItem: (key: string) => void memory.delete(key),
+    },
+  });
+  try {
+    const base = getLevel(0);
+    rememberGenerated(0, { ...base, name: 'Adaptive low' }, -2);
+    rememberGenerated(0, { ...base, name: 'Adaptive high' }, 1);
+    expect(readGenerated(0, -2)?.name).toBe('Adaptive low');
+    expect(readGenerated(0, 1)?.name).toBe('Adaptive high');
+    expect(readGenerated(0, 0)?.name).not.toBe('Adaptive low');
+    expect(readGenerated(0, 0)?.name).not.toBe('Adaptive high');
   } finally {
     Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,
