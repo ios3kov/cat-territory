@@ -131,3 +131,13 @@ Next: validate the full production gate in PR CI, then merge and resume the auto
 - Product code is unchanged.
 
 Next: validate PR CI, merge, then verify the automatic Worker deployment. The Cloudflare API token must have Worker deploy permission (Workers Editor / Workers Scripts Write) for the existing worker.
+
+## 2026-09-20 — Hidden adaptive difficulty
+
+- Added a local-only adaptive difficulty profile using the existing storage abstraction; no UI, account or server dependency.
+- The profile keeps the last 10 completed levels and considers mistakes, Hint use, Undo count and solve pace relative to the player's recent pace.
+- Difficulty changes use hysteresis: sustained strong play requires 3 matching results to raise the target by one phase; sustained struggle requires 2 to lower it.
+- Adaptive range is capped to -2/+1 progression phases. Board-size progression, Moon Run rules and the current in-progress level are not changed.
+- Background next-level generation receives the current adaptive phase offset, preserving the existing prewarm flow.
+- Corrupted adaptive storage falls back safely.
+- Added regression coverage for hysteresis, clamping, size-curve preservation and corrupted/restored profile data.
