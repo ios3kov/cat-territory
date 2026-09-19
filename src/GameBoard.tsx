@@ -46,6 +46,39 @@ type CellStyle = CSSProperties & {
   '--assemble-delay'?: string;
   '--feedback-delay'?: string;
 };
+
+const classes = (...values: Array<string | false | null | undefined>) =>
+  values.filter(Boolean).join(' ');
+
+function cellAriaLabel({
+  rowIndex,
+  colIndex,
+  region,
+  value,
+  starter,
+  excluded,
+  hintTarget,
+  hintCell,
+}: {
+  rowIndex: number;
+  colIndex: number;
+  region: number;
+  value: CellState;
+  starter: boolean;
+  excluded: boolean;
+  hintTarget: boolean;
+  hintCell: boolean;
+}) {
+  const state = value === 2 ? 'cat' : value === 1 ? 'marked X' : 'empty';
+  const hint = excluded
+    ? ', hint: mark X'
+    : hintTarget
+      ? ', hint target'
+      : hintCell
+        ? ', hint clue'
+        : '';
+  return `Row ${rowIndex + 1}, column ${colIndex + 1}, territory ${region + 1}, ${state}${starter ? ', starter cat' : ''}${hint}`;
+}
 function MarkX({
   drawn = false,
   swipe = false,
@@ -165,7 +198,17 @@ function GameBoardView({
   return (
     <div className="board-wrap">
       <div
-        className={`board board-size-${size} ${assembling ? 'board-assembling' : ''} ${correctCell != null || mistakeCell != null || hintCells.length || coachCell != null || celebrateCats ? 'board-attention' : ''}`}
+        className={classes(
+          'board',
+          `board-size-${size}`,
+          assembling && 'board-assembling',
+          (correctCell != null ||
+            mistakeCell != null ||
+            hintCells.length > 0 ||
+            coachCell != null ||
+            celebrateCats) &&
+            'board-attention',
+        )}
         key={level.id}
         role="grid"
         aria-rowcount={size}
@@ -212,7 +255,20 @@ function GameBoardView({
               }
               return (
                 <button
-                  className={`cell ${transitionRole ? `board-transition-${transitionRole}` : ''} ${starter ? 'starter' : ''} ${mistakeCell === idx ? 'mistake-cell' : ''} ${correctCell === idx ? 'correct-cell' : ''} ${hintCellSet.has(idx) ? 'hint-cell' : ''} ${hintTarget === idx ? 'hint-target' : ''} ${excludedSet.has(idx) ? 'hint-excluded' : ''} ${coachCell === idx ? 'gesture-coach-cell' : ''} ${feedback ? `feedback-${feedback.kind} feedback-phase-${feedback.token % 2}` : ''} ${celebrating ? 'win-sequence' : ''}`}
+                  className={classes(
+                    'cell',
+                    transitionRole && `board-transition-${transitionRole}`,
+                    starter && 'starter',
+                    mistakeCell === idx && 'mistake-cell',
+                    correctCell === idx && 'correct-cell',
+                    hintCellSet.has(idx) && 'hint-cell',
+                    hintTarget === idx && 'hint-target',
+                    excludedSet.has(idx) && 'hint-excluded',
+                    coachCell === idx && 'gesture-coach-cell',
+                    feedback && `feedback-${feedback.kind}`,
+                    feedback && `feedback-phase-${feedback.token % 2}`,
+                    celebrating && 'win-sequence',
+                  )}
                   key={`${rowIndex}-${colIndex}`}
                   type="button"
                   role="gridcell"
@@ -220,7 +276,16 @@ function GameBoardView({
                   aria-colindex={colIndex + 1}
                   tabIndex={!starter && idx === focusIndex ? 0 : -1}
                   disabled={starter}
-                  aria-label={`Row ${rowIndex + 1}, column ${colIndex + 1}, territory ${region + 1}${value === 2 ? ', cat' : value === 1 ? ', marked X' : ', empty'}${starter ? ', starter cat' : ''}${excludedSet.has(idx) ? ', hint: mark X' : hintTarget === idx ? ', hint target' : hintCellSet.has(idx) ? ', hint clue' : ''}`}
+                  aria-label={cellAriaLabel({
+                    rowIndex,
+                    colIndex,
+                    region,
+                    value,
+                    starter,
+                    excluded: excludedSet.has(idx),
+                    hintTarget: hintTarget === idx,
+                    hintCell: hintCellSet.has(idx),
+                  })}
                   data-cell-index={idx}
                   data-region={region}
                   onFocus={() => setFocusIndex(idx)}
