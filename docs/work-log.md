@@ -57,3 +57,15 @@ After every completed step, append/update this log with:
 3. commit/PR when applicable;
 4. blockers or risks;
 5. next concrete step.
+
+
+## 2026-09-19 — Automated Cloudflare production deploy
+
+- Added `.github/workflows/deploy-production.yml`.
+- Deployment is gated by successful completion of the existing `verify` workflow for a push to `main`.
+- The workflow checks out the exact verified SHA, rebuilds `dist`, and deploys it to Cloudflare Pages project `cat-territory`.
+- Deployment uses GitHub Secrets only: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`; credentials are never stored in source.
+- Missing credentials fail early with an explicit CI error.
+- Wrangler deployment records the verified commit SHA and message.
+
+Next: run CI on this PR, merge only after green verification, then observe the first gated production deployment and smoke-test the live site.
