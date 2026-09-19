@@ -83,14 +83,8 @@ try {
 
   const results = [];
   for (const scenario of scenarios) {
-    const {
-      name,
-      width,
-      height,
-      cpuThrottle,
-      levelIndex,
-      expectedCells,
-    } = scenario;
+    const { name, width, height, cpuThrottle, levelIndex, expectedCells } =
+      scenario;
     const page = await browser.newPage({ viewport: { width, height } });
     const cdp = await page.context().newCDPSession(page);
     await cdp.send('Performance.enable');
@@ -128,12 +122,16 @@ try {
     await page.goto('http://127.0.0.1:4175');
     await page.getByRole('grid').waitFor({ timeout: 30000 });
     await page.waitForFunction(
-      (count) => document.querySelectorAll('[role="gridcell"]').length === count,
+      (count) =>
+        document.querySelectorAll('[role="gridcell"]').length === count,
       expectedCells,
       { timeout: 30000 },
     );
     await page.waitForTimeout(1200);
-    await page.locator('[role="gridcell"]:not([disabled])').first().press('Space');
+    await page
+      .locator('[role="gridcell"]:not([disabled])')
+      .first()
+      .press('Space');
     await page.getByRole('button', { name: 'How to play' }).click();
     await page.keyboard.press('Escape');
     await page.waitForTimeout(500);
