@@ -7,7 +7,10 @@ let outputDirectory: string;
 
 const iconSource = resolve('scripts/assets/icon-180.b64');
 const appleIcon = resolve('public/icon-180.png');
-writeFileSync(appleIcon, Buffer.from(readFileSync(iconSource, 'utf8').trim(), 'base64'));
+writeFileSync(
+  appleIcon,
+  Buffer.from(readFileSync(iconSource, 'utf8').trim(), 'base64'),
+);
 
 export default defineConfig({
   plugins: [
