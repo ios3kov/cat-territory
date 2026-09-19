@@ -69,3 +69,20 @@ After every completed step, append/update this log with:
 - Wrangler deployment records the verified commit SHA and message.
 
 Next: run CI on this PR, merge only after green verification, then observe the first gated production deployment and smoke-test the live site.
+
+
+## 2026-09-19 — Parallel production verification
+
+- Replaced the single sequential `verify` job with independent parallel jobs:
+  - static/build/security;
+  - Chromium E2E;
+  - WebKit/iPhone;
+  - Offline/PWA;
+  - low-end performance;
+  - production dependency audit.
+- Added a final `production gate` job that requires every parallel job to succeed.
+- Failure artifacts are now split by browser/offline suite for faster diagnosis.
+- The Cloudflare deploy workflow still waits for the whole `verify` workflow to conclude successfully, so deployment safety is unchanged.
+- Expected effect: total CI time approaches the duration of the slowest suite instead of the sum of all suites.
+
+Next: validate the new workflow in PR #36, then merge and observe the first gated automatic production deploy.
