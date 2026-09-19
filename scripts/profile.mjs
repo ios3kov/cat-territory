@@ -4,6 +4,17 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const require = createRequire(new URL('../package.json', import.meta.url));
 const { chromium } = require('playwright');
+const { createServer } = await import('vite');
+const moduleServer = await createServer({
+  root,
+  server: { middlewareMode: true },
+  appType: 'custom',
+  logLevel: 'silent',
+});
+const { getLevel } = await moduleServer.ssrLoadModule('/src/infiniteLevels.ts');
+const seededTenByTen = getLevel(33);
+await moduleServer.close();
+
 const scenarios = [
   {
     name: 'desktop',
@@ -37,7 +48,7 @@ const scenarios = [
     levelIndex: 33,
     expectedCells: 100,
     lcpLimit: 3000,
-    seedFixture: true,
+    seededLevel: seededTenByTen,
     longTaskLimit: 600,
     eventLimit: 650,
     heapLimitMb: 40,
@@ -90,7 +101,7 @@ try {
       cpuThrottle,
       levelIndex,
       expectedCells,
-      seedFixture,
+      seededLevel,
     } = scenario;
     const page = await browser.newPage({ viewport: { width, height } });
     const cdp = await page.context().newCDPSession(page);
@@ -131,19 +142,17 @@ try {
         localStorage.setItem('cat-territory-progress-migrated-v3', '1');
         localStorage.setItem('cat-territory-current-level-v3', String(index));
         localStorage.setItem('cat-territory-gesture-coach-v3', 'done');
-        if (seedFixture)
-          localStorage.setItem('cat-territory-profile-seed-index', String(index));
+        if (seededLevel)
+          localStorage.setItem(
+            `cat-territory-generated-v5-${index}`,
+            JSON.stringify(seededLevel),
+          );
       },
-      { index: levelIndex, seedFixture },
+      { index: levelIndex, seededLevel },
     );
 
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
-    if (seedFixture) {
-      await page.route('**/levelWorker-*.js', async (route) => {
-        await route.continue();
-      });
-    }
     await page.goto('http://127.0.0.1:4175');
     await page.getByRole('grid').waitFor({ timeout: 30000 });
     await page.waitForFunction(
