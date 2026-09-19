@@ -102,6 +102,14 @@ function startServiceWorkerUpdates() {
     true,
   );
   window.addEventListener('keydown', noteInteraction, true);
+  window.addEventListener(
+    'blur',
+    () => {
+      activePointers = 0;
+      noteInteraction();
+    },
+    true,
+  );
   navigator.serviceWorker.addEventListener('controllerchange', reloadForController);
   navigator.serviceWorker.addEventListener('message', (event) => {
     const message = event.data as UpdateMessage | null;
@@ -127,6 +135,7 @@ function startServiceWorkerUpdates() {
       };
 
       registration.addEventListener('updatefound', watchInstallingWorker);
+      watchInstallingWorker();
       queueWorker(registration.waiting);
       checkForUpdate();
 
