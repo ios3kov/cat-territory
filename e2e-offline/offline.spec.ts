@@ -256,9 +256,9 @@ test('new release activates automatically and restores in-progress gameplay', as
   await goOffline(context, site, browserName);
   await page.reload();
   await expect(page.getByRole('grid')).toBeVisible();
-  await expect(page.getByRole('gridcell').nth(0).locator('.mark-x')).toHaveCount(
-    1,
-  );
+  await expect(
+    page.getByRole('gridcell').nth(0).locator('.mark-x'),
+  ).toHaveCount(1);
   await page.getByRole('button', { name: 'Progress and achievements' }).click();
   await expect(page.locator('.achievements-modal')).toBeVisible();
 });
