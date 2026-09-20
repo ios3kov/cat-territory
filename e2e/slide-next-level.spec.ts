@@ -310,6 +310,7 @@ test('completed drag holds at the endpoint before the dock morphs back', async (
       state: string | null;
       slider: number;
       board: number;
+      transform: string;
     }> = [];
     const snapshot = () => ({
       state: slide.dataset.state ?? null,
@@ -326,16 +327,16 @@ test('completed drag holds at the endpoint before the dock morphs back', async (
     });
     const sample = () => {
       if (!slide.isConnected) return;
+      const style = getComputedStyle(slide);
       samples.push({
         state: slide.dataset.state ?? null,
-        slider: Number(
-          getComputedStyle(slide).getPropertyValue('--slide-progress'),
-        ),
+        slider: Number(style.getPropertyValue('--slide-progress')),
         board: Number(
           getComputedStyle(board).getPropertyValue(
             '--level-transition-progress',
           ),
         ),
+        transform: style.transform,
       });
       requestAnimationFrame(sample);
     };
@@ -371,6 +372,7 @@ test('completed drag holds at the endpoint before the dock morphs back', async (
         state: string | null;
         slider: number;
         board: number;
+        transform: string;
       }>,
     };
   });
@@ -378,12 +380,25 @@ test('completed drag holds at the endpoint before the dock morphs back', async (
     (item) => item.state === 'confirmed',
   );
   const handoff = recorded.timeline.find((item) => item.state === 'handoff');
+
   expect(recorded.timeline.some((item) => item.state === 'settling')).toBe(
     true,
   );
   expect(confirmed?.progress).toBe(1);
   expect(handoff).toBeTruthy();
   expect(handoff!.time - confirmed!.time).toBeGreaterThanOrEqual(120);
+  // Safari must retain the slider's vertical centering while the dock morphs
+  // back into buttons. A scale-only transform has zero vertical translation
+  // and produces a visible jump during handoff.
+  const handoffSample = recorded.samples.find(
+    (sample) => sample.state === 'handoff',
+  );
+  expect(handoffSample).toBeTruthy();
+  const matrix = handoffSample!.transform.match(
+    /^matrix\(([^,]+), [^,]+, [^,]+, [^,]+, [^,]+, ([^)]+)\)$/,
+  );
+  expect(matrix).toBeTruthy();
+  expect(Math.abs(Number(matrix![2]))).toBeGreaterThan(1);
 
   const settlingSamples = recorded.samples.filter(
     (sample) => sample.state === 'settling',
