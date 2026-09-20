@@ -378,12 +378,25 @@ test('completed drag holds at the endpoint before the dock morphs back', async (
     (item) => item.state === 'confirmed',
   );
   const handoff = recorded.timeline.find((item) => item.state === 'handoff');
+
+  const handoffTransform = await page.evaluate(() => {
+    const dock = document.querySelector<HTMLElement>('.action-dock');
+    const slide = dock?.querySelector<HTMLElement>(
+      '[data-testid="next-level-slide"]',
+    );
+    return slide ? getComputedStyle(slide).transform : null;
+  });
   expect(recorded.timeline.some((item) => item.state === 'settling')).toBe(
     true,
   );
   expect(confirmed?.progress).toBe(1);
   expect(handoff).toBeTruthy();
   expect(handoff!.time - confirmed!.time).toBeGreaterThanOrEqual(120);
+  // Safari must retain the slider's vertical centering while the dock morphs
+  // back into buttons. A scale-only transform drops translateY(-50%) and
+  // causes a visible vertical jump during handoff.
+  if (handoffTransform)
+    expect(handoffTransform).not.toBe('matrix(0.985, 0, 0, 1, 0, 0)');
 
   const settlingSamples = recorded.samples.filter(
     (sample) => sample.state === 'settling',
