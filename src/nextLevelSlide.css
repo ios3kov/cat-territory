@@ -200,7 +200,7 @@
 }
 .next-level-slide[data-state='handoff'] {
   opacity: 0;
-  transform: scaleX(0.985);
+  transform: translateY(-50%) scaleX(0.985);
   border-radius: 14px;
   transition:
     opacity 0.24s 0.08s ease,
