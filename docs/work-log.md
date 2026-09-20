@@ -147,3 +147,9 @@ Next: validate PR CI, merge, then verify the automatic Worker deployment. The Cl
 - Code review found that prewarming could otherwise generate the next territory before the just-finished level updated the adaptive profile.
 - Generated/persisted level variants are now keyed by adaptive phase, so a changed profile cannot reuse a stale prewarm from another phase.
 - Added a regression test proving low/high/default adaptive variants remain isolated.
+
+## 2026-09-20 — Safari desktop slider morph
+
+- Fixed the victory slider handoff transform so Safari keeps the slider vertically centered while it scales back into the action row.
+- The handoff state now preserves `translateY(-50%)` together with `scaleX(0.985)` instead of replacing the centering transform.
+- Added a WebKit regression assertion that the handoff transform retains non-zero vertical translation during the morph.
